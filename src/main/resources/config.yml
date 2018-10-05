@@ -1,0 +1,67 @@
+# General entity limiting
+# Use this section to limit how many entities can be added to an island.
+# 0 means the item will be blocked from placement completely.
+# Uncomment to set the limit. The numbers are just suggested values.
+# The limit is per-world, so a hopper limit of 30 means up to 30 in the overworld and
+# up to 30 in the nether.
+entitylimits:
+  # Mobs, animals and other living entities
+  #BAT: 10
+  #BLAZE: 10
+  #BOAT: 10
+  #CAVE_SPIDER: 10
+  #CHICKEN: 10
+  #COW: 10
+  #CREEPER: 10
+  #DONKEY: 10
+  #ENDERMAN: 10
+  #HORSE: 10
+  #HUSK: 10
+  #IRON_GOLEM: 10
+  #LLAMA: 10
+  #MAGMA_CUBE: 10
+  #MULE: 10
+  #MUSHROOM_COW: 10
+  #OCELOT: 10
+  #PIG: 10
+  #PIG_ZOMBIE: 10
+  #POLAR_BEAR: 10
+  #RABBIT: 10
+  #SHEEP: 10
+  #SKELETON: 10
+  #SKELETON_HORSE: 10
+  #SLIME: 10
+  #SNOWMAN: 10
+  #SPIDER: 10
+  #SQUID: 10
+  #STRAY: 10
+  #WITCH: 10
+  #WITHER: 10
+  #WITHER_SKELETON: 10
+  #WOLF: 10
+  #ZOMBIE: 10
+  #ZOMBIE_HORSE: 10
+  #ZOMBIE_VILLAGER: 10  
+  # These are the ONLY blocks that can be limited (because they are entities).
+  #BANNER: 20
+  #ITEM_FRAME: 30
+  #FURNACE: 10
+  #CHEST: 50
+  #TRAPPED_CHEST: 50
+  #ENDER_CHEST: 1
+  #JUKEBOX: 5
+  #DISPENSER: 5
+  #DROPPER: 5
+  #SIGN: 10
+  #MOB_SPAWNER: 10
+  #NOTE_BLOCK: 5
+  #ENCHANTMENT_TABLE: 5
+  #BEACON: 12
+  #SKULL: 50
+  #DAYLIGHT_DETECTOR: 10
+  HOPPER: 30
+  #REDSTONE_COMPARATOR: 30
+  #FLOWER_POT: 20
+  #PAINTING: 5
+  #ARMOR_STAND: 5
+  #BREWING_STAND: 20

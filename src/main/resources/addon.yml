@@ -1,0 +1,8 @@
+name: BentoBox-Limits
+main: bentobox.addon.limits.Limits
+version: ${version}
+
+authors: tastybento
+
+softdepend: AcidIsland, BSkyBlock
+
