@@ -22,6 +22,8 @@ public class EntityLimitsDO implements DataObject {
     @Expose
     private Map<UUID, String> spawnLoc = new HashMap<>();
 
+    public EntityLimitsDO() {}
+
     public EntityLimitsDO(String uniqueId) {
         this.uniqueId = uniqueId;
     }

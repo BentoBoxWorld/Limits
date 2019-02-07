@@ -1,8 +1,8 @@
-name: BentoBox-Limits
+name: Limits
 main: bentobox.addon.limits.Limits
 version: ${version}
 
 authors: tastybento
 
-softdepend: AcidIsland, BSkyBlock
+softdepend: AcidIsland, BSkyBlock, CaveBlock, SkyGrid
 

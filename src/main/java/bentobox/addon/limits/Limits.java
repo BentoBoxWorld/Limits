@@ -1,20 +1,36 @@
 package bentobox.addon.limits;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.bukkit.World;
+
+import bentobox.addon.limits.listeners.BlockLimitsListener;
+import bentobox.addon.limits.listeners.EntityLimitsListener;
 import world.bentobox.bentobox.api.addons.Addon;
-import world.bentobox.bentobox.api.commands.CompositeCommand;
+import world.bentobox.bentobox.api.addons.GameModeAddon;
 
 
 /**
- * Addon to BSkyBlock that enables island level scoring and top ten functionality
+ * Addon to BentoBox that monitors and enforces limits
  * @author tastybento
  *
  */
 public class Limits extends Addon {
 
-    Settings settings;
+    private Settings settings;
+    private EntityLimitsListener listener;
+    private List<World> worlds;
+    private BlockLimitsListener blockLimitListener;
 
     @Override
     public void onDisable(){
+        if (listener != null) {
+            worlds.forEach(listener::disable);
+        }
+        if (blockLimitListener  != null) {
+            blockLimitListener.save();
+        }
     }
 
     @Override
@@ -23,33 +39,18 @@ public class Limits extends Addon {
         saveDefaultConfig();
         // Load settings
         settings = new Settings(this);
-        // Register commands
-        // AcidIsland hook in
-        this.getPlugin().getAddonsManager().getAddonByName("AcidIsland").ifPresent(a -> {
-            CompositeCommand acidIslandCmd = getPlugin().getCommandsManager().getCommand(getConfig().getString("acidisland.user-command","ai"));
-            if (acidIslandCmd != null) {
-                CompositeCommand acidCmd = getPlugin().getCommandsManager().getCommand(getConfig().getString("acidisland.admin-command","acid"));
-            }
-        });
-        // BSkyBlock hook in
-        this.getPlugin().getAddonsManager().getAddonByName("BSkyBlock").ifPresent(a -> {
-            CompositeCommand bsbIslandCmd = getPlugin().getCommandsManager().getCommand(getConfig().getString("bskyblock.user-command","island"));
-            if (bsbIslandCmd != null) {
-                CompositeCommand bsbAdminCmd = getPlugin().getCommandsManager().getCommand(getConfig().getString("bskyblock.admin-command","bsbadmin"));
-            }
-        });
-
-        // Register new island listener
-        //registerListener(new NewIslandListener(this));
-        //registerListener(new JoinLeaveListener(this));
+        // Register worlds from GameModes
+        worlds = getPlugin().getAddonsManager().getGameModeAddons().stream()
+                .filter(gm -> settings.getGameModes().contains(gm.getDescription().getName()))
+                .map(GameModeAddon::getOverWorld)
+                .collect(Collectors.toList());
+        worlds.forEach(w -> log("Limits will apply to " + w.getName()));
+        // Register listener
+        //listener = new EntityLimitsListener(this);
+        //registerListener(listener);
+        blockLimitListener = new BlockLimitsListener(this);
+        registerListener(blockLimitListener);
         // Done
-
-    }
-
-    /**
-     * Save the levels to the database
-     */
-    private void save(){
     }
 
     /**

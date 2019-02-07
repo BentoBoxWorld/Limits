@@ -60,9 +60,9 @@ public class EntityLimitsListener implements Listener {
                         entity.setMetadata("spawnLoc", new FixedMetadataValue(addon.getPlugin(), eld.getSpawnLoc().get(entity.getUniqueId())));
                     }
                 }
+                // Delete chunk
+                handler.deleteObject(eld);
             }
-            // Delete chunk
-            handler.deleteObject(eld);
         }
     }
 
@@ -81,7 +81,7 @@ public class EntityLimitsListener implements Listener {
         Map<UUID, String> spawnLoc = new HashMap<>();
         Arrays.stream(e.getChunk().getEntities()).filter(x -> x.hasMetadata("spawnLoc")).forEach(entity -> {
             // Get the meta data
-            entity.getMetadata("spawnLoc").stream().filter(y -> y.getOwningPlugin().equals(addon)).forEach(v -> {
+            entity.getMetadata("spawnLoc").stream().filter(y -> y.getOwningPlugin().equals(addon.getPlugin())).forEach(v -> {
                 spawnLoc.put(entity.getUniqueId(), v.asString());
             });
         });
@@ -124,10 +124,7 @@ public class EntityLimitsListener implements Listener {
             for (Entity entity : e.getVehicle().getLocation().getWorld().getNearbyEntities(e.getVehicle().getLocation(), 5, 5, 5)) {
                 if (entity instanceof Player) {
                     Player player = (Player)entity;
-                    Boolean bypass = false;
-                    if (player.isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getVehicle().getWorld()) + "mod.bypass")) {
-                        bypass = true;
-                    }
+                    boolean bypass = (player.isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getVehicle().getWorld()) + "mod.bypass"));
                     // Check island
                     addon.getIslands().getProtectedIslandAt(e.getVehicle().getLocation()).ifPresent(island -> {
                         // Ignore spawn
@@ -177,7 +174,6 @@ public class EntityLimitsListener implements Listener {
                 if (entity instanceof Player) {
                     Player player = (Player)entity;
                     if (player.isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getEntity().getWorld()) + "mod.bypass")) {
-                        //plugin.getLogger().info("DEBUG: bypass");
                         bypass = true;
                         break;
                     }

@@ -1,10 +1,10 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>bentobox.add</groupId>
-  <artifactId>addon-limits</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <groupId>world.bentobox</groupId>
+  <artifactId>limits</artifactId>
+  <version>0.0.2-SNAPSHOT</version>
   <name>addon-limits</name>
-  <description>An add-on for BentoBox that limits entities on islands.</description>
+  <description>An add-on for BentoBox that limits blocks and entities on islands.</description>
     <url>https://github.com/BentoBoxWorld/addon-level</url>
     <inceptionYear>2018</inceptionYear>
 
@@ -41,7 +41,7 @@
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
-            <version>1.13.1-R0.1-SNAPSHOT</version>
+            <version>1.13.2-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -65,7 +65,7 @@
         <dependency>
             <groupId>world.bentobox</groupId>
             <artifactId>bentobox</artifactId>
-            <version>0.10.0-SNAPSHOT</version>
+            <version>1.3.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

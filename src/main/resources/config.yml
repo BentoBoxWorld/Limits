@@ -1,9 +1,16 @@
-# General entity limiting
-# Use this section to limit how many entities can be added to an island.
+# General block limiting
+# Use this section to limit how many blocks can be added to an island.
 # 0 means the item will be blocked from placement completely.
-# Uncomment to set the limit. The numbers are just suggested values.
-# The limit is per-world, so a hopper limit of 30 means up to 30 in the overworld and
-# up to 30 in the nether.
+# These limits apply to every world
+blocklimits:
+  HOPPER: 10
+# This section is for world-specific limits and overrides the general limit
+# Specify each world you want to limit individually (including nether and end worlds)
+worlds:
+  AcidIsland_world:
+    HOPPER: 11
+
+# NOT IMPLEMENTED YET
 entitylimits:
   # Mobs, animals and other living entities
   #BAT: 10
@@ -42,26 +49,3 @@ entitylimits:
   #ZOMBIE: 10
   #ZOMBIE_HORSE: 10
   #ZOMBIE_VILLAGER: 10  
-  # These are the ONLY blocks that can be limited (because they are entities).
-  #BANNER: 20
-  #ITEM_FRAME: 30
-  #FURNACE: 10
-  #CHEST: 50
-  #TRAPPED_CHEST: 50
-  #ENDER_CHEST: 1
-  #JUKEBOX: 5
-  #DISPENSER: 5
-  #DROPPER: 5
-  #SIGN: 10
-  #MOB_SPAWNER: 10
-  #NOTE_BLOCK: 5
-  #ENCHANTMENT_TABLE: 5
-  #BEACON: 12
-  #SKULL: 50
-  #DAYLIGHT_DETECTOR: 10
-  HOPPER: 30
-  #REDSTONE_COMPARATOR: 30
-  #FLOWER_POT: 20
-  #PAINTING: 5
-  #ARMOR_STAND: 5
-  #BREWING_STAND: 20
