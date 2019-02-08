@@ -24,6 +24,9 @@ public class IslandBlockCount implements DataObject {
     @Expose
     private Map<Material, Integer> blockCount = new HashMap<>();
 
+    // Required for YAML database
+    public IslandBlockCount() {}
+
     public IslandBlockCount(String uniqueId2) {
         this.uniqueId = uniqueId2;
     }

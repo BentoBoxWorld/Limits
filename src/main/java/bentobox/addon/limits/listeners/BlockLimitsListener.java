@@ -71,6 +71,7 @@ public class BlockLimitsListener implements Listener {
             ConfigurationSection limitConfig = addon.getConfig().getConfigurationSection("blocklimits");
             defaultLimitMap = loadLimits(limitConfig);
         }
+
         // Load specific worlds
 
         if (addon.getConfig().isConfigurationSection("worlds")) {
@@ -257,7 +258,11 @@ public class BlockLimitsListener implements Listener {
             }
         }
         // Check default limit map
-        if (defaultLimitMap.containsKey(m) && countMap.get(id).isAtLimit(m, defaultLimitMap.get(m))) {
+        if (defaultLimitMap.containsKey(m)
+                && countMap
+                .get(id)
+                .isAtLimit(m,
+                        defaultLimitMap.get(m))) {
             return defaultLimitMap.get(m);
         }
         // No limit
