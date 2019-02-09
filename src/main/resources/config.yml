@@ -1,3 +1,9 @@
+# Game Modes
+gamemodes:
+- AcidIsland
+- BSkyBlock
+- CaveBock
+
 # General block limiting
 # Use this section to limit how many blocks can be added to an island.
 # 0 means the item will be blocked from placement completely.

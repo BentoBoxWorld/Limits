@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 import org.bukkit.World;
 
 import bentobox.addon.limits.listeners.BlockLimitsListener;
-import bentobox.addon.limits.listeners.EntityLimitsListener;
+import bentobox.addon.limits.listeners.JoinListener;
 import world.bentobox.bentobox.api.addons.Addon;
 import world.bentobox.bentobox.api.addons.GameModeAddon;
 
@@ -19,15 +19,11 @@ import world.bentobox.bentobox.api.addons.GameModeAddon;
 public class Limits extends Addon {
 
     private Settings settings;
-    private EntityLimitsListener listener;
-    private List<World> worlds;
+    private List<GameModeAddon> gameModes;
     private BlockLimitsListener blockLimitListener;
 
     @Override
     public void onDisable(){
-        if (listener != null) {
-            worlds.forEach(listener::disable);
-        }
         if (blockLimitListener  != null) {
             blockLimitListener.save();
         }
@@ -40,16 +36,14 @@ public class Limits extends Addon {
         // Load settings
         settings = new Settings(this);
         // Register worlds from GameModes
-        worlds = getPlugin().getAddonsManager().getGameModeAddons().stream()
+        gameModes = getPlugin().getAddonsManager().getGameModeAddons().stream()
                 .filter(gm -> settings.getGameModes().contains(gm.getDescription().getName()))
-                .map(GameModeAddon::getOverWorld)
                 .collect(Collectors.toList());
-        worlds.forEach(w -> log("Limits will apply to " + w.getName()));
+        gameModes.forEach(w -> log("Limits will apply to " + w.getDescription().getName()));
         // Register listener
-        //listener = new EntityLimitsListener(this);
-        //registerListener(listener);
         blockLimitListener = new BlockLimitsListener(this);
         registerListener(blockLimitListener);
+        registerListener(new JoinListener(this));
         // Done
     }
 
@@ -60,5 +54,44 @@ public class Limits extends Addon {
         return settings;
     }
 
+    /**
+     * @return the gameModes
+     */
+    public List<GameModeAddon> getGameModes() {
+        return gameModes;
+    }
 
+    /**
+     * @return the blockLimitListener
+     */
+    public BlockLimitsListener getBlockLimitListener() {
+        return blockLimitListener;
+    }
+
+    /**
+     * Checks if this world is covered by the activated game modes
+     * @param world - world
+     * @return true or false
+     */
+    public boolean inGameModeWorld(World world) {
+        return gameModes.stream().anyMatch(gm -> gm.inWorld(world));
+    }
+
+    /**
+     * Get the name of the game mode for this world
+     * @param world - world
+     * @return game mode name or empty string if none
+     */
+    public String getGameMode(World world) {
+        return gameModes.stream().filter(gm -> gm.inWorld(world)).findFirst().map(gm -> gm.getDescription().getName()).orElse("");
+    }
+
+    /**
+     * Check if any of the game modes covered have this name
+     * @param gameMode - name of game mode
+     * @return true or false
+     */
+    public boolean isCoveredGameMode(String gameMode) {
+        return gameModes.stream().anyMatch(gm -> gm.getDescription().getName().equals(gameMode));
+    }
 }

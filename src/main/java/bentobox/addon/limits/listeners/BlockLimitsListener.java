@@ -3,7 +3,10 @@
  */
 package bentobox.addon.limits.listeners;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.bukkit.Bukkit;
@@ -47,6 +50,7 @@ public class BlockLimitsListener implements Listener {
      * Save every 10 blocks of change
      */
     private static final Integer CHANGE_LIMIT = 9;
+    private static final List<Material> DO_NOT_COUNT = Arrays.asList(Material.LAVA, Material.WATER, Material.AIR, Material.FIRE, Material.END_PORTAL, Material.NETHER_PORTAL);
     private Limits addon;
     private Map<String, IslandBlockCount> countMap = new HashMap<>();
     private Map<String, Integer> saveMap = new HashMap<>();
@@ -57,7 +61,18 @@ public class BlockLimitsListener implements Listener {
     public BlockLimitsListener(Limits addon) {
         this.addon = addon;
         handler = new Database<>(addon, IslandBlockCount.class);
-        handler.loadObjects().forEach(ibc -> countMap.put(ibc.getUniqueId(), ibc));
+        List<String> toBeDeleted = new ArrayList<>();
+        handler.loadObjects().forEach(ibc -> {
+            // Clean up
+            if (addon.isCoveredGameMode(ibc.getGameMode())) {
+                ibc.getBlockCount().keySet().removeIf(DO_NOT_COUNT::contains);
+                // Store
+                countMap.put(ibc.getUniqueId(), ibc);
+            } else {
+                toBeDeleted.add(ibc.getUniqueId());
+            }
+        });
+        toBeDeleted.forEach(handler::deleteID);
         loadAllLimits();
     }
 
@@ -73,12 +88,11 @@ public class BlockLimitsListener implements Listener {
         }
 
         // Load specific worlds
-
         if (addon.getConfig().isConfigurationSection("worlds")) {
             ConfigurationSection worlds = addon.getConfig().getConfigurationSection("worlds");
             for (String worldName : worlds.getKeys(false)) {
                 World world = Bukkit.getWorld(worldName);
-                if (world != null && addon.getPlugin().getIWM().inWorld(world)) {
+                if (world != null && addon.inGameModeWorld(world)) {
                     addon.log("Loading limits for " + world.getName());
                     limitMap.putIfAbsent(world, new HashMap<>());
                     ConfigurationSection matsConfig = worlds.getConfigurationSection(worldName);
@@ -98,7 +112,7 @@ public class BlockLimitsListener implements Listener {
         Map<Material, Integer> mats = new HashMap<>();
         for (String material : cs.getKeys(false)) {
             Material mat = Material.getMaterial(material);
-            if (mat != null && mat.isBlock()) {
+            if (mat != null && mat.isBlock() && !DO_NOT_COUNT.contains(mat)) {
                 mats.put(mat, cs.getInt(material));
                 addon.log("Limit " + mat + " to " + cs.getInt(material));
             } else {
@@ -203,10 +217,18 @@ public class BlockLimitsListener implements Listener {
      * @return limit amount if over limit, or -1 if no limitation
      */
     private int process(Block b, boolean add, Material changeTo) {
+        if (DO_NOT_COUNT.contains(b.getType()) || !addon.inGameModeWorld(b.getWorld())) {
+            return -1;
+        }
         // Check if on island
         return addon.getIslands().getIslandAt(b.getLocation()).map(i -> {
             String id = i.getUniqueId();
-            countMap.putIfAbsent(id, new IslandBlockCount(id));
+            String gameMode = addon.getGameMode(b.getWorld());
+            if (gameMode.isEmpty()) {
+                // Invalid world
+                return -1;
+            }
+            countMap.putIfAbsent(id, new IslandBlockCount(id, gameMode));
             saveMap.putIfAbsent(id, 0);
             if (add) {
                 // Check limit
@@ -219,7 +241,7 @@ public class BlockLimitsListener implements Listener {
             } else {
                 if (countMap.containsKey(id)) {
                     // Check for changes
-                    if (!changeTo.equals(b.getType()) && changeTo.isBlock()) {
+                    if (!changeTo.equals(b.getType()) && changeTo.isBlock() && !DO_NOT_COUNT.contains(changeTo)) {
                         // Check limit
                         int limit = checkLimit(b.getWorld(), changeTo, id);
                         if (limit > -1) {
@@ -247,22 +269,18 @@ public class BlockLimitsListener implements Listener {
      * @return limit amount if at limit
      */
     private int checkLimit(World w, Material m, String id) {
-        // Check specific world first
+        // Check island limits
+        IslandBlockCount island = countMap.get(id);
+        if (island.isBlockLimited(m)) {
+            return island.isAtLimit(m) ? island.getBlockLimit(m) : -1;
+        }
+        // Check specific world limits
         if (limitMap.containsKey(w) && limitMap.get(w).containsKey(m)) {
             // Material is overridden in world
-            if (countMap.get(id).isAtLimit(m, limitMap.get(w).get(m))) {
-                return limitMap.get(w).get(m);
-            } else {
-                // No limit
-                return -1;
-            }
+            return island.isAtLimit(m, limitMap.get(w).get(m)) ? limitMap.get(w).get(m) : -1;
         }
         // Check default limit map
-        if (defaultLimitMap.containsKey(m)
-                && countMap
-                .get(id)
-                .isAtLimit(m,
-                        defaultLimitMap.get(m))) {
+        if (defaultLimitMap.containsKey(m) && island.isAtLimit(m, defaultLimitMap.get(m))) {
             return defaultLimitMap.get(m);
         }
         // No limit
@@ -280,6 +298,26 @@ public class BlockLimitsListener implements Listener {
         if (handler.objectExists(e.getIsland().getUniqueId())) {
             handler.deleteID(e.getIsland().getUniqueId());
         }
+    }
+
+
+    /**
+     * Set the island block count values
+     * @param islandId - island unique id
+     * @param ibc - island block count
+     */
+    public void setIsland(String islandId, IslandBlockCount ibc) {
+        countMap.put(islandId, ibc);
+        handler.saveObject(ibc);
+    }
+
+    /**
+     * Get the island block count
+     * @param islandId - island unique id
+     * @return island block count or null if there is none yet
+     */
+    public IslandBlockCount getIsland(String islandId) {
+        return countMap.get(islandId);
     }
 
 }

@@ -17,7 +17,7 @@ public class Settings {
     public Settings(Limits addon) {
 
         // GameModes
-        gameModes = addon.getConfig().getStringList("game-modes");
+        gameModes = addon.getConfig().getStringList("gamemodes");
 
         ConfigurationSection el = addon.getConfig().getConfigurationSection("entitylimits");
         if (el != null) {
