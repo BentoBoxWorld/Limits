@@ -5,6 +5,8 @@ import java.util.stream.Collectors;
 
 import org.bukkit.World;
 
+import bentobox.addon.limits.commands.AdminCommand;
+import bentobox.addon.limits.commands.PlayerCommand;
 import bentobox.addon.limits.listeners.BlockLimitsListener;
 import bentobox.addon.limits.listeners.JoinListener;
 import world.bentobox.bentobox.api.addons.Addon;
@@ -39,7 +41,14 @@ public class Limits extends Addon {
         gameModes = getPlugin().getAddonsManager().getGameModeAddons().stream()
                 .filter(gm -> settings.getGameModes().contains(gm.getDescription().getName()))
                 .collect(Collectors.toList());
-        gameModes.forEach(w -> log("Limits will apply to " + w.getDescription().getName()));
+        gameModes.forEach(gm ->
+        {
+            // Register commands
+            gm.getAdminCommand().ifPresent(a -> new AdminCommand(this, a));
+            gm.getPlayerCommand().ifPresent(a -> new PlayerCommand(this, a));
+            log("Limits will apply to " + gm.getDescription().getName());
+        }
+                );
         // Register listener
         blockLimitListener = new BlockLimitsListener(this);
         registerListener(blockLimitListener);
@@ -94,4 +103,5 @@ public class Limits extends Addon {
     public boolean isCoveredGameMode(String gameMode) {
         return gameModes.stream().anyMatch(gm -> gm.getDescription().getName().equals(gameMode));
     }
+
 }

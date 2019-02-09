@@ -5,4 +5,20 @@
 
 limits:
   hit-limit: "&c[material] limited to [number]!"
+  panel-title: "Island limits"
+
+admin:
+  limits:
+    parameters: "<player>"
+    description: "show the island limits for player"
+
+island:
+  limits: 
+    parameters: ""
+    description: "show your island limits"
+    max-color: "&c"
+    regular-color: "&a"
+    block-limit-syntax: "[number]/[limit]"
+    no-limits: "&cNo limits set in this world"
+
     
