@@ -1,57 +1,25 @@
-# Game Modes
+# Game Modes covered by limits
 gamemodes:
 - AcidIsland
 - BSkyBlock
 - CaveBock
 
+# Permissions
+# Island owners can be given permissions that override all general settings
+# Format is GAME-MODE-NAME.island.limit.MATERIAL.LIMIT
+# example: bskyblock.island.limit.hopper.10
+# permission activates when player logs in.
+#
 # General block limiting
 # Use this section to limit how many blocks can be added to an island.
 # 0 means the item will be blocked from placement completely.
-# These limits apply to every world
+# These limits apply to every game mode world
 blocklimits:
   HOPPER: 10
 # This section is for world-specific limits and overrides the general limit
 # Specify each world you want to limit individually (including nether and end worlds)
+# If these worlds are not covered by the game modes above, nothing will happen
 worlds:
   AcidIsland_world:
     HOPPER: 11
 
-# NOT IMPLEMENTED YET
-entitylimits:
-  # Mobs, animals and other living entities
-  #BAT: 10
-  #BLAZE: 10
-  #BOAT: 10
-  #CAVE_SPIDER: 10
-  #CHICKEN: 10
-  #COW: 10
-  #CREEPER: 10
-  #DONKEY: 10
-  #ENDERMAN: 10
-  #HORSE: 10
-  #HUSK: 10
-  #IRON_GOLEM: 10
-  #LLAMA: 10
-  #MAGMA_CUBE: 10
-  #MULE: 10
-  #MUSHROOM_COW: 10
-  #OCELOT: 10
-  #PIG: 10
-  #PIG_ZOMBIE: 10
-  #POLAR_BEAR: 10
-  #RABBIT: 10
-  #SHEEP: 10
-  #SKELETON: 10
-  #SKELETON_HORSE: 10
-  #SLIME: 10
-  #SNOWMAN: 10
-  #SPIDER: 10
-  #SQUID: 10
-  #STRAY: 10
-  #WITCH: 10
-  #WITHER: 10
-  #WITHER_SKELETON: 10
-  #WOLF: 10
-  #ZOMBIE: 10
-  #ZOMBIE_HORSE: 10
-  #ZOMBIE_VILLAGER: 10  
