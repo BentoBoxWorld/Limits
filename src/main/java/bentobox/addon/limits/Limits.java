@@ -91,9 +91,19 @@ public class Limits extends Addon {
      * @param world - world
      * @return game mode name or empty string if none
      */
-    public String getGameMode(World world) {
+    public String getGameModeName(World world) {
         return gameModes.stream().filter(gm -> gm.inWorld(world)).findFirst().map(gm -> gm.getDescription().getName()).orElse("");
     }
+
+    /**
+     * Get the name of the game mode for this world
+     * @param world - world
+     * @return game mode name or empty string if none
+     */
+    public String getGameModePermPrefix(World world) {
+        return gameModes.stream().filter(gm -> gm.inWorld(world)).findFirst().map(gm -> gm.getPermissionPrefix()).orElse("");
+    }
+
 
     /**
      * Check if any of the game modes covered have this name

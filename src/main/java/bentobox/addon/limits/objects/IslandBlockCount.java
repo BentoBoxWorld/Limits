@@ -24,6 +24,9 @@ public class IslandBlockCount implements DataObject {
     @Expose
     private Map<Material, Integer> blockCount = new HashMap<>();
 
+    /**
+     * Permission based limits
+     */
     @Expose
     private Map<Material, Integer> blockLimits = new HashMap<>();
 

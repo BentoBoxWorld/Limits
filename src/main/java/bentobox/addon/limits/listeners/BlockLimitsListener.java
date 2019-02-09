@@ -224,7 +224,7 @@ public class BlockLimitsListener implements Listener {
         // Check if on island
         return addon.getIslands().getIslandAt(b.getLocation()).map(i -> {
             String id = i.getUniqueId();
-            String gameMode = addon.getGameMode(b.getWorld());
+            String gameMode = addon.getGameModeName(b.getWorld());
             if (gameMode.isEmpty()) {
                 // Invalid world
                 return -1;

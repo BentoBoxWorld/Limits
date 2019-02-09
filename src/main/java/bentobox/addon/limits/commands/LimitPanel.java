@@ -37,7 +37,11 @@ class LimitPanel {
         // Get the island for the target
         Island island = addon.getIslands().getIsland(world, target);
         if (island == null) {
-            user.sendMessage("general.errors.player-has-no-island");
+            if (user.getUniqueId().equals(target)) {
+                user.sendMessage("general.errors.no-island");
+            } else {
+                user.sendMessage("general.errors.player-has-no-island");
+            }
             return;
         }
         IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(island.getUniqueId());
