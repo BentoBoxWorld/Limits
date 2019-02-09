@@ -31,7 +31,7 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 
 import bentobox.addon.limits.Limits;
 import bentobox.addon.limits.objects.IslandBlockCount;
-import world.bentobox.bentobox.api.events.island.IslandEvent.IslandDeletedEvent;
+import world.bentobox.bentobox.api.events.island.IslandEvent.IslandDeleteEvent;
 import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.Database;
@@ -274,10 +274,12 @@ public class BlockLimitsListener implements Listener {
      * @param e - island delete event
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onIslandDelete(IslandDeletedEvent e) {
+    public void onIslandDelete(IslandDeleteEvent e) {
         countMap.remove(e.getIsland().getUniqueId());
         saveMap.remove(e.getIsland().getUniqueId());
-        handler.deleteID(e.getIsland().getUniqueId());
+        if (handler.objectExists(e.getIsland().getUniqueId())) {
+            handler.deleteID(e.getIsland().getUniqueId());
+        }
     }
 
 }
