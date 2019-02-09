@@ -1,6 +1,3 @@
-/**
- *
- */
 package bentobox.addon.limits.objects;
 
 import java.util.HashMap;
@@ -86,13 +83,8 @@ public class EntityLimitsDO implements DataObject {
         }
         EntityLimitsDO other = (EntityLimitsDO) obj;
         if (uniqueId == null) {
-            if (other.uniqueId != null) {
-                return false;
-            }
-        } else if (!uniqueId.equals(other.uniqueId)) {
-            return false;
-        }
-        return true;
+            return other.uniqueId == null;
+        } else return uniqueId.equals(other.uniqueId);
     }
 
 

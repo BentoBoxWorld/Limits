@@ -43,13 +43,13 @@ example: `bskyblock.island.limit.hopper.10`
 
 Permissions activate when the player logs in.
 
-Usage permissions are:
+Usage permissions are (put the gamemode name, e.g. acidisland at the front):
 
 ```
-  limits.player.limits:
+  GAMEMODE_NAME.limits.player.limits:
     description: Player can use limits command
     default: true
-  limits.admin.limits:
+  GAMEMODE_NAME.limits.admin.limits:
     description: Player can use admin limits command
     default: op
 ```

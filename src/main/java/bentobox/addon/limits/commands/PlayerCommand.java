@@ -1,6 +1,3 @@
-/**
- *
- */
 package bentobox.addon.limits.commands;
 
 import java.util.List;
@@ -16,11 +13,11 @@ import world.bentobox.bentobox.api.user.User;
  */
 public class PlayerCommand extends CompositeCommand {
 
-    private Limits addon;
+    private final Limits addon;
 
     /**
      * Top level command
-     * @param addon
+     * @param addon - addon
      */
     public PlayerCommand(Limits addon, CompositeCommand parent) {
         super(parent, "limits");

@@ -1,6 +1,3 @@
-/**
- *
- */
 package bentobox.addon.limits.commands;
 
 import java.util.Map;
@@ -24,9 +21,9 @@ import world.bentobox.bentobox.util.Util;
  * @author tastybento
  *
  */
-public class LimitPanel {
+class LimitPanel {
 
-    private Limits addon;
+    private final Limits addon;
 
     /**
      * @param addon - limit addon

@@ -7,9 +7,21 @@ authors: tastybento
 softdepend: AcidIsland, BSkyBlock, CaveBlock, SkyGrid
 
 permissions:    
-  limits.player.limits:
+  acidisland.limits.player.limits:
     description: Player can use limits command
     default: true
-  limits.admin.limits:
+  acidisland.limits.admin.limits:
+    description: Player can use admin limits command
+    default: op
+  bskyblock.limits.player.limits:
+    description: Player can use limits command
+    default: true
+  bskyblock.limits.admin.limits:
+    description: Player can use admin limits command
+    default: op
+  caveblock.limits.player.limits:
+    description: Player can use limits command
+    default: true
+  caveblock.limits.admin.limits:
     description: Player can use admin limits command
     default: op

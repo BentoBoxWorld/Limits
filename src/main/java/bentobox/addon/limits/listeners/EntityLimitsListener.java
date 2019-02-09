@@ -27,10 +27,10 @@ import world.bentobox.bentobox.database.Database;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Util;
 
-public class EntityLimitsListener implements Listener {
+class EntityLimitsListener implements Listener {
     private final Limits addon;
 
-    private Database<EntityLimitsDO> handler;
+    private final Database<EntityLimitsDO> handler;
 
     /**
      * Handles entity and natural limitations
@@ -81,9 +81,7 @@ public class EntityLimitsListener implements Listener {
         Map<UUID, String> spawnLoc = new HashMap<>();
         Arrays.stream(e.getChunk().getEntities()).filter(x -> x.hasMetadata("spawnLoc")).forEach(entity -> {
             // Get the meta data
-            entity.getMetadata("spawnLoc").stream().filter(y -> y.getOwningPlugin().equals(addon.getPlugin())).forEach(v -> {
-                spawnLoc.put(entity.getUniqueId(), v.asString());
-            });
+            entity.getMetadata("spawnLoc").stream().filter(y -> y.getOwningPlugin().equals(addon.getPlugin())).forEach(v -> spawnLoc.put(entity.getUniqueId(), v.asString()));
         });
         if (!spawnLoc.isEmpty()) {
             eld.setSpawnLoc(spawnLoc);
@@ -213,7 +211,7 @@ public class EntityLimitsListener implements Listener {
 
     /**
      * Checks if new entities can be added to island
-     * @param island
+     * @param island - island
      * @param bypass - true if this is being done by a player with authorization to bypass limits
      * @param ent - the entity
      * @return true if at the limit, false if not

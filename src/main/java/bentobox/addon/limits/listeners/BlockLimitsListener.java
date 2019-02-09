@@ -1,6 +1,3 @@
-/**
- *
- */
 package bentobox.addon.limits.listeners;
 
 import java.util.ArrayList;
@@ -49,17 +46,17 @@ public class BlockLimitsListener implements Listener {
     /**
      * Blocks that are not counted
      */
-    public static final List<Material> DO_NOT_COUNT = Arrays.asList(Material.LAVA, Material.WATER, Material.AIR, Material.FIRE, Material.END_PORTAL, Material.NETHER_PORTAL);
+    private static final List<Material> DO_NOT_COUNT = Arrays.asList(Material.LAVA, Material.WATER, Material.AIR, Material.FIRE, Material.END_PORTAL, Material.NETHER_PORTAL);
 
     /**
      * Save every 10 blocks of change
      */
     private static final Integer CHANGE_LIMIT = 9;
-    private Limits addon;
-    private Map<String, IslandBlockCount> islandCountMap = new HashMap<>();
-    private Map<String, Integer> saveMap = new HashMap<>();
-    private Database<IslandBlockCount> handler;
-    private Map<World, Map<Material, Integer>> worldLimitMap = new HashMap<>();
+    private final Limits addon;
+    private final Map<String, IslandBlockCount> islandCountMap = new HashMap<>();
+    private final Map<String, Integer> saveMap = new HashMap<>();
+    private final Database<IslandBlockCount> handler;
+    private final Map<World, Map<Material, Integer>> worldLimitMap = new HashMap<>();
     private Map<Material, Integer> defaultLimitMap = new HashMap<>();
 
     public BlockLimitsListener(Limits addon) {
@@ -272,7 +269,7 @@ public class BlockLimitsListener implements Listener {
      * @param id - island id
      * @return limit amount if at limit or -1 if no limit
      */
-    public int checkLimit(World w, Material m, String id) {
+    private int checkLimit(World w, Material m, String id) {
         // Check island limits
         IslandBlockCount island = islandCountMap.get(id);
         if (island.isBlockLimited(m)) {
@@ -301,14 +298,14 @@ public class BlockLimitsListener implements Listener {
         // Merge limits
         Map<Material, Integer> result = new HashMap<>();
         // Default
-        defaultLimitMap.forEach((k,v) -> result.put(k, v));
+        defaultLimitMap.forEach(result::put);
         // World
         if (worldLimitMap.containsKey(w)) {
-            worldLimitMap.get(w).forEach((k,v) -> result.put(k, v));
+            worldLimitMap.get(w).forEach(result::put);
         }
         // Island
         if (islandCountMap.containsKey(id)) {
-            islandCountMap.get(id).getBlockLimits().forEach((k,v) -> result.put(k, v));
+            islandCountMap.get(id).getBlockLimits().forEach(result::put);
         }
         return result;
     }

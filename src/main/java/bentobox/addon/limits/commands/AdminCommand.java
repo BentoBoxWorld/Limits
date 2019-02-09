@@ -1,6 +1,3 @@
-/**
- *
- */
 package bentobox.addon.limits.commands;
 
 import java.util.ArrayList;
@@ -20,11 +17,11 @@ import world.bentobox.bentobox.util.Util;
  */
 public class AdminCommand extends CompositeCommand {
 
-    private Limits addon;
+    private final Limits addon;
 
     /**
-     * Top level command
-     * @param addon
+     * Admin command
+     * @param addon - addon
      */
     public AdminCommand(Limits addon, CompositeCommand parent) {
         super(parent, "limits");

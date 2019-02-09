@@ -1,6 +1,5 @@
 package bentobox.addon.limits;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -11,8 +10,8 @@ import org.bukkit.entity.EntityType;
 
 public class Settings {
 
-    private Map<EntityType, Integer> limits = new HashMap<>();
-    private List<String> gameModes = new ArrayList<>();
+    private final Map<EntityType, Integer> limits = new HashMap<>();
+    private final List<String> gameModes;
 
     public Settings(Limits addon) {
 

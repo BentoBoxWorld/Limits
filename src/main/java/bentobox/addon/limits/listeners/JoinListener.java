@@ -21,7 +21,7 @@ import bentobox.addon.limits.objects.IslandBlockCount;
  */
 public class JoinListener implements Listener {
 
-    private Limits addon;
+    private final Limits addon;
 
     public JoinListener(Limits addon) {
         this.addon = addon;
@@ -38,7 +38,7 @@ public class JoinListener implements Listener {
         });
     }
 
-    private boolean checkPerms(Player player, String permissionPrefix, String islandId, String gameMode) {
+    private void checkPerms(Player player, String permissionPrefix, String islandId, String gameMode) {
         IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(islandId);
         int limit = -1;
         for (PermissionAttachmentInfo perms : player.getEffectivePermissions()) {
@@ -47,17 +47,17 @@ public class JoinListener implements Listener {
                 String[] split = perms.getPermission().split("\\.");
                 if (split.length != 5) {
                     logError(player.getName(), perms.getPermission(), "format must be " + permissionPrefix + "MATERIAL.NUMBER");
-                    return false;
+                    return;
                 }
                 Material m = Material.getMaterial(split[3].toUpperCase(Locale.ENGLISH));
                 if (m == null) {
                     logError(player.getName(), perms.getPermission(), split[3].toUpperCase(Locale.ENGLISH) + " is not a valid material");
-                    return false;
+                    return;
                 }
                 // Get the max value should there be more than one
                 if (perms.getPermission().contains(permissionPrefix + ".*")) {
                     logError(player.getName(), perms.getPermission(), "wildcards are not allowed");
-                    return false;
+                    return;
                 }
                 if (!NumberUtils.isDigits(split[4])) {
                     logError(player.getName(), perms.getPermission(), "the last part MUST be a number!");
@@ -75,7 +75,6 @@ public class JoinListener implements Listener {
         if (ibc != null) {
             addon.getBlockLimitListener().setIsland(islandId, ibc);
         }
-        return true;
 
     }
 

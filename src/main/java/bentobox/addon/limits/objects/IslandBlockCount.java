@@ -1,6 +1,3 @@
-/**
- *
- */
 package bentobox.addon.limits.objects;
 
 import java.util.HashMap;
@@ -102,7 +99,7 @@ public class IslandBlockCount implements DataObject {
      */
     public boolean isAtLimit(Material m) {
         // Check island limits first
-        return blockLimits.containsKey(m) ? blockCount.getOrDefault(m, 0) >= blockLimits.get(m) : false;
+        return blockLimits.containsKey(m) && blockCount.getOrDefault(m, 0) >= blockLimits.get(m);
     }
 
     public boolean isBlockLimited(Material m) {
