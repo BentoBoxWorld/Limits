@@ -28,6 +28,7 @@ import org.bukkit.event.block.EntityBlockFormEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.block.BlockFromToEvent;
 
 import bentobox.addon.limits.Limits;
 import bentobox.addon.limits.objects.IslandBlockCount;
@@ -205,6 +206,15 @@ public class BlockLimitsListener implements Listener {
     public void onBlock(EntityChangeBlockEvent e) {
         process(e.getBlock(), false);
     }
+    
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBlock(BlockFromToEvent e) {
+        if (e.getBlock().isLiquid()){
+            if (e.getToBlock().getType() == Material.REDSTONE_WIRE || e.getToBlock().getType() == Material.REPEATER || e.getToBlock().getType() == Material.COMPARATOR || e.getToBlock().getType() == Material.REDSTONE_TORCH) {
+                process(e.getToBlock(), false);
+            }
+        }     
+    }    
 
     private int process(Block b, boolean add) {
         return process(b, add, b.getType());
