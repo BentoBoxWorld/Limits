@@ -53,7 +53,12 @@ class LimitPanel {
         for (Entry<Material, Integer> en : matLimits.entrySet()) {
             PanelItemBuilder pib = new PanelItemBuilder();
             pib.name(Util.prettifyText(en.getKey().toString()));
-            pib.icon(en.getKey());
+            if (en.getKey() == Material.REDSTONE_WIRE) {
+                pib.icon(Material.REDSTONE);
+            }
+            else {
+                pib.icon(en.getKey());
+            }
             int count = ibc == null ? 0 : ibc.getBlockCount().getOrDefault(en.getKey(), 0);
             String color = count >= en.getValue() ? user.getTranslation("island.limits.max-color") : user.getTranslation("island.limits.regular-color");
             pib.description(color

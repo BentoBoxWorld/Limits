@@ -9,8 +9,13 @@ limits:
 
 admin:
   limits:
-    parameters: "<player>"
-    description: "show the island limits for player"
+      main:
+        parameters: "<player>"
+        description: "show the island limits for player"
+      calc:
+         parameters: "<player>"
+         description: "recalculate the island limits for player"
+         finished: "&aIsland recalc finished sucessfully!"
 
 island:
   limits: 

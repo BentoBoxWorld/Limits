@@ -32,6 +32,7 @@ import org.bukkit.event.block.BlockFromToEvent;
 
 import bentobox.addon.limits.Limits;
 import bentobox.addon.limits.objects.IslandBlockCount;
+import org.bukkit.block.BlockFace;
 import world.bentobox.bentobox.api.events.island.IslandEvent.IslandDeleteEvent;
 import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.user.User;
@@ -107,6 +108,7 @@ public class BlockLimitsListener implements Listener {
 
     /**
      * Loads limit map from configuration section
+     *
      * @param cs - configuration section
      * @return limit map
      */
@@ -124,6 +126,7 @@ public class BlockLimitsListener implements Listener {
         return mats;
     }
 
+
     /**
      * Save the count database completely
      */
@@ -140,6 +143,22 @@ public class BlockLimitsListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlock(BlockBreakEvent e) {
         notify(e, User.getInstance(e.getPlayer()), process(e.getBlock(), false), e.getBlock().getType());
+        // Player breaks a block and there was a redstone dust/repeater/... above
+        if (e.getBlock().getRelative(BlockFace.UP).getType() == Material.REDSTONE_WIRE || e.getBlock().getRelative(BlockFace.UP).getType() == Material.REPEATER || e.getBlock().getRelative(BlockFace.UP).getType() == Material.COMPARATOR || e.getBlock().getRelative(BlockFace.UP).getType() == Material.REDSTONE_TORCH) {
+            process(e.getBlock().getRelative(BlockFace.UP), false);
+        }
+        if (e.getBlock().getRelative(BlockFace.EAST).getType() == Material.REDSTONE_WALL_TORCH) {
+            process(e.getBlock().getRelative(BlockFace.EAST), false);
+        }
+        if (e.getBlock().getRelative(BlockFace.WEST).getType() == Material.REDSTONE_WALL_TORCH) {
+            process(e.getBlock().getRelative(BlockFace.WEST), false);
+        }
+        if (e.getBlock().getRelative(BlockFace.SOUTH).getType() == Material.REDSTONE_WALL_TORCH) {
+            process(e.getBlock().getRelative(BlockFace.SOUTH), false);
+        }
+        if (e.getBlock().getRelative(BlockFace.NORTH).getType() == Material.REDSTONE_WALL_TORCH) {
+            process(e.getBlock().getRelative(BlockFace.NORTH), false);
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -216,19 +235,38 @@ public class BlockLimitsListener implements Listener {
         }     
     }    
 
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBlock(BlockFromToEvent e) {
+        if (e.getBlock().isLiquid()) {
+            if (e.getToBlock().getType() == Material.REDSTONE_WIRE || e.getToBlock().getType() == Material.REPEATER || e.getToBlock().getType() == Material.COMPARATOR || e.getToBlock().getType() == Material.REDSTONE_TORCH || e.getToBlock().getType() == Material.REDSTONE_WALL_TORCH) {
+                process(e.getToBlock(), false);
+            }
+        }
+    }
+
     private int process(Block b, boolean add) {
         return process(b, add, b.getType());
     }
 
+    // It wouldn't make sense to count REDSTONE_WALL_TORCH and REDSTONE_TORCH as separed limits.
+    public Material fixMaterial(Material b) {
+        if (b == Material.REDSTONE_WALL_TORCH) {
+            return Material.REDSTONE_TORCH;
+        } else {
+            return b;
+        }
+    }
+
     /**
      * Check if a block can be
+     *
      * @param b - block
      * @param add - true to add a block, false to remove
      * @param changeTo - material this block will become
      * @return limit amount if over limit, or -1 if no limitation
      */
     private int process(Block b, boolean add, Material changeTo) {
-        if (DO_NOT_COUNT.contains(b.getType()) || !addon.inGameModeWorld(b.getWorld())) {
+        if (DO_NOT_COUNT.contains(fixMaterial(b.getType())) || !addon.inGameModeWorld(b.getWorld())) {
             return -1;
         }
         // Check if on island
@@ -243,24 +281,24 @@ public class BlockLimitsListener implements Listener {
             saveMap.putIfAbsent(id, 0);
             if (add) {
                 // Check limit
-                int limit = checkLimit(b.getWorld(), b.getType(), id);
+                int limit = checkLimit(b.getWorld(), fixMaterial(b.getType()), id);
                 if (limit > -1) {
                     return limit;
                 }
-                islandCountMap.get(id).add(b.getType());
+                islandCountMap.get(id).add(fixMaterial(b.getType()));
                 saveMap.merge(id, 1, Integer::sum);
             } else {
                 if (islandCountMap.containsKey(id)) {
                     // Check for changes
-                    if (!changeTo.equals(b.getType()) && changeTo.isBlock() && !DO_NOT_COUNT.contains(changeTo)) {
+                    if (!fixMaterial(changeTo).equals(fixMaterial(b.getType())) && fixMaterial(changeTo).isBlock() && !DO_NOT_COUNT.contains(fixMaterial(changeTo))) {
                         // Check limit
-                        int limit = checkLimit(b.getWorld(), changeTo, id);
+                        int limit = checkLimit(b.getWorld(), fixMaterial(changeTo), id);
                         if (limit > -1) {
                             return limit;
                         }
-                        islandCountMap.get(id).add(changeTo);
+                        islandCountMap.get(id).add(fixMaterial(changeTo));
                     }
-                    islandCountMap.get(id).remove(b.getType());
+                    islandCountMap.get(id).remove(fixMaterial(b.getType()));
                     saveMap.merge(id, 1, Integer::sum);
                 }
             }
@@ -274,6 +312,7 @@ public class BlockLimitsListener implements Listener {
 
     /**
      * Check if this material is at its limit for world on this island
+     *
      * @param w - world
      * @param m - material
      * @param id - island id
@@ -300,6 +339,7 @@ public class BlockLimitsListener implements Listener {
 
     /**
      * Gets an aggregate map of the limits for this island
+     *
      * @param w - world
      * @param id - island id
      * @return map of limits for materials
@@ -322,6 +362,7 @@ public class BlockLimitsListener implements Listener {
 
     /**
      * Removes island from the database
+     *
      * @param e - island delete event
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -333,9 +374,9 @@ public class BlockLimitsListener implements Listener {
         }
     }
 
-
     /**
      * Set the island block count values
+     *
      * @param islandId - island unique id
      * @param ibc - island block count
      */
@@ -346,6 +387,7 @@ public class BlockLimitsListener implements Listener {
 
     /**
      * Get the island block count
+     *
      * @param islandId - island unique id
      * @return island block count or null if there is none yet
      */

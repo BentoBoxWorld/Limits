@@ -1,32 +1,30 @@
 package bentobox.addon.limits.commands;
 
+import bentobox.addon.limits.Limits;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
-import bentobox.addon.limits.Limits;
 import world.bentobox.bentobox.api.commands.CompositeCommand;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.util.Util;
 
 /**
- * Admin command for limits
- * @author tastybento
  *
+ * @author YellowZaki
  */
-public class AdminCommand extends CompositeCommand {
+public class CalcCommand extends CompositeCommand {
 
     private final Limits addon;
 
     /**
      * Admin command
+     *
      * @param addon - addon
      */
-    public AdminCommand(Limits addon, CompositeCommand parent) {
-        super(parent, "limits");
+    public CalcCommand(Limits addon, CompositeCommand parent) {
+        super(parent, "calc");
         this.addon = addon;
-        new CalcCommand(addon, this); 
     }
 
     /* (non-Javadoc)
@@ -34,10 +32,10 @@ public class AdminCommand extends CompositeCommand {
      */
     @Override
     public void setup() {
-        this.setPermission("limits.admin.limits");
-        this.setOnlyPlayer(true);
-        this.setParametersHelp("admin.limits.main.parameters");
-        this.setDescription("admin.limits.main.description");    
+        this.setPermission("limits.admin.limits.calc");
+        this.setOnlyPlayer(false);
+        this.setParametersHelp("admin.limits.calc.parameters");
+        this.setDescription("admin.limits.calc.description");
     }
 
     /* (non-Javadoc)
@@ -46,14 +44,13 @@ public class AdminCommand extends CompositeCommand {
     @Override
     public boolean execute(User user, String label, List<String> args) {
         if (args.size() == 1) {
-            // Asking for another player's limits
-            // Convert name to a UUID
             final UUID playerUUID = getPlugin().getPlayers().getUUID(args.get(0));
             if (playerUUID == null) {
                 user.sendMessage("general.errors.unknown-player", args.get(0));
                 return true;
             } else {
-                new LimitPanel(addon).showLimits(getWorld(), user, playerUUID);
+                //Calculate
+                calcLimits(playerUUID, user);
             }
             return true;
         } else {
@@ -62,9 +59,17 @@ public class AdminCommand extends CompositeCommand {
         }
     }
 
+    public void calcLimits(UUID targetPlayer, User sender) {
+        if (addon.getIslands().getIsland(getWorld(), targetPlayer) != null) {
+            new LimitsCalc(getWorld(), getPlugin(), targetPlayer, addon, sender);
+        } else {
+            sender.sendMessage("general.errors.player-has-no-island");
+        }
+    }
+
     @Override
     public Optional<List<String>> tabComplete(User user, String alias, List<String> args) {
-        String lastArg = !args.isEmpty() ? args.get(args.size()-1) : "";
+        String lastArg = !args.isEmpty() ? args.get(args.size() - 1) : "";
         if (args.isEmpty()) {
             // Don't show every player on the server. Require at least the first letter
             return Optional.empty();
