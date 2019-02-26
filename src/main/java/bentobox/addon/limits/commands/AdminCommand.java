@@ -26,6 +26,7 @@ public class AdminCommand extends CompositeCommand {
     public AdminCommand(Limits addon, CompositeCommand parent) {
         super(parent, "limits");
         this.addon = addon;
+        new CalcCommand(addon, this); 
     }
 
     /* (non-Javadoc)
@@ -35,8 +36,8 @@ public class AdminCommand extends CompositeCommand {
     public void setup() {
         this.setPermission("limits.admin.limits");
         this.setOnlyPlayer(true);
-        this.setParametersHelp("admin.limits.parameters");
-        this.setDescription("admin.limits.description");
+        this.setParametersHelp("admin.limits.main.parameters");
+        this.setDescription("admin.limits.main.description");    
     }
 
     /* (non-Javadoc)

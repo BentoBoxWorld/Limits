@@ -137,7 +137,7 @@ public class LimitsCalc {
         task.cancel();
         ibc.setBlockCount(blockCount);
         bll.setIsland(island.getUniqueId(), ibc);
-        sender.sendMessage("admin.limitscalc.finished");
+        sender.sendMessage("admin.limits.calc.finished");
     }
 
 }

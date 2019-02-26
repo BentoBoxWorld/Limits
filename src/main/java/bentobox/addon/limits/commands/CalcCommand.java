@@ -13,7 +13,7 @@ import world.bentobox.bentobox.util.Util;
  *
  * @author YellowZaki
  */
-public class LimitCalcCommand extends CompositeCommand {
+public class CalcCommand extends CompositeCommand {
 
     private final Limits addon;
 
@@ -22,8 +22,8 @@ public class LimitCalcCommand extends CompositeCommand {
      *
      * @param addon - addon
      */
-    public LimitCalcCommand(Limits addon, CompositeCommand parent) {
-        super(parent, "limitscalc");
+    public CalcCommand(Limits addon, CompositeCommand parent) {
+        super(parent, "calc");
         this.addon = addon;
     }
 
@@ -32,10 +32,10 @@ public class LimitCalcCommand extends CompositeCommand {
      */
     @Override
     public void setup() {
-        this.setPermission("limits.admin.limitscalc");
+        this.setPermission("limits.admin.limits.calc");
         this.setOnlyPlayer(false);
-        this.setParametersHelp("admin.limitscalc.parameters");
-        this.setDescription("admin.limitscalc.description");
+        this.setParametersHelp("admin.limits.calc.parameters");
+        this.setDescription("admin.limits.calc.description");
     }
 
     /* (non-Javadoc)
