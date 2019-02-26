@@ -126,9 +126,6 @@ public class BlockLimitsListener implements Listener {
         return mats;
     }
 
-    public Map<Material, Integer> getLimits() {
-        return this.defaultLimitMap;
-    }
 
     /**
      * Save the count database completely

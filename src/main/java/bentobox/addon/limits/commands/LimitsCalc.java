@@ -112,7 +112,7 @@ public class LimitsCalc {
     private void checkBlock(Material md) {
         md = bll.fixMaterial(md);
         // md is limited
-        if (bll.getLimits().containsKey(md)) {
+        if (bll.getMaterialLimits(world, island.getUniqueId()).containsKey(md)) {
             if (!blockCount.containsKey(md)) {
                 blockCount.put(md, 1);
             } else {
