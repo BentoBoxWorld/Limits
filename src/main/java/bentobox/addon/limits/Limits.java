@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import org.bukkit.World;
 
 import bentobox.addon.limits.commands.AdminCommand;
+import bentobox.addon.limits.commands.LimitCalcCommand;
 import bentobox.addon.limits.commands.PlayerCommand;
 import bentobox.addon.limits.listeners.BlockLimitsListener;
 import bentobox.addon.limits.listeners.JoinListener;
@@ -45,6 +46,7 @@ public class Limits extends Addon {
         {
             // Register commands
             gm.getAdminCommand().ifPresent(a -> new AdminCommand(this, a));
+            gm.getAdminCommand().ifPresent(a -> new LimitCalcCommand(this, a));
             gm.getPlayerCommand().ifPresent(a -> new PlayerCommand(this, a));
             log("Limits will apply to " + gm.getDescription().getName());
         }
