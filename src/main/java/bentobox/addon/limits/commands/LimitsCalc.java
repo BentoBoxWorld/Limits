@@ -110,6 +110,7 @@ public class LimitsCalc {
     }
 
     private void checkBlock(Material md) {
+        md = bll.fixMaterial(md);
         // md is limited
         if (bll.getLimits().containsKey(md)) {
             if (!blockCount.containsKey(md)) {
