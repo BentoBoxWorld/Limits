@@ -60,12 +60,11 @@ public class CalcCommand extends CompositeCommand {
     }
 
     public void calcLimits(UUID targetPlayer, User sender) {
-        if (getPlugin().getIslands().hasIsland(getWorld(), targetPlayer)) {
+        if (addon.getIslands().getIsland(getWorld(), targetPlayer) != null) {
             new LimitsCalc(getWorld(), getPlugin(), targetPlayer, addon, sender);
         } else {
             sender.sendMessage("general.errors.player-has-no-island");
         }
-
     }
 
     @Override
