@@ -10,6 +10,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
@@ -20,6 +21,7 @@ import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockFadeEvent;
 import org.bukkit.event.block.BlockFormEvent;
+import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockGrowEvent;
 import org.bukkit.event.block.BlockMultiPlaceEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
@@ -28,11 +30,9 @@ import org.bukkit.event.block.EntityBlockFormEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
-import org.bukkit.event.block.BlockFromToEvent;
 
 import bentobox.addon.limits.Limits;
 import bentobox.addon.limits.objects.IslandBlockCount;
-import org.bukkit.block.BlockFace;
 import world.bentobox.bentobox.api.events.island.IslandEvent.IslandDeleteEvent;
 import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.user.User;
@@ -225,15 +225,6 @@ public class BlockLimitsListener implements Listener {
     public void onBlock(EntityChangeBlockEvent e) {
         process(e.getBlock(), false);
     }
-    
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBlock(BlockFromToEvent e) {
-        if (e.getBlock().isLiquid()){
-            if (e.getToBlock().getType() == Material.REDSTONE_WIRE || e.getToBlock().getType() == Material.REPEATER || e.getToBlock().getType() == Material.COMPARATOR || e.getToBlock().getType() == Material.REDSTONE_TORCH) {
-                process(e.getToBlock(), false);
-            }
-        }     
-    }    
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlock(BlockFromToEvent e) {
