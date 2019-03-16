@@ -1,18 +1,20 @@
 package bentobox.addon.limits.commands;
 
-import bentobox.addon.limits.Limits;
-import bentobox.addon.limits.listeners.BlockLimitsListener;
-import bentobox.addon.limits.objects.IslandBlockCount;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.scheduler.BukkitTask;
+
+import bentobox.addon.limits.Limits;
+import bentobox.addon.limits.listeners.BlockLimitsListener;
+import bentobox.addon.limits.objects.IslandBlockCount;
 import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
@@ -26,7 +28,6 @@ public class LimitsCalc {
 
     private boolean checking;
     private Limits addon;
-    private BentoBox instance;
     private World world;
     private Island island;
     private BlockLimitsListener bll;
@@ -34,17 +35,16 @@ public class LimitsCalc {
     private Map<Material, Integer> blockCount;
     private BukkitTask task;
     private User sender;
-  
+
 
     LimitsCalc(World world, BentoBox instance, UUID targetPlayer, Limits addon, User sender) {
         this.checking = true;
         this.addon = addon;
-        this.instance = instance;
         this.world = world;
         this.island = instance.getIslands().getIsland(world, targetPlayer);
         this.bll = addon.getBlockLimitListener();
         this.ibc = bll.getIsland(island.getUniqueId());
-        blockCount = new HashMap<>();  
+        blockCount = new HashMap<>();
         this.sender = sender;
         Set<Pair<Integer, Integer>> chunksToScan = getChunksToScan(island);
         this.task = addon.getServer().getScheduler().runTaskTimer(addon.getPlugin(), () -> {
