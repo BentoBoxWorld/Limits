@@ -21,7 +21,7 @@ import world.bentobox.bentobox.util.Util;
  * @author tastybento
  *
  */
-class LimitPanel {
+public class LimitPanel {
 
     private final Limits addon;
 
