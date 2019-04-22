@@ -8,6 +8,8 @@ import java.util.Map;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.EntityType;
 
+import bentobox.addon.limits.commands.LimitPanel;
+
 public class Settings {
 
     private final Map<EntityType, Integer> limits = new HashMap<>();
@@ -23,10 +25,18 @@ public class Settings {
             for (String key : el.getKeys(false)) {
                 EntityType type = getType(key);
                 if (type != null) {
-                    limits.put(type, el.getInt(key, 0));
+                    if (!type.isSpawnable() || (LimitPanel.E2M.containsKey(type) && LimitPanel.E2M.get(type) == null)) {
+                        addon.logError("Entity type: " + key + " is not supported - skipping...");
+                    } else {
+                        limits.put(type, el.getInt(key, 0));
+                    }
+                } else {
+                    addon.logError("Unknown entity type: " + key + " - skipping...");
                 }
             }
         }
+        addon.log("Entity limits:");
+        limits.entrySet().stream().map(e -> "Limit " + e.getKey().toString() + " to " + e.getValue()).forEach(addon::log);
     }
 
     private EntityType getType(String key) {
