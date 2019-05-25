@@ -135,6 +135,9 @@ public class LimitsCalc {
     private void tidyUp() {
         // Cancel
         task.cancel();
+        if (ibc == null) {
+            ibc = new IslandBlockCount();
+        }
         ibc.setBlockCount(blockCount);
         bll.setIsland(island.getUniqueId(), ibc);
         sender.sendMessage("admin.limits.calc.finished");
