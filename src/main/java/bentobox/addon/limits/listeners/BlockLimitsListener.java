@@ -40,8 +40,6 @@ import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.Database;
 import world.bentobox.bentobox.util.Util;
 
-import com.songoda.epicspawners.api.events.SpawnerBreakEvent;
-
 /**
  * @author tastybento
  *
@@ -148,13 +146,7 @@ public class BlockLimitsListener implements Listener {
         handleBreak(e, e.getPlayer(), e.getBlock());
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBlockBreak(SpawnerBreakEvent e) {
-        Block b = e.getSpawner().getLocation().getBlock();
-        handleBreak(e, e.getPlayer(), b);
-    }
-
-    private void handleBreak(Cancellable e, Player player, Block b) {
+    void handleBreak(Cancellable e, Player player, Block b) {
         notify(e, User.getInstance(player), process(b, false), b.getType());
         // Player breaks a block and there was a redstone dust/repeater/... above
         if (b.getRelative(BlockFace.UP).getType() == Material.REDSTONE_WIRE || b.getRelative(BlockFace.UP).getType() == Material.REPEATER || b.getRelative(BlockFace.UP).getType() == Material.COMPARATOR || b.getRelative(BlockFace.UP).getType() == Material.REDSTONE_TORCH) {
