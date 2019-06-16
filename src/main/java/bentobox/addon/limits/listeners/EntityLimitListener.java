@@ -53,7 +53,7 @@ public class EntityLimitListener implements Listener {
                             for (Entity ent : e.getVehicle().getLocation().getWorld().getNearbyEntities(e.getVehicle().getLocation(), 5, 5, 5)) {
                                 if (ent instanceof Player) {
                                     ((Player) ent).updateInventory();
-                                    User.getInstance(ent).sendMessage("limits.hit-limit", "[material]",
+                                    User.getInstance(ent).sendMessage("entity-limits.hit-limit", "[entity]",
                                             Util.prettifyText(e.getVehicle().getType().toString())
                                             ,"[number]", String.valueOf(addon.getSettings().getLimits().get(e.getVehicle().getType())));
                                 }
@@ -116,7 +116,7 @@ public class EntityLimitListener implements Listener {
                 if (!e.getSpawnReason().equals(SpawnReason.SPAWNER)) {
                     for (Entity ent : e.getLocation().getWorld().getNearbyEntities(e.getLocation(), 5, 5, 5)) {
                         if (ent instanceof Player) {
-                            User.getInstance(ent).sendMessage("limits.hit-limit", "[material]",
+                            User.getInstance(ent).sendMessage("entity-limits.hit-limit", "[entity]",
                                     Util.prettifyText(e.getEntityType().toString()),
                                     "[number]", String.valueOf(addon.getSettings().getLimits().get(e.getEntityType())));
                         }

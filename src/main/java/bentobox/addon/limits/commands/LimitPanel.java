@@ -94,7 +94,7 @@ public class LimitPanel {
         }
         IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(island.getUniqueId());
         Map<Material, Integer> matLimits = addon.getBlockLimitListener().getMaterialLimits(world, island.getUniqueId());
-        if (matLimits.isEmpty()) {
+        if (matLimits.isEmpty() && addon.getSettings().getLimits().isEmpty()) {
             user.sendMessage("island.limits.no-limits");
             return;
         }
