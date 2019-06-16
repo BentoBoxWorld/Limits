@@ -168,7 +168,7 @@ public class BlockLimitsListener implements Listener {
 
     private void notify(Cancellable e, User user, int limit, Material m) {
         if (limit > -1) {
-            user.sendMessage("limits.hit-limit",
+            user.sendMessage("block-limits.hit-limit",
                     "[material]", Util.prettifyText(m.toString()),
                     TextVariables.NUMBER, String.valueOf(limit));
             e.setCancelled(true);
