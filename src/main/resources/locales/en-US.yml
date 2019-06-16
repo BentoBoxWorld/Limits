@@ -4,7 +4,8 @@
 ###########################################################################################
 
 limits:
-  hit-limit: "&c[material] limited to [number]!"
+  entity-hit-limit: "&c[entity] spawning limited to [number]!"
+  block-hit-limit: "&c[material] limited to [number]!"
   panel-title: "Island limits"
 
 admin:
