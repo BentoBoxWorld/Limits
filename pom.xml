@@ -16,6 +16,11 @@
 		<url>https://github.com/BentoBoxWorld/Limits</url>
 	</scm>
 
+	<ciManagement>
+		<system>jenkins</system>
+		<url>http://ci.codemc.org/job/BentoBoxWorld/job/Limits</url>
+	</ciManagement>
+	
 	<issueManagement>
 		<system>GitHub</system>
 		<url>https://github.com/BentoBoxWorld/Limits/issues</url>
