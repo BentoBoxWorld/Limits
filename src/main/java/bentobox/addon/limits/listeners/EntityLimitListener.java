@@ -113,7 +113,7 @@ public class EntityLimitListener implements Listener {
                 // Not allowed
                 e.setCancelled(true);
                 // If the reason is anything but because of a spawner then tell players within range
-                if (!e.getSpawnReason().equals(SpawnReason.SPAWNER)) {
+                	if (!e.getSpawnReason().equals(SpawnReason.SPAWNER) && !e.getSpawnReason().equals(SpawnReason.NATURAL) && !e.getSpawnReason().equals(SpawnReason.INFECTION) && !e.getSpawnReason().equals(SpawnReason.NETHER_PORTAL) && !e.getSpawnReason().equals(SpawnReason.REINFORCEMENTS) && !e.getSpawnReason().equals(SpawnReason.SLIME_SPLIT)) {
                     for (Entity ent : e.getLocation().getWorld().getNearbyEntities(e.getLocation(), 5, 5, 5)) {
                         if (ent instanceof Player) {
                             User.getInstance(ent).sendMessage("entity-limits.hit-limit", "[entity]",
