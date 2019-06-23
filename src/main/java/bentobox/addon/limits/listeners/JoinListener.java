@@ -37,8 +37,8 @@ public class JoinListener implements Listener {
 
     private void checkPerms(Player player, String permissionPrefix, String islandId, String gameMode) {
         IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(islandId);
-        int limit = -1;
         for (PermissionAttachmentInfo perms : player.getEffectivePermissions()) {
+            int limit = -1;
             if (perms.getPermission().startsWith(permissionPrefix)) {
                 // Get the Material
                 String[] split = perms.getPermission().split("\\.");

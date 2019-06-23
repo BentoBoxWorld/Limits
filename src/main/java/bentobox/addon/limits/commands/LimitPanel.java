@@ -61,7 +61,6 @@ public class LimitPanel {
         E2M.put(EntityType.TRIDENT, null);
         E2M.put(EntityType.ARROW, null);
         E2M.put(EntityType.SPECTRAL_ARROW, null);
-        E2M.put(EntityType.TIPPED_ARROW, null);
         E2M.put(EntityType.SNOWBALL, null);
         E2M.put(EntityType.EGG, null);
         E2M.put(EntityType.LEASH_HITCH, null);

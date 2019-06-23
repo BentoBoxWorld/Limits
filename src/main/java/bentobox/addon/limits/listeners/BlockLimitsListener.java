@@ -12,6 +12,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -142,22 +143,26 @@ public class BlockLimitsListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlock(BlockBreakEvent e) {
-        notify(e, User.getInstance(e.getPlayer()), process(e.getBlock(), false), e.getBlock().getType());
+        handleBreak(e, e.getPlayer(), e.getBlock());
+    }
+
+    void handleBreak(Cancellable e, Player player, Block b) {
+        notify(e, User.getInstance(player), process(b, false), b.getType());
         // Player breaks a block and there was a redstone dust/repeater/... above
-        if (e.getBlock().getRelative(BlockFace.UP).getType() == Material.REDSTONE_WIRE || e.getBlock().getRelative(BlockFace.UP).getType() == Material.REPEATER || e.getBlock().getRelative(BlockFace.UP).getType() == Material.COMPARATOR || e.getBlock().getRelative(BlockFace.UP).getType() == Material.REDSTONE_TORCH) {
-            process(e.getBlock().getRelative(BlockFace.UP), false);
+        if (b.getRelative(BlockFace.UP).getType() == Material.REDSTONE_WIRE || b.getRelative(BlockFace.UP).getType() == Material.REPEATER || b.getRelative(BlockFace.UP).getType() == Material.COMPARATOR || b.getRelative(BlockFace.UP).getType() == Material.REDSTONE_TORCH) {
+            process(b.getRelative(BlockFace.UP), false);
         }
-        if (e.getBlock().getRelative(BlockFace.EAST).getType() == Material.REDSTONE_WALL_TORCH) {
-            process(e.getBlock().getRelative(BlockFace.EAST), false);
+        if (b.getRelative(BlockFace.EAST).getType() == Material.REDSTONE_WALL_TORCH) {
+            process(b.getRelative(BlockFace.EAST), false);
         }
-        if (e.getBlock().getRelative(BlockFace.WEST).getType() == Material.REDSTONE_WALL_TORCH) {
-            process(e.getBlock().getRelative(BlockFace.WEST), false);
+        if (b.getRelative(BlockFace.WEST).getType() == Material.REDSTONE_WALL_TORCH) {
+            process(b.getRelative(BlockFace.WEST), false);
         }
-        if (e.getBlock().getRelative(BlockFace.SOUTH).getType() == Material.REDSTONE_WALL_TORCH) {
-            process(e.getBlock().getRelative(BlockFace.SOUTH), false);
+        if (b.getRelative(BlockFace.SOUTH).getType() == Material.REDSTONE_WALL_TORCH) {
+            process(b.getRelative(BlockFace.SOUTH), false);
         }
-        if (e.getBlock().getRelative(BlockFace.NORTH).getType() == Material.REDSTONE_WALL_TORCH) {
-            process(e.getBlock().getRelative(BlockFace.NORTH), false);
+        if (b.getRelative(BlockFace.NORTH).getType() == Material.REDSTONE_WALL_TORCH) {
+            process(b.getRelative(BlockFace.NORTH), false);
         }
     }
 
