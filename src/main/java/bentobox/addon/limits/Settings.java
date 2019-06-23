@@ -25,7 +25,9 @@ public class Settings {
             for (String key : el.getKeys(false)) {
                 EntityType type = getType(key);
                 if (type != null) {
-                    if (!type.isSpawnable() || (LimitPanel.E2M.containsKey(type) && LimitPanel.E2M.get(type) == null)) {
+                    if (!type.equals(EntityType.PAINTING) &&
+                            !type.equals(EntityType.ITEM_FRAME) &&
+                            (!type.isSpawnable() || (LimitPanel.E2M.containsKey(type) && LimitPanel.E2M.get(type) == null))) {
                         addon.logError("Entity type: " + key + " is not supported - skipping...");
                     } else {
                         limits.put(type, el.getInt(key, 0));

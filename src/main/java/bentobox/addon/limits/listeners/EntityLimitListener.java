@@ -1,5 +1,6 @@
 package bentobox.addon.limits.listeners;
 
+import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -7,6 +8,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
+import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
 
 import bentobox.addon.limits.Limits;
@@ -86,16 +88,7 @@ public class EntityLimitListener implements Listener {
         case CURED:
         case EGG:
         case SPAWNER_EGG:
-            // If someone in that area has the bypass permission, allow the spawning
-            for (Entity entity : e.getLocation().getWorld().getNearbyEntities(e.getLocation(), 5, 5, 5)) {
-                if (entity instanceof Player) {
-                    Player player = (Player)entity;
-                    if (player.isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getEntity().getWorld()) + "mod.bypass")) {
-                        bypass = true;
-                        break;
-                    }
-                }
-            }
+            bypass = checkByPass(e.getLocation());
             break;
         default:
             // Other natural reasons
@@ -104,6 +97,41 @@ public class EntityLimitListener implements Listener {
         // Tag the entity with the island spawn location
         checkLimit(e, bypass);
 
+    }
+
+    private boolean checkByPass(Location l) {
+        // If someone in that area has the bypass permission, allow the spawning
+        for (Entity entity : l.getWorld().getNearbyEntities(l, 5, 5, 5)) {
+            if (entity instanceof Player) {
+                Player player = (Player)entity;
+                if (player.isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(l.getWorld()) + "mod.bypass")) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * handles paintings and item frames
+     * @param e - event
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBlock(HangingPlaceEvent e) {
+        Player player = e.getPlayer();
+        boolean bypass = player.isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getEntity().getWorld()) + "mod.bypass");
+
+        addon.getIslands().getIslandAt(e.getEntity().getLocation()).ifPresent(island -> {
+            // Check if entity can be hung
+            if (!island.isSpawn() && atLimit(island, bypass, e.getEntity())) {
+                // Not allowed
+                e.setCancelled(true);
+                User.getInstance(player).sendMessage("limits.hit-limit", "[material]",
+                        Util.prettifyText(e.getEntity().getType().toString()),
+                        "[number]", String.valueOf(addon.getSettings().getLimits().get(e.getEntity().getType())));
+
+            }
+        });
     }
 
     private void checkLimit(CreatureSpawnEvent e, boolean bypass) {
@@ -136,9 +164,10 @@ public class EntityLimitListener implements Listener {
      * @return true if at the limit, false if not
      */
     private boolean atLimit(Island island, boolean bypass, Entity ent) {
-        return addon.getSettings().getLimits().getOrDefault(ent.getType(), -1) <= ent.getWorld().getEntities().stream()
+        long count = ent.getWorld().getEntities().stream()
                 .filter(e -> e.getType().equals(ent.getType()))
                 .filter(e -> island.inIslandSpace(e.getLocation())).count();
+        return addon.getSettings().getLimits().getOrDefault(ent.getType(), -1) <= count;
     }
 }
 
