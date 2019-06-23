@@ -4,8 +4,8 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>world.bentobox</groupId>
 	<artifactId>limits</artifactId>
-	<version>0.2.2-SNAPSHOT</version>
 	<name>Limits</name>
+	<version>0.2.3-SNAPSHOT</version>
 	<description>An add-on for BentoBox that limits blocks and entities on islands.</description>
 	<url>https://github.com/BentoBoxWorld/Limits</url>
 	<inceptionYear>2018</inceptionYear>
