@@ -26,9 +26,12 @@ import world.bentobox.bentobox.util.Util;
 public class LimitPanel {
 
     private final Limits addon;
+    // This maps the entity types to the icon that should be shown in the panel
+    // If the icon is null, then the entity type is not covered by the addon
     public final static Map<EntityType, Material> E2M = new HashMap<>();
     static {
         E2M.put(EntityType.PIG_ZOMBIE, Material.ZOMBIE_PIGMAN_SPAWN_EGG);
+        E2M.put(EntityType.MUSHROOM_COW, Material.MOOSHROOM_SPAWN_EGG);
         E2M.put(EntityType.SNOWMAN, Material.SNOW_BLOCK);
         E2M.put(EntityType.IRON_GOLEM, Material.IRON_BLOCK);
         E2M.put(EntityType.ILLUSIONER, Material.VILLAGER_SPAWN_EGG);
