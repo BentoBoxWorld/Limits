@@ -128,7 +128,7 @@ public class EntityLimitListener implements Listener {
                 e.setCancelled(true);
                 User.getInstance(player).sendMessage("limits.hit-limit", "[material]",
                         Util.prettifyText(e.getEntity().getType().toString()),
-                        "[number]", String.valueOf(addon.getSettings().getLimits().get(e.getEntity().getType())));
+                        "[number]", String.valueOf(addon.getSettings().getLimits().getOrDefault(e.getEntity().getType(), -1)));
 
             }
         });
@@ -141,7 +141,7 @@ public class EntityLimitListener implements Listener {
                 // Not allowed
                 e.setCancelled(true);
                 // If the reason is anything but because of a spawner then tell players within range
-                	if (!e.getSpawnReason().equals(SpawnReason.SPAWNER) && !e.getSpawnReason().equals(SpawnReason.NATURAL) && !e.getSpawnReason().equals(SpawnReason.INFECTION) && !e.getSpawnReason().equals(SpawnReason.NETHER_PORTAL) && !e.getSpawnReason().equals(SpawnReason.REINFORCEMENTS) && !e.getSpawnReason().equals(SpawnReason.SLIME_SPLIT)) {
+                if (!e.getSpawnReason().equals(SpawnReason.SPAWNER) && !e.getSpawnReason().equals(SpawnReason.NATURAL) && !e.getSpawnReason().equals(SpawnReason.INFECTION) && !e.getSpawnReason().equals(SpawnReason.NETHER_PORTAL) && !e.getSpawnReason().equals(SpawnReason.REINFORCEMENTS) && !e.getSpawnReason().equals(SpawnReason.SLIME_SPLIT)) {
                     for (Entity ent : e.getLocation().getWorld().getNearbyEntities(e.getLocation(), 5, 5, 5)) {
                         if (ent instanceof Player) {
                             User.getInstance(ent).sendMessage("entity-limits.hit-limit", "[entity]",
@@ -167,7 +167,7 @@ public class EntityLimitListener implements Listener {
         long count = ent.getWorld().getEntities().stream()
                 .filter(e -> e.getType().equals(ent.getType()))
                 .filter(e -> island.inIslandSpace(e.getLocation())).count();
-        return addon.getSettings().getLimits().getOrDefault(ent.getType(), -1) <= count;
+        return addon.getSettings().getLimits().containsKey(ent.getType()) && count >= addon.getSettings().getLimits().get(ent.getType());
     }
 }
 
