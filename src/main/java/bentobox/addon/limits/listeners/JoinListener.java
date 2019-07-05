@@ -38,33 +38,32 @@ public class JoinListener implements Listener {
     private void checkPerms(Player player, String permissionPrefix, String islandId, String gameMode) {
         IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(islandId);
         for (PermissionAttachmentInfo perms : player.getEffectivePermissions()) {
-            int limit = -1;
             if (perms.getPermission().startsWith(permissionPrefix)) {
+                // No wildcards
+                if (perms.getPermission().contains(permissionPrefix + "*")) {
+                    logError(player.getName(), perms.getPermission(), "wildcards are not allowed.");
+                    return;
+                }
                 // Get the Material
                 String[] split = perms.getPermission().split("\\.");
                 if (split.length != 5) {
-                    logError(player.getName(), perms.getPermission(), "format must be " + permissionPrefix + "MATERIAL.NUMBER");
+                    logError(player.getName(), perms.getPermission(), "format must be '" + permissionPrefix + "MATERIAL.NUMBER'");
                     return;
                 }
                 Material m = Material.getMaterial(split[3].toUpperCase(Locale.ENGLISH));
                 if (m == null) {
-                    logError(player.getName(), perms.getPermission(), split[3].toUpperCase(Locale.ENGLISH) + " is not a valid material");
+                    logError(player.getName(), perms.getPermission(), split[3].toUpperCase(Locale.ENGLISH) + " is not a valid material.");
                     return;
                 }
                 // Get the max value should there be more than one
-                if (perms.getPermission().contains(permissionPrefix + ".*")) {
-                    logError(player.getName(), perms.getPermission(), "wildcards are not allowed");
-                    return;
-                }
                 if (!NumberUtils.isDigits(split[4])) {
                     logError(player.getName(), perms.getPermission(), "the last part MUST be a number!");
                 } else {
-                    limit = Math.max(limit, Integer.valueOf(split[4]));
                     // Set the limit
                     if (ibc == null) {
                         ibc = new IslandBlockCount(islandId, gameMode);
                     }
-                    ibc.setBlockLimit(m, limit);
+                    ibc.setBlockLimit(m, Math.max(ibc.getBlockLimit(m), Integer.valueOf(split[4])));
                 }
             }
         }
@@ -76,7 +75,7 @@ public class JoinListener implements Listener {
     }
 
     private void logError(String name, String perm, String error) {
-        addon.logError("Player " + name + " has permission: '" + perm + " but " + error + " Ignoring...");
+        addon.logError("Player " + name + " has permission: '" + perm + "' but " + error + " Ignoring...");
     }
 
     /*
