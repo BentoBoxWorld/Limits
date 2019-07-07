@@ -38,6 +38,8 @@ public class LimitPanel {
         E2M.put(EntityType.WITHER, Material.WITHER_SKELETON_SKULL);
         E2M.put(EntityType.BOAT, Material.OAK_BOAT);
         E2M.put(EntityType.ARMOR_STAND, Material.ARMOR_STAND);
+        E2M.put(EntityType.ITEM_FRAME, Material.ITEM_FRAME);
+        E2M.put(EntityType.PAINTING, Material.PAINTING);
 
         // Minecarts
         E2M.put(EntityType.MINECART_TNT, Material.TNT_MINECART);
@@ -67,8 +69,6 @@ public class LimitPanel {
         E2M.put(EntityType.SNOWBALL, null);
         E2M.put(EntityType.EGG, null);
         E2M.put(EntityType.LEASH_HITCH, null);
-        E2M.put(EntityType.ITEM_FRAME, null);
-        E2M.put(EntityType.PAINTING, null);
         E2M.put(EntityType.GIANT, null);
         E2M.put(EntityType.ENDER_CRYSTAL, null);
         E2M.put(EntityType.ENDER_PEARL, null);
