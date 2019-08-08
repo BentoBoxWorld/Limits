@@ -67,6 +67,8 @@ public class JoinListenerTest {
     private IslandBlockCount ibc;
     @Mock
     private OfflinePlayer owner;
+    @Mock
+    private Island island;
 
     /**
      * @throws java.lang.Exception
@@ -80,7 +82,6 @@ public class JoinListenerTest {
         when(addon.getGameModePermPrefix(any())).thenReturn("bskyblock.");
         // Island Manager
         when(im.hasIsland(any(), any(UUID.class))).thenReturn(true);
-        Island island = mock(Island.class);
         when(island.getUniqueId()).thenReturn("unique_id");
         when(im.getIsland(any(), any(UUID.class))).thenReturn(island);
         // Default is that player has island
@@ -105,6 +106,9 @@ public class JoinListenerTest {
         when(owner.isOnline()).thenReturn(true);
         when(owner.getPlayer()).thenReturn(player);
         when(Bukkit.getOfflinePlayer(any(UUID.class))).thenReturn(owner);
+
+        // Island
+        when(island.getOwner()).thenReturn(UUID.randomUUID());
     }
 
     /**
@@ -119,7 +123,6 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnNewIslandWrongReason() {
-        Island island = mock(Island.class);
         IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.BAN);
         jl.onNewIsland(e);
         verify(island, never()).getWorld();
@@ -130,7 +133,6 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnNewIslandRegistered() {
-        Island island = mock(Island.class);
         IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.REGISTERED);
         jl.onNewIsland(e);
         verify(island).getWorld();
@@ -141,7 +143,6 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnNewIslandResetted() {
-        Island island = mock(Island.class);
         IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.RESETTED);
         jl.onNewIsland(e);
         verify(island).getWorld();
@@ -153,7 +154,6 @@ public class JoinListenerTest {
     @Test
     public void testOnNewIslandCreated() {
         when(addon.inGameModeWorld(any())).thenReturn(true);
-        Island island = mock(Island.class);
         IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.CREATED);
         jl.onNewIsland(e);
         verify(island).getWorld();
@@ -167,7 +167,6 @@ public class JoinListenerTest {
     public void testOnNewIslandCreatedOffline() {
         when(owner.isOnline()).thenReturn(false);
         when(addon.inGameModeWorld(any())).thenReturn(true);
-        Island island = mock(Island.class);
         IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.CREATED);
         jl.onNewIsland(e);
         verify(island).getWorld();
@@ -182,7 +181,6 @@ public class JoinListenerTest {
         when(addon.getGameModeName(any())).thenReturn("");
         when(addon.getGameModePermPrefix(any())).thenReturn("bskyblock.");
         when(addon.inGameModeWorld(any())).thenReturn(true);
-        Island island = mock(Island.class);
         IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.CREATED);
         jl.onNewIsland(e);
         when(addon.getGameModeName(any())).thenReturn("bskyblock");
@@ -196,7 +194,6 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnOwnerChange() {
-        Island island = mock(Island.class);
         TeamSetownerEvent e = mock(TeamSetownerEvent.class);
         when(e.getIsland()).thenReturn(island);
         when(e.getNewOwner()).thenReturn(UUID.randomUUID());
@@ -379,7 +376,6 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnUnregisterIslandNotUnregistered() {
-        Island island = mock(Island.class);
         IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.BAN);
         jl.onUnregisterIsland(e);
         verify(island, never()).getWorld();
@@ -390,7 +386,6 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnUnregisterIslandNotInWorld() {
-        Island island = mock(Island.class);
         IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.UNREGISTERED);
         jl.onUnregisterIsland(e);
         verify(island).getWorld();
@@ -406,7 +401,6 @@ public class JoinListenerTest {
         Map<Material, Integer> map = mock(Map.class);
         when(ibc.getBlockLimits()).thenReturn(map);
         when(addon.inGameModeWorld(any())).thenReturn(true);
-        Island island = mock(Island.class);
         IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.UNREGISTERED);
         jl.onUnregisterIsland(e);
         verify(island).getWorld();
@@ -425,7 +419,6 @@ public class JoinListenerTest {
         Map<Material, Integer> map = mock(Map.class);
         when(ibc.getBlockLimits()).thenReturn(map);
         when(addon.inGameModeWorld(any())).thenReturn(true);
-        Island island = mock(Island.class);
         IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.UNREGISTERED);
         jl.onUnregisterIsland(e);
         verify(island).getWorld();
