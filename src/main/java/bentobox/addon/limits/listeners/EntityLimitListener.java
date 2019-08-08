@@ -126,7 +126,7 @@ public class EntityLimitListener implements Listener {
             if (!island.isSpawn() && atLimit(island, bypass, e.getEntity())) {
                 // Not allowed
                 e.setCancelled(true);
-                User.getInstance(player).sendMessage("limits.hit-limit", "[material]",
+                User.getInstance(player).sendMessage("block-limits.hit-limit", "[material]",
                         Util.prettifyText(e.getEntity().getType().toString()),
                         "[number]", String.valueOf(addon.getSettings().getLimits().getOrDefault(e.getEntity().getType(), -1)));
 

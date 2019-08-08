@@ -3,10 +3,13 @@
 # the one at http://yaml-online-parser.appspot.com                                        #
 ###########################################################################################
 
+block-limits:
+  hit-limit: "&c[material] limited to [number]!"
+entity-limits:
+  hit-limit: "&c[entity] spawning limited to [number]!"
 limits:
-  entity-hit-limit: "&c[entity] spawning limited to [number]!"
-  block-hit-limit: "&c[material] limited to [number]!"
   panel-title: "Island limits"
+
 
 admin:
   limits:
@@ -27,4 +30,3 @@ island:
     block-limit-syntax: "[number]/[limit]"
     no-limits: "&cNo limits set in this world"
 
-    
