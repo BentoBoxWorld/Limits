@@ -119,9 +119,8 @@ public class EntityLimitListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlock(HangingPlaceEvent e) {
         Player player = e.getPlayer();
-        boolean bypass = player.isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getEntity().getWorld()) + "mod.bypass");
-
         addon.getIslands().getIslandAt(e.getEntity().getLocation()).ifPresent(island -> {
+            boolean bypass = player.isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getEntity().getWorld()) + "mod.bypass");
             // Check if entity can be hung
             if (!island.isSpawn() && atLimit(island, bypass, e.getEntity())) {
                 // Not allowed
