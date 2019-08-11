@@ -1,6 +1,6 @@
 name: Limits
 main: bentobox.addon.limits.Limits
-version: ${version}
+version: ${version}${build.number}
 
 authors: tastybento
 
