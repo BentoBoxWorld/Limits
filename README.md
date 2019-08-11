@@ -1,4 +1,6 @@
 # Limits
+[![Build Status](https://ci.codemc.org/buildStatus/icon?job=BentoBoxWorld/Limits)](https://ci.codemc.org/job/BentoBoxWorld/job/Limits/)
+
 Add-on for BentoBox to limit island blocks and entities in GameModes like  BSkyBlock and AcidIsland. This add-on will work
 in any game mode world.
 
