@@ -4,6 +4,6 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.songoda</groupId>
   <artifactId>EpicSpawners-API</artifactId>
-  <version>6.0.7</version>
+  <version>6.0.9</version>
   <description>POM was created from install:install-file</description>
 </project>
