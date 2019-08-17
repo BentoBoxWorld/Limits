@@ -99,10 +99,6 @@
 
     <repositories>
         <repository>
-            <id>my-local-repo</id>
-            <url>file://${basedir}/src/main/resources/jars</url>
-        </repository>
-        <repository>
             <id>spigot-repo</id>
             <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots</url>
         </repository>
@@ -147,13 +143,6 @@
             <groupId>world.bentobox</groupId>
             <artifactId>bentobox</artifactId>
             <version>${bentobox.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <!-- For EpicSpawners -->
-        <dependency>
-            <groupId>com.songoda</groupId>
-            <artifactId>EpicSpawners-API</artifactId>
-            <version>6.0.9</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

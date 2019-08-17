@@ -136,12 +136,12 @@ public class BlockLimitsListener implements Listener {
     }
 
     // Player-related events
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = false)
     public void onBlock(BlockPlaceEvent e) {
         notify(e, User.getInstance(e.getPlayer()), process(e.getBlock(), true), e.getBlock().getType());
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = false)
     public void onBlock(BlockBreakEvent e) {
         handleBreak(e, e.getPlayer(), e.getBlock());
     }
@@ -166,7 +166,7 @@ public class BlockLimitsListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockMultiPlaceEvent e) {
         notify(e, User.getInstance(e.getPlayer()), process(e.getBlock(), true), e.getBlock().getType());
     }
@@ -181,57 +181,57 @@ public class BlockLimitsListener implements Listener {
     }
 
     // Non-player events
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockBurnEvent e) {
         process(e.getBlock(), false);
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockExplodeEvent e) {
         e.blockList().forEach(b -> process(b, false));
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockFadeEvent e) {
         process(e.getBlock(), false);
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockFormEvent e) {
         process(e.getBlock(), true);
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockGrowEvent e) {
         process(e.getBlock(), true);
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockSpreadEvent e) {
         process(e.getBlock(), true);
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(EntityBlockFormEvent e) {
         process(e.getBlock(), true);
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(LeavesDecayEvent e) {
         process(e.getBlock(), false);
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(EntityExplodeEvent e) {
         e.blockList().forEach(b -> process(b, false));
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(EntityChangeBlockEvent e) {
         process(e.getBlock(), false);
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockFromToEvent e) {
         if (e.getBlock().isLiquid()) {
             if (e.getToBlock().getType() == Material.REDSTONE_WIRE || e.getToBlock().getType() == Material.REPEATER || e.getToBlock().getType() == Material.COMPARATOR || e.getToBlock().getType() == Material.REDSTONE_TORCH || e.getToBlock().getType() == Material.REDSTONE_WALL_TORCH) {
@@ -361,7 +361,7 @@ public class BlockLimitsListener implements Listener {
      *
      * @param e - island delete event
      */
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onIslandDelete(IslandDeleteEvent e) {
         islandCountMap.remove(e.getIsland().getUniqueId());
         saveMap.remove(e.getIsland().getUniqueId());
