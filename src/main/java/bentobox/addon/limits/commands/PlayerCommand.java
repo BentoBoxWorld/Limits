@@ -22,6 +22,7 @@ public class PlayerCommand extends CompositeCommand {
     public PlayerCommand(Limits addon, CompositeCommand parent) {
         super(parent, "limits");
         this.addon = addon;
+        new RecountCommand(addon, this);
     }
 
     /* (non-Javadoc)

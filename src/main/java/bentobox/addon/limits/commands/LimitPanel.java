@@ -29,6 +29,8 @@ public class LimitPanel {
     // This maps the entity types to the icon that should be shown in the panel
     // If the icon is null, then the entity type is not covered by the addon
     public final static Map<EntityType, Material> E2M = new HashMap<>();
+    // This is a map of blocks to Material
+    public final static Map<Material, Material> B2M = new HashMap<>();
     static {
         E2M.put(EntityType.PIG_ZOMBIE, Material.ZOMBIE_PIGMAN_SPAWN_EGG);
         E2M.put(EntityType.MUSHROOM_COW, Material.MOOSHROOM_SPAWN_EGG);
@@ -73,7 +75,13 @@ public class LimitPanel {
         E2M.put(EntityType.ENDER_CRYSTAL, null);
         E2M.put(EntityType.ENDER_PEARL, null);
         E2M.put(EntityType.ENDER_DRAGON, null);
-
+        // Block to Material icons
+        B2M.put(Material.SWEET_BERRY_BUSH, Material.SWEET_BERRIES);
+        B2M.put(Material.POTATOES, Material.POTATO);
+        B2M.put(Material.CARROTS, Material.CARROT);
+        B2M.put(Material.BEETROOTS, Material.BEETROOT);
+        B2M.put(Material.BAMBOO_SAPLING, Material.BAMBOO);
+        B2M.put(Material.REDSTONE_WIRE, Material.REDSTONE);
     }
 
     /**
@@ -104,12 +112,9 @@ public class LimitPanel {
         for (Entry<Material, Integer> en : matLimits.entrySet()) {
             PanelItemBuilder pib = new PanelItemBuilder();
             pib.name(Util.prettifyText(en.getKey().toString()));
-            if (en.getKey() == Material.REDSTONE_WIRE) {
-                pib.icon(Material.REDSTONE);
-            }
-            else {
-                pib.icon(en.getKey());
-            }
+            // Adjust icon
+            pib.icon(B2M.getOrDefault(en.getKey(), en.getKey()));
+
             int count = ibc == null ? 0 : ibc.getBlockCount().getOrDefault(en.getKey(), 0);
             String color = count >= en.getValue() ? user.getTranslation("island.limits.max-color") : user.getTranslation("island.limits.regular-color");
             pib.description(color
@@ -128,6 +133,7 @@ public class LimitPanel {
                 } else if (k.isAlive()) {
                     m = Material.valueOf(k.toString() + "_SPAWN_EGG");
                 } else {
+                    // Regular material
                     m = Material.valueOf(k.toString());
                 }
             } catch (Exception e) {

@@ -23,7 +23,6 @@ import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockFadeEvent;
 import org.bukkit.event.block.BlockFormEvent;
 import org.bukkit.event.block.BlockFromToEvent;
-import org.bukkit.event.block.BlockGrowEvent;
 import org.bukkit.event.block.BlockMultiPlaceEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockSpreadEvent;
@@ -50,7 +49,7 @@ public class BlockLimitsListener implements Listener {
      * Blocks that are not counted
      */
     private static final List<Material> DO_NOT_COUNT = Arrays.asList(Material.LAVA, Material.WATER, Material.AIR, Material.FIRE, Material.END_PORTAL, Material.NETHER_PORTAL);
-
+    private static final List<Material> STACKABLE = Arrays.asList(Material.SUGAR_CANE, Material.BAMBOO);
     /**
      * Save every 10 blocks of change
      */
@@ -147,7 +146,23 @@ public class BlockLimitsListener implements Listener {
     }
 
     void handleBreak(Cancellable e, Player player, Block b) {
-        notify(e, User.getInstance(player), process(b, false), b.getType());
+        Material mat = b.getType();
+        // Special handling for crops that can break in different ways
+        if (mat.equals(Material.WHEAT_SEEDS)) {
+            mat = Material.WHEAT;
+        } else if (mat.equals(Material.BEETROOT_SEEDS)) {
+            mat = Material.BEETROOT;
+        }
+        // Check for stackable plants
+        if (STACKABLE.contains(b.getType())) {
+            // Check for blocks above
+            Block block = b;
+            while(block.getRelative(BlockFace.UP).getType().equals(mat) && block.getY() < b.getWorld().getMaxHeight()) {
+                block = block.getRelative(BlockFace.UP);
+                process(block, false, mat);
+            }
+        }
+        notify(e, User.getInstance(player), process(b, false, mat), mat);
         // Player breaks a block and there was a redstone dust/repeater/... above
         if (b.getRelative(BlockFace.UP).getType() == Material.REDSTONE_WIRE || b.getRelative(BlockFace.UP).getType() == Material.REPEATER || b.getRelative(BlockFace.UP).getType() == Material.COMPARATOR || b.getRelative(BlockFace.UP).getType() == Material.REDSTONE_TORCH) {
             process(b.getRelative(BlockFace.UP), false);
@@ -201,18 +216,22 @@ public class BlockLimitsListener implements Listener {
         process(e.getBlock(), true);
     }
 
+    /*
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockGrowEvent e) {
+        Bukkit.getLogger().info(e.getEventName());
         process(e.getBlock(), true);
     }
-
+     */
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockSpreadEvent e) {
+        Bukkit.getLogger().info(e.getEventName());
         process(e.getBlock(), true);
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(EntityBlockFormEvent e) {
+        Bukkit.getLogger().info(e.getEventName());
         process(e.getBlock(), true);
     }
 
@@ -244,11 +263,24 @@ public class BlockLimitsListener implements Listener {
         return process(b, add, b.getType());
     }
 
-    // It wouldn't make sense to count REDSTONE_WALL_TORCH and REDSTONE_TORCH as separed limits.
+    // Return equivalents.
     public Material fixMaterial(Material b) {
-        if (b == Material.REDSTONE_WALL_TORCH) {
+        switch (b) {
+        case REDSTONE_WALL_TORCH:
             return Material.REDSTONE_TORCH;
-        } else {
+        case WALL_TORCH:
+            return Material.TORCH;
+        case ZOMBIE_WALL_HEAD:
+            return Material.ZOMBIE_HEAD;
+        case CREEPER_WALL_HEAD:
+            return Material.CREEPER_HEAD;
+        case PLAYER_WALL_HEAD:
+            return Material.PLAYER_HEAD;
+        case DRAGON_WALL_HEAD:
+            return Material.DRAGON_HEAD;
+        case BAMBOO_SAPLING:
+            return Material.BAMBOO;
+        default:
             return b;
         }
     }
@@ -286,13 +318,14 @@ public class BlockLimitsListener implements Listener {
             } else {
                 if (islandCountMap.containsKey(id)) {
                     // Check for changes
-                    if (!fixMaterial(changeTo).equals(fixMaterial(b.getType())) && fixMaterial(changeTo).isBlock() && !DO_NOT_COUNT.contains(fixMaterial(changeTo))) {
+                    Material fixed = fixMaterial(changeTo);
+                    if (!fixed.equals(fixMaterial(b.getType())) && fixed.isBlock() && !DO_NOT_COUNT.contains(fixed)) {
                         // Check limit
-                        int limit = checkLimit(b.getWorld(), fixMaterial(changeTo), id);
+                        int limit = checkLimit(b.getWorld(), fixed, id);
                         if (limit > -1) {
                             return limit;
                         }
-                        islandCountMap.get(id).add(fixMaterial(changeTo));
+                        islandCountMap.get(id).add(fixed);
                     }
                     islandCountMap.get(id).remove(fixMaterial(b.getType()));
                     saveMap.merge(id, 1, Integer::sum);

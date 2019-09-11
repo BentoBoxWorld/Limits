@@ -10,6 +10,9 @@ gamemodes:
 # example: bskyblock.island.limit.hopper.10
 # permission activates when player logs in.
 #
+# Cooldown for player recount command in seconds
+cooldown: 120
+
 # General block limiting
 # Use this section to limit how many blocks can be added to an island.
 # 0 means the item will be blocked from placement completely.

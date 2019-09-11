@@ -22,11 +22,12 @@ admin:
          finished: "&aIsland recalc finished sucessfully!"
 
 island:
-  limits: 
-    parameters: ""
+  limits:
     description: "show your island limits"
     max-color: "&c"
     regular-color: "&a"
     block-limit-syntax: "[number]/[limit]"
     no-limits: "&cNo limits set in this world"
+    recount:
+      description: "recounts limits for your island"
 
