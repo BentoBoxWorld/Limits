@@ -225,13 +225,13 @@ public class BlockLimitsListener implements Listener {
      */
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockSpreadEvent e) {
-        Bukkit.getLogger().info(e.getEventName());
+        //Bukkit.getLogger().info(e.getEventName());
         process(e.getBlock(), true);
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(EntityBlockFormEvent e) {
-        Bukkit.getLogger().info(e.getEventName());
+        //Bukkit.getLogger().info(e.getEventName());
         process(e.getBlock(), true);
     }
 
