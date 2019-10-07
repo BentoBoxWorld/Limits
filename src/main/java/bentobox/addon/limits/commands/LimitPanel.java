@@ -3,6 +3,7 @@ package bentobox.addon.limits.commands;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.bukkit.Material;
@@ -50,7 +51,6 @@ public class LimitPanel {
         E2M.put(EntityType.MINECART_FURNACE, Material.FURNACE_MINECART);
         E2M.put(EntityType.MINECART_HOPPER, Material.HOPPER_MINECART);
         E2M.put(EntityType.MINECART_MOB_SPAWNER, Material.MINECART);
-        E2M.put(EntityType.MINECART_TNT, Material.TNT_MINECART);
         // Disallowed
         E2M.put(EntityType.PRIMED_TNT, null);
         E2M.put(EntityType.EVOKER_FANGS, null);
@@ -59,7 +59,6 @@ public class LimitPanel {
         E2M.put(EntityType.AREA_EFFECT_CLOUD, null);
         E2M.put(EntityType.ENDER_SIGNAL, null);
         E2M.put(EntityType.SMALL_FIREBALL, null);
-        E2M.put(EntityType.DRAGON_FIREBALL, null);
         E2M.put(EntityType.FIREBALL, null);
         E2M.put(EntityType.THROWN_EXP_BOTTLE, null);
         E2M.put(EntityType.EXPERIENCE_ORB, null);
@@ -76,11 +75,15 @@ public class LimitPanel {
         E2M.put(EntityType.ENDER_PEARL, null);
         E2M.put(EntityType.ENDER_DRAGON, null);
         // Block to Material icons
-        B2M.put(Material.SWEET_BERRY_BUSH, Material.SWEET_BERRIES);
+        Optional.ofNullable(Material.getMaterial("SWEET_BERRY_BUSH")).ifPresent(material -> {
+            B2M.put(material, Material.getMaterial("SWEET_BERRIES"));
+        });
         B2M.put(Material.POTATOES, Material.POTATO);
         B2M.put(Material.CARROTS, Material.CARROT);
         B2M.put(Material.BEETROOTS, Material.BEETROOT);
-        B2M.put(Material.BAMBOO_SAPLING, Material.BAMBOO);
+        Optional.ofNullable(Material.getMaterial("BAMBOO_SAPLING")).ifPresent(material -> {
+            B2M.put(material, Material.getMaterial("BAMBOO"));
+        });
         B2M.put(Material.REDSTONE_WIRE, Material.REDSTONE);
     }
 

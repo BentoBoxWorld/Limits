@@ -1,10 +1,6 @@
 package bentobox.addon.limits.listeners;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -49,7 +45,15 @@ public class BlockLimitsListener implements Listener {
      * Blocks that are not counted
      */
     private static final List<Material> DO_NOT_COUNT = Arrays.asList(Material.LAVA, Material.WATER, Material.AIR, Material.FIRE, Material.END_PORTAL, Material.NETHER_PORTAL);
-    private static final List<Material> STACKABLE = Arrays.asList(Material.SUGAR_CANE, Material.BAMBOO);
+    private static final List<Material> STACKABLE;
+
+    static {
+        List<Material> stackable = new ArrayList<>();
+        stackable.add(Material.SUGAR_CANE);
+        Optional.ofNullable(Material.getMaterial("BAMBOO")).ifPresent(stackable::add);
+        STACKABLE = Collections.unmodifiableList(stackable);
+    }
+
     /**
      * Save every 10 blocks of change
      */
@@ -265,24 +269,22 @@ public class BlockLimitsListener implements Listener {
 
     // Return equivalents.
     public Material fixMaterial(Material b) {
-        switch (b) {
-        case REDSTONE_WALL_TORCH:
+        if (b == Material.REDSTONE_WALL_TORCH) {
             return Material.REDSTONE_TORCH;
-        case WALL_TORCH:
+        } else if (b == Material.WALL_TORCH) {
             return Material.TORCH;
-        case ZOMBIE_WALL_HEAD:
+        } else if (b == Material.ZOMBIE_WALL_HEAD) {
             return Material.ZOMBIE_HEAD;
-        case CREEPER_WALL_HEAD:
+        } else if (b == Material.CREEPER_WALL_HEAD) {
             return Material.CREEPER_HEAD;
-        case PLAYER_WALL_HEAD:
+        } else if (b == Material.PLAYER_WALL_HEAD) {
             return Material.PLAYER_HEAD;
-        case DRAGON_WALL_HEAD:
+        } else if (b == Material.DRAGON_WALL_HEAD) {
             return Material.DRAGON_HEAD;
-        case BAMBOO_SAPLING:
-            return Material.BAMBOO;
-        default:
-            return b;
+        } else if (b != null && b == Material.getMaterial("BAMBOO_SAPLING")) {
+            return Material.getMaterial("BAMBOO");
         }
+        return b;
     }
 
     /**
