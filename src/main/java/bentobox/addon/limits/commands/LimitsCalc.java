@@ -1,6 +1,6 @@
 package bentobox.addon.limits.commands;
 
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -44,7 +44,7 @@ public class LimitsCalc {
         this.island = instance.getIslands().getIsland(world, targetPlayer);
         this.bll = addon.getBlockLimitListener();
         this.ibc = bll.getIsland(island.getUniqueId());
-        blockCount = new HashMap<>();
+        blockCount = new EnumMap<>(Material.class);
         this.sender = sender;
         Set<Pair<Integer, Integer>> chunksToScan = getChunksToScan(island);
         this.task = addon.getServer().getScheduler().runTaskTimer(addon.getPlugin(), () -> {

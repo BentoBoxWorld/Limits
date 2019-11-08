@@ -1,6 +1,13 @@
 package bentobox.addon.limits.listeners;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -63,7 +70,7 @@ public class BlockLimitsListener implements Listener {
     private final Map<String, Integer> saveMap = new HashMap<>();
     private final Database<IslandBlockCount> handler;
     private final Map<World, Map<Material, Integer>> worldLimitMap = new HashMap<>();
-    private Map<Material, Integer> defaultLimitMap = new HashMap<>();
+    private Map<Material, Integer> defaultLimitMap = new EnumMap<>(Material.class);
 
     public BlockLimitsListener(Limits addon) {
         this.addon = addon;
@@ -117,7 +124,7 @@ public class BlockLimitsListener implements Listener {
      * @return limit map
      */
     private Map<Material, Integer> loadLimits(ConfigurationSection cs) {
-        Map<Material, Integer> mats = new HashMap<>();
+        Map<Material, Integer> mats = new EnumMap<>(Material.class);
         for (String material : cs.getKeys(false)) {
             Material mat = Material.getMaterial(material);
             if (mat != null && mat.isBlock() && !DO_NOT_COUNT.contains(mat)) {
@@ -220,22 +227,13 @@ public class BlockLimitsListener implements Listener {
         process(e.getBlock(), true);
     }
 
-    /*
-    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
-    public void onBlock(BlockGrowEvent e) {
-        Bukkit.getLogger().info(e.getEventName());
-        process(e.getBlock(), true);
-    }
-     */
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockSpreadEvent e) {
-        //Bukkit.getLogger().info(e.getEventName());
         process(e.getBlock(), true);
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(EntityBlockFormEvent e) {
-        //Bukkit.getLogger().info(e.getEventName());
         process(e.getBlock(), true);
     }
 
@@ -256,10 +254,13 @@ public class BlockLimitsListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockFromToEvent e) {
-        if (e.getBlock().isLiquid()) {
-            if (e.getToBlock().getType() == Material.REDSTONE_WIRE || e.getToBlock().getType() == Material.REPEATER || e.getToBlock().getType() == Material.COMPARATOR || e.getToBlock().getType() == Material.REDSTONE_TORCH || e.getToBlock().getType() == Material.REDSTONE_WALL_TORCH) {
+        if (e.getBlock().isLiquid() 
+                && (e.getToBlock().getType() == Material.REDSTONE_WIRE 
+                || e.getToBlock().getType() == Material.REPEATER 
+                || e.getToBlock().getType() == Material.COMPARATOR 
+                || e.getToBlock().getType() == Material.REDSTONE_TORCH 
+                || e.getToBlock().getType() == Material.REDSTONE_WALL_TORCH)) {
                 process(e.getToBlock(), false);
-            }
         }
     }
 
@@ -377,7 +378,7 @@ public class BlockLimitsListener implements Listener {
      */
     public Map<Material, Integer> getMaterialLimits(World w, String id) {
         // Merge limits
-        Map<Material, Integer> result = new HashMap<>();
+        Map<Material, Integer> result = new EnumMap<>(Material.class);
         // Default
         defaultLimitMap.forEach(result::put);
         // World

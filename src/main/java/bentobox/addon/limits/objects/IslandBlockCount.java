@@ -1,6 +1,6 @@
 package bentobox.addon.limits.objects;
 
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.Map;
 
 import org.bukkit.Material;
@@ -22,13 +22,13 @@ public class IslandBlockCount implements DataObject {
     private String gameMode = "";
 
     @Expose
-    private Map<Material, Integer> blockCount = new HashMap<>();
+    private Map<Material, Integer> blockCount = new EnumMap<>(Material.class);
 
     /**
      * Permission based limits
      */
     @Expose
-    private Map<Material, Integer> blockLimits = new HashMap<>();
+    private Map<Material, Integer> blockLimits = new EnumMap<>(Material.class);
 
     // Required for YAML database
     public IslandBlockCount() {}

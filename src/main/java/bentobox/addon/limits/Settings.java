@@ -1,7 +1,7 @@
 package bentobox.addon.limits;
 
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
@@ -12,7 +12,7 @@ import bentobox.addon.limits.commands.LimitPanel;
 
 public class Settings {
 
-    private final Map<EntityType, Integer> limits = new HashMap<>();
+    private final Map<EntityType, Integer> limits = new EnumMap<>(EntityType.class);
     private final List<String> gameModes;
 
     public Settings(Limits addon) {

@@ -30,7 +30,7 @@ public class LimitPanel {
     private final Limits addon;
     // This maps the entity types to the icon that should be shown in the panel
     // If the icon is null, then the entity type is not covered by the addon
-    public final static Map<EntityType, Material> E2M = ImmutableMap.<EntityType, Material>builder()
+    public static final Map<EntityType, Material> E2M = ImmutableMap.<EntityType, Material>builder()
             .put(EntityType.PIG_ZOMBIE, Material.ZOMBIE_PIGMAN_SPAWN_EGG)
             .put(EntityType.MUSHROOM_COW, Material.MOOSHROOM_SPAWN_EGG)
             .put(EntityType.SNOWMAN, Material.SNOW_BLOCK)
@@ -73,7 +73,7 @@ public class LimitPanel {
             .put(EntityType.ENDER_DRAGON, null)
             .build();
     // This is a map of blocks to Material
-    public final static Map<Material, Material> B2M;
+    public static final Map<Material, Material> B2M;
     static {
         ImmutableMap.Builder<Material, Material> builder = ImmutableMap.<Material, Material>builder()
                 .put(Material.POTATOES, Material.POTATO)
@@ -81,12 +81,8 @@ public class LimitPanel {
                 .put(Material.BEETROOTS, Material.BEETROOT)
                 .put(Material.REDSTONE_WIRE, Material.REDSTONE);
         // Block to Material icons
-        Optional.ofNullable(Material.getMaterial("SWEET_BERRY_BUSH")).ifPresent(material -> {
-            builder.put(material, Material.getMaterial("SWEET_BERRIES"));
-        });
-        Optional.ofNullable(Material.getMaterial("BAMBOO_SAPLING")).ifPresent(material -> {
-            builder.put(material, Material.getMaterial("BAMBOO"));
-        });
+        Optional.ofNullable(Material.getMaterial("SWEET_BERRY_BUSH")).ifPresent(material -> builder.put(material, Material.getMaterial("SWEET_BERRIES")));
+        Optional.ofNullable(Material.getMaterial("BAMBOO_SAPLING")).ifPresent(material -> builder.put(material, Material.getMaterial("BAMBOO")));
         B2M = builder.build();
     }
 

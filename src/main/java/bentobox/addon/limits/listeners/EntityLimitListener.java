@@ -12,11 +12,13 @@ import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
 
 import bentobox.addon.limits.Limits;
+import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Util;
 
 public class EntityLimitListener implements Listener {
+    private static final String MOD_BYPASS = "mod.bypass";
     private final Limits addon;
 
     /**
@@ -42,7 +44,7 @@ public class EntityLimitListener implements Listener {
             for (Entity entity : e.getVehicle().getLocation().getWorld().getNearbyEntities(e.getVehicle().getLocation(), 5, 5, 5)) {
                 if (entity instanceof Player) {
                     Player player = (Player)entity;
-                    boolean bypass = (player.isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getVehicle().getWorld()) + "mod.bypass"));
+                    boolean bypass = (player.isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getVehicle().getWorld()) + MOD_BYPASS));
                     // Check island
                     addon.getIslands().getProtectedIslandAt(e.getVehicle().getLocation()).ifPresent(island -> {
                         // Ignore spawn
@@ -50,14 +52,14 @@ public class EntityLimitListener implements Listener {
                             return;
                         }
                         // Check if the player is at the limit
-                        if (atLimit(island, bypass, e.getVehicle())) {
+                        if (!bypass && atLimit(island, e.getVehicle())) {
                             e.setCancelled(true);
                             for (Entity ent : e.getVehicle().getLocation().getWorld().getNearbyEntities(e.getVehicle().getLocation(), 5, 5, 5)) {
                                 if (ent instanceof Player) {
                                     ((Player) ent).updateInventory();
                                     User.getInstance(ent).sendMessage("entity-limits.hit-limit", "[entity]",
                                             Util.prettifyText(e.getVehicle().getType().toString())
-                                            ,"[number]", String.valueOf(addon.getSettings().getLimits().get(e.getVehicle().getType())));
+                                            , TextVariables.NUMBER, String.valueOf(addon.getSettings().getLimits().get(e.getVehicle().getType())));
                                 }
                             }
                         }
@@ -104,7 +106,7 @@ public class EntityLimitListener implements Listener {
         for (Entity entity : l.getWorld().getNearbyEntities(l, 5, 5, 5)) {
             if (entity instanceof Player) {
                 Player player = (Player)entity;
-                if (player.isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(l.getWorld()) + "mod.bypass")) {
+                if (player.isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(l.getWorld()) + MOD_BYPASS)) {
                     return true;
                 }
             }
@@ -120,14 +122,14 @@ public class EntityLimitListener implements Listener {
     public void onBlock(HangingPlaceEvent e) {
         Player player = e.getPlayer();
         addon.getIslands().getIslandAt(e.getEntity().getLocation()).ifPresent(island -> {
-            boolean bypass = player.isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getEntity().getWorld()) + "mod.bypass");
+            boolean bypass = player.isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getEntity().getWorld()) + MOD_BYPASS);
             // Check if entity can be hung
-            if (!island.isSpawn() && atLimit(island, bypass, e.getEntity())) {
+            if (!bypass && !island.isSpawn() && atLimit(island, e.getEntity())) {
                 // Not allowed
                 e.setCancelled(true);
                 User.getInstance(player).sendMessage("block-limits.hit-limit", "[material]",
                         Util.prettifyText(e.getEntity().getType().toString()),
-                        "[number]", String.valueOf(addon.getSettings().getLimits().getOrDefault(e.getEntity().getType(), -1)));
+                        TextVariables.NUMBER, String.valueOf(addon.getSettings().getLimits().getOrDefault(e.getEntity().getType(), -1)));
 
             }
         });
@@ -136,7 +138,7 @@ public class EntityLimitListener implements Listener {
     private void checkLimit(CreatureSpawnEvent e, boolean bypass) {
         addon.getIslands().getIslandAt(e.getLocation()).ifPresent(island -> {
             // Check if creature is allowed to spawn or not
-            if (!island.isSpawn() && atLimit(island, bypass, e.getEntity())) {
+            if (!bypass && !island.isSpawn() && atLimit(island, e.getEntity())) {
                 // Not allowed
                 e.setCancelled(true);
                 // If the reason is anything but because of a spawner then tell players within range
@@ -145,7 +147,7 @@ public class EntityLimitListener implements Listener {
                         if (ent instanceof Player) {
                             User.getInstance(ent).sendMessage("entity-limits.hit-limit", "[entity]",
                                     Util.prettifyText(e.getEntityType().toString()),
-                                    "[number]", String.valueOf(addon.getSettings().getLimits().get(e.getEntityType())));
+                                    TextVariables.NUMBER, String.valueOf(addon.getSettings().getLimits().get(e.getEntityType())));
                         }
                     }
                 }
@@ -158,11 +160,10 @@ public class EntityLimitListener implements Listener {
     /**
      * Checks if new entities can be added to island
      * @param island - island
-     * @param bypass - true if this is being done by a player with authorization to bypass limits
      * @param ent - the entity
      * @return true if at the limit, false if not
      */
-    private boolean atLimit(Island island, boolean bypass, Entity ent) {
+    private boolean atLimit(Island island, Entity ent) {
         long count = ent.getWorld().getEntities().stream()
                 .filter(e -> e.getType().equals(ent.getType()))
                 .filter(e -> island.inIslandSpace(e.getLocation())).count();
