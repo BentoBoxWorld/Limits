@@ -1,6 +1,5 @@
 package bentobox.addon.limits.commands;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -9,6 +8,8 @@ import java.util.UUID;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.EntityType;
+
+import com.google.common.collect.ImmutableMap;
 
 import bentobox.addon.limits.Limits;
 import bentobox.addon.limits.objects.IslandBlockCount;
@@ -29,62 +30,64 @@ public class LimitPanel {
     private final Limits addon;
     // This maps the entity types to the icon that should be shown in the panel
     // If the icon is null, then the entity type is not covered by the addon
-    public final static Map<EntityType, Material> E2M = new HashMap<>();
+    public final static Map<EntityType, Material> E2M = ImmutableMap.<EntityType, Material>builder()
+            .put(EntityType.PIG_ZOMBIE, Material.ZOMBIE_PIGMAN_SPAWN_EGG)
+            .put(EntityType.MUSHROOM_COW, Material.MOOSHROOM_SPAWN_EGG)
+            .put(EntityType.SNOWMAN, Material.SNOW_BLOCK)
+            .put(EntityType.IRON_GOLEM, Material.IRON_BLOCK)
+            .put(EntityType.ILLUSIONER, Material.VILLAGER_SPAWN_EGG)
+            .put(EntityType.WITHER, Material.WITHER_SKELETON_SKULL)
+            .put(EntityType.BOAT, Material.OAK_BOAT)
+            .put(EntityType.ARMOR_STAND, Material.ARMOR_STAND)
+            .put(EntityType.ITEM_FRAME, Material.ITEM_FRAME)
+            .put(EntityType.PAINTING, Material.PAINTING)
+            // Minecarts
+            .put(EntityType.MINECART_TNT, Material.TNT_MINECART)
+            .put(EntityType.MINECART_CHEST, Material.CHEST_MINECART)
+            .put(EntityType.MINECART_COMMAND, Material.COMMAND_BLOCK_MINECART)
+            .put(EntityType.MINECART_FURNACE, Material.FURNACE_MINECART)
+            .put(EntityType.MINECART_HOPPER, Material.HOPPER_MINECART)
+            .put(EntityType.MINECART_MOB_SPAWNER, Material.MINECART)
+            // Disallowed
+            .put(EntityType.PRIMED_TNT, null)
+            .put(EntityType.EVOKER_FANGS, null)
+            .put(EntityType.LLAMA_SPIT, null)
+            .put(EntityType.DRAGON_FIREBALL, null)
+            .put(EntityType.AREA_EFFECT_CLOUD, null)
+            .put(EntityType.ENDER_SIGNAL, null)
+            .put(EntityType.SMALL_FIREBALL, null)
+            .put(EntityType.FIREBALL, null)
+            .put(EntityType.THROWN_EXP_BOTTLE, null)
+            .put(EntityType.EXPERIENCE_ORB, null)
+            .put(EntityType.SHULKER_BULLET, null)
+            .put(EntityType.WITHER_SKULL, null)
+            .put(EntityType.TRIDENT, null)
+            .put(EntityType.ARROW, null)
+            .put(EntityType.SPECTRAL_ARROW, null)
+            .put(EntityType.SNOWBALL, null)
+            .put(EntityType.EGG, null)
+            .put(EntityType.LEASH_HITCH, null)
+            .put(EntityType.GIANT, null)
+            .put(EntityType.ENDER_CRYSTAL, null)
+            .put(EntityType.ENDER_PEARL, null)
+            .put(EntityType.ENDER_DRAGON, null)
+            .build();
     // This is a map of blocks to Material
-    public final static Map<Material, Material> B2M = new HashMap<>();
+    public final static Map<Material, Material> B2M;
     static {
-        E2M.put(EntityType.PIG_ZOMBIE, Material.ZOMBIE_PIGMAN_SPAWN_EGG);
-        E2M.put(EntityType.MUSHROOM_COW, Material.MOOSHROOM_SPAWN_EGG);
-        E2M.put(EntityType.SNOWMAN, Material.SNOW_BLOCK);
-        E2M.put(EntityType.IRON_GOLEM, Material.IRON_BLOCK);
-        E2M.put(EntityType.ILLUSIONER, Material.VILLAGER_SPAWN_EGG);
-        E2M.put(EntityType.WITHER, Material.WITHER_SKELETON_SKULL);
-        E2M.put(EntityType.BOAT, Material.OAK_BOAT);
-        E2M.put(EntityType.ARMOR_STAND, Material.ARMOR_STAND);
-        E2M.put(EntityType.ITEM_FRAME, Material.ITEM_FRAME);
-        E2M.put(EntityType.PAINTING, Material.PAINTING);
-
-        // Minecarts
-        E2M.put(EntityType.MINECART_TNT, Material.TNT_MINECART);
-        E2M.put(EntityType.MINECART_CHEST, Material.CHEST_MINECART);
-        E2M.put(EntityType.MINECART_COMMAND, Material.COMMAND_BLOCK_MINECART);
-        E2M.put(EntityType.MINECART_FURNACE, Material.FURNACE_MINECART);
-        E2M.put(EntityType.MINECART_HOPPER, Material.HOPPER_MINECART);
-        E2M.put(EntityType.MINECART_MOB_SPAWNER, Material.MINECART);
-        // Disallowed
-        E2M.put(EntityType.PRIMED_TNT, null);
-        E2M.put(EntityType.EVOKER_FANGS, null);
-        E2M.put(EntityType.LLAMA_SPIT, null);
-        E2M.put(EntityType.DRAGON_FIREBALL, null);
-        E2M.put(EntityType.AREA_EFFECT_CLOUD, null);
-        E2M.put(EntityType.ENDER_SIGNAL, null);
-        E2M.put(EntityType.SMALL_FIREBALL, null);
-        E2M.put(EntityType.FIREBALL, null);
-        E2M.put(EntityType.THROWN_EXP_BOTTLE, null);
-        E2M.put(EntityType.EXPERIENCE_ORB, null);
-        E2M.put(EntityType.SHULKER_BULLET, null);
-        E2M.put(EntityType.WITHER_SKULL, null);
-        E2M.put(EntityType.TRIDENT, null);
-        E2M.put(EntityType.ARROW, null);
-        E2M.put(EntityType.SPECTRAL_ARROW, null);
-        E2M.put(EntityType.SNOWBALL, null);
-        E2M.put(EntityType.EGG, null);
-        E2M.put(EntityType.LEASH_HITCH, null);
-        E2M.put(EntityType.GIANT, null);
-        E2M.put(EntityType.ENDER_CRYSTAL, null);
-        E2M.put(EntityType.ENDER_PEARL, null);
-        E2M.put(EntityType.ENDER_DRAGON, null);
+        ImmutableMap.Builder<Material, Material> builder = ImmutableMap.<Material, Material>builder()
+                .put(Material.POTATOES, Material.POTATO)
+                .put(Material.CARROTS, Material.CARROT)
+                .put(Material.BEETROOTS, Material.BEETROOT)
+                .put(Material.REDSTONE_WIRE, Material.REDSTONE);
         // Block to Material icons
         Optional.ofNullable(Material.getMaterial("SWEET_BERRY_BUSH")).ifPresent(material -> {
-            B2M.put(material, Material.getMaterial("SWEET_BERRIES"));
+            builder.put(material, Material.getMaterial("SWEET_BERRIES"));
         });
-        B2M.put(Material.POTATOES, Material.POTATO);
-        B2M.put(Material.CARROTS, Material.CARROT);
-        B2M.put(Material.BEETROOTS, Material.BEETROOT);
         Optional.ofNullable(Material.getMaterial("BAMBOO_SAPLING")).ifPresent(material -> {
-            B2M.put(material, Material.getMaterial("BAMBOO"));
+            builder.put(material, Material.getMaterial("BAMBOO"));
         });
-        B2M.put(Material.REDSTONE_WIRE, Material.REDSTONE);
+        B2M = builder.build();
     }
 
     /**
