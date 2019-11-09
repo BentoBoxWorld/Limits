@@ -8,12 +8,35 @@ import java.util.Map;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.EntityType;
 
-import bentobox.addon.limits.commands.LimitPanel;
-
 public class Settings {
 
     private final Map<EntityType, Integer> limits = new EnumMap<>(EntityType.class);
     private final List<String> gameModes;
+    private static final List<EntityType> DISALLOWED = Arrays.asList(
+            EntityType.PRIMED_TNT,
+            EntityType.EVOKER_FANGS,
+            EntityType.LLAMA_SPIT,
+            EntityType.DRAGON_FIREBALL,
+            EntityType.AREA_EFFECT_CLOUD,
+            EntityType.ENDER_SIGNAL,
+            EntityType.SMALL_FIREBALL,
+            EntityType.FIREBALL,
+            EntityType.THROWN_EXP_BOTTLE,
+            EntityType.EXPERIENCE_ORB,
+            EntityType.SHULKER_BULLET,
+            EntityType.WITHER_SKULL,
+            EntityType.TRIDENT,
+            EntityType.ARROW,
+            EntityType.SPECTRAL_ARROW,
+            EntityType.SNOWBALL,
+            EntityType.EGG,
+            EntityType.LEASH_HITCH,
+            EntityType.GIANT,
+            EntityType.ENDER_CRYSTAL,
+            EntityType.ENDER_PEARL,
+            EntityType.ENDER_DRAGON,
+            EntityType.ITEM_FRAME,
+            EntityType.PAINTING);
 
     public Settings(Limits addon) {
 
@@ -25,9 +48,7 @@ public class Settings {
             for (String key : el.getKeys(false)) {
                 EntityType type = getType(key);
                 if (type != null) {
-                    if (!type.equals(EntityType.PAINTING) &&
-                            !type.equals(EntityType.ITEM_FRAME) &&
-                            (!type.isSpawnable() || (LimitPanel.E2M.containsKey(type) && LimitPanel.E2M.get(type) == null))) {
+                    if (DISALLOWED.contains(type)) {
                         addon.logError("Entity type: " + key + " is not supported - skipping...");
                     } else {
                         limits.put(type, el.getInt(key, 0));

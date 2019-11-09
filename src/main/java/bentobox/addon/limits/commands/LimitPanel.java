@@ -30,7 +30,7 @@ public class LimitPanel {
     private final Limits addon;
     // This maps the entity types to the icon that should be shown in the panel
     // If the icon is null, then the entity type is not covered by the addon
-    public static final Map<EntityType, Material> E2M = ImmutableMap.<EntityType, Material>builder()
+    private static final Map<EntityType, Material> E2M = ImmutableMap.<EntityType, Material>builder()
             .put(EntityType.PIG_ZOMBIE, Material.ZOMBIE_PIGMAN_SPAWN_EGG)
             .put(EntityType.MUSHROOM_COW, Material.MOOSHROOM_SPAWN_EGG)
             .put(EntityType.SNOWMAN, Material.SNOW_BLOCK)
@@ -48,32 +48,9 @@ public class LimitPanel {
             .put(EntityType.MINECART_FURNACE, Material.FURNACE_MINECART)
             .put(EntityType.MINECART_HOPPER, Material.HOPPER_MINECART)
             .put(EntityType.MINECART_MOB_SPAWNER, Material.MINECART)
-            // Disallowed
-            .put(EntityType.PRIMED_TNT, null)
-            .put(EntityType.EVOKER_FANGS, null)
-            .put(EntityType.LLAMA_SPIT, null)
-            .put(EntityType.DRAGON_FIREBALL, null)
-            .put(EntityType.AREA_EFFECT_CLOUD, null)
-            .put(EntityType.ENDER_SIGNAL, null)
-            .put(EntityType.SMALL_FIREBALL, null)
-            .put(EntityType.FIREBALL, null)
-            .put(EntityType.THROWN_EXP_BOTTLE, null)
-            .put(EntityType.EXPERIENCE_ORB, null)
-            .put(EntityType.SHULKER_BULLET, null)
-            .put(EntityType.WITHER_SKULL, null)
-            .put(EntityType.TRIDENT, null)
-            .put(EntityType.ARROW, null)
-            .put(EntityType.SPECTRAL_ARROW, null)
-            .put(EntityType.SNOWBALL, null)
-            .put(EntityType.EGG, null)
-            .put(EntityType.LEASH_HITCH, null)
-            .put(EntityType.GIANT, null)
-            .put(EntityType.ENDER_CRYSTAL, null)
-            .put(EntityType.ENDER_PEARL, null)
-            .put(EntityType.ENDER_DRAGON, null)
             .build();
     // This is a map of blocks to Material
-    public static final Map<Material, Material> B2M;
+    private static final Map<Material, Material> B2M;
     static {
         ImmutableMap.Builder<Material, Material> builder = ImmutableMap.<Material, Material>builder()
                 .put(Material.POTATOES, Material.POTATO)
