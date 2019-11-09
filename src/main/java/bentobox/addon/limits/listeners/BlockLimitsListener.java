@@ -146,12 +146,12 @@ public class BlockLimitsListener implements Listener {
     }
 
     // Player-related events
-    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockPlaceEvent e) {
         notify(e, User.getInstance(e.getPlayer()), process(e.getBlock(), true), e.getBlock().getType());
     }
 
-    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockBreakEvent e) {
         handleBreak(e, e.getPlayer(), e.getBlock());
     }
@@ -254,13 +254,13 @@ public class BlockLimitsListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockFromToEvent e) {
-        if (e.getBlock().isLiquid() 
-                && (e.getToBlock().getType() == Material.REDSTONE_WIRE 
-                || e.getToBlock().getType() == Material.REPEATER 
-                || e.getToBlock().getType() == Material.COMPARATOR 
-                || e.getToBlock().getType() == Material.REDSTONE_TORCH 
+        if (e.getBlock().isLiquid()
+                && (e.getToBlock().getType() == Material.REDSTONE_WIRE
+                || e.getToBlock().getType() == Material.REPEATER
+                || e.getToBlock().getType() == Material.COMPARATOR
+                || e.getToBlock().getType() == Material.REDSTONE_TORCH
                 || e.getToBlock().getType() == Material.REDSTONE_WALL_TORCH)) {
-                process(e.getToBlock(), false);
+            process(e.getToBlock(), false);
         }
     }
 
