@@ -19,7 +19,7 @@ admin:
       calc:
          parameters: "<player>"
          description: "recalculate the island limits for player"
-         finished: "&aIsland recalc finished sucessfully!"
+         finished: "&aIsland recalc finished successfully!"
 
 island:
   limits:

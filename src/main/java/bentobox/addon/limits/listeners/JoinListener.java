@@ -1,6 +1,7 @@
 package bentobox.addon.limits.listeners;
 
 import java.util.Locale;
+import java.util.Objects;
 import java.util.UUID;
 
 import org.apache.commons.lang.math.NumberUtils;
@@ -141,8 +142,8 @@ public class JoinListener implements Listener {
                 // Set perm-based limits
                 String prefix = addon.getGameModePermPrefix(world);
                 String name = addon.getGameModeName(world);
-                if (!prefix.isEmpty() && !name.isEmpty()) {
-                    checkPerms(owner.getPlayer(), prefix + "island.limit.", island.getUniqueId(), name);
+                if (!prefix.isEmpty() && !name.isEmpty() && owner.getPlayer() != null) {
+                    checkPerms(Objects.requireNonNull(owner.getPlayer()), prefix + "island.limit.", island.getUniqueId(), name);
                 }
             }
         }

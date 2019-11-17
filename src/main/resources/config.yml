@@ -27,7 +27,7 @@ worlds:
     HOPPER: 11
 
 # Default entity limits within a player's island space (protected area and to island limit).
-# A limit of 5 will allow up to 5 entites in over world, 5 in nether and 5 in the end.
+# A limit of 5 will allow up to 5 entities in over world, 5 in nether and 5 in the end.
 # Affects all types of creature spawning. Also includes entities like MINECARTS.
 # Note: Only the first 49 limited blocks and entities are shown in the limits GUI.
 entitylimits:

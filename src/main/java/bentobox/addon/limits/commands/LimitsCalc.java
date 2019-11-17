@@ -1,16 +1,13 @@
 package bentobox.addon.limits.commands;
 
-import java.util.EnumMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.scheduler.BukkitTask;
 
 import bentobox.addon.limits.Limits;
 import bentobox.addon.limits.listeners.BlockLimitsListener;
@@ -19,71 +16,47 @@ import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Pair;
+import world.bentobox.bentobox.util.Util;
 
 /**
  *
- * @author YellowZaki
+ * @author YellowZaki, tastybento
  */
 public class LimitsCalc {
 
-    private boolean checking;
-    private Limits addon;
-    private World world;
-    private Island island;
-    private BlockLimitsListener bll;
+    private final Limits addon;
+    private final World world;
+    private final Island island;
+    private final BlockLimitsListener bll;
     private IslandBlockCount ibc;
-    private Map<Material, Integer> blockCount;
-    private BukkitTask task;
-    private User sender;
+    private final Map<Material, AtomicInteger> blockCount;
+    private final User sender;
+    private final Set<Pair<Integer, Integer>> chunksToScan;
+    private int count;
 
 
     LimitsCalc(World world, BentoBox instance, UUID targetPlayer, Limits addon, User sender) {
-        this.checking = true;
         this.addon = addon;
-        this.world = world;
         this.island = instance.getIslands().getIsland(world, targetPlayer);
         this.bll = addon.getBlockLimitListener();
         this.ibc = bll.getIsland(island.getUniqueId());
         blockCount = new EnumMap<>(Material.class);
         this.sender = sender;
-        Set<Pair<Integer, Integer>> chunksToScan = getChunksToScan(island);
-        this.task = addon.getServer().getScheduler().runTaskTimer(addon.getPlugin(), () -> {
-            Set<ChunkSnapshot> chunkSnapshot = new HashSet<>();
-            if (checking) {
-                Iterator<Pair<Integer, Integer>> it = chunksToScan.iterator();
-                if (!it.hasNext()) {
-                    // Nothing left
-                    tidyUp();
-                    return;
-                }
-                // Add chunk snapshots to the list
-                while (it.hasNext() && chunkSnapshot.size() < 200) {
-                    Pair<Integer, Integer> pair = it.next();
-                    if (!world.isChunkLoaded(pair.x, pair.z)) {
-                        world.loadChunk(pair.x, pair.z);
-                        chunkSnapshot.add(world.getChunkAt(pair.x, pair.z).getChunkSnapshot());
-                        world.unloadChunk(pair.x, pair.z);
-                    } else {
-                        chunkSnapshot.add(world.getChunkAt(pair.x, pair.z).getChunkSnapshot());
-                    }
-                    it.remove();
-                }
-                // Move to next step
-                checking = false;
-                checkChunksAsync(chunkSnapshot);
-            }
-        }, 0L, 1);
-    }
+        this.world = world;
 
-    private void checkChunksAsync(final Set<ChunkSnapshot> chunkSnapshot) {
-        // Run async task to scan chunks
-        addon.getServer().getScheduler().runTaskAsynchronously(addon.getPlugin(), () -> {
-            for (ChunkSnapshot chunk : chunkSnapshot) {
-                scanChunk(chunk);
-            }
-            // Nothing happened, change state
-            checking = true;
-        });
+        // Get chunks to scan
+        chunksToScan = getChunksToScan(island);
+        count = 0;
+        chunksToScan.forEach(c -> Util.getChunkAtAsync(world, c.x, c.z).thenAccept(ch -> {
+            ChunkSnapshot snapShot = ch.getChunkSnapshot();
+            Bukkit.getScheduler().runTaskAsynchronously(addon.getPlugin(), () -> {
+                this.scanChunk(snapShot);
+                count++;
+                if (count == chunksToScan.size()) {
+                    this.tidyUp();
+                }
+            });
+        }));
 
     }
 
@@ -98,7 +71,7 @@ public class LimitsCalc {
                 if (chunk.getZ() * 16 + z < island.getMinProtectedZ() || chunk.getZ() * 16 + z >= island.getMinProtectedZ() + island.getProtectionRange() * 2) {
                     continue;
                 }
-                for (int y = 0; y < island.getCenter().getWorld().getMaxHeight(); y++) {
+                for (int y = 0; y < Objects.requireNonNull(island.getCenter().getWorld()).getMaxHeight(); y++) {
                     Material blockData = chunk.getBlockType(x, y, z);
                     // Air is free
                     if (!blockData.equals(Material.AIR)) {
@@ -114,9 +87,9 @@ public class LimitsCalc {
         // md is limited
         if (bll.getMaterialLimits(world, island.getUniqueId()).containsKey(md)) {
             if (!blockCount.containsKey(md)) {
-                blockCount.put(md, 1);
+                blockCount.put(md, new AtomicInteger(1));
             } else {
-                blockCount.put(md, blockCount.get(md) + 1);
+                blockCount.get(md).getAndIncrement();
             }
         }
     }
@@ -133,14 +106,15 @@ public class LimitsCalc {
     }
 
     private void tidyUp() {
-        // Cancel
-        task.cancel();
         if (ibc == null) {
             ibc = new IslandBlockCount();
         }
-        ibc.setBlockCount(blockCount);
+        ibc.setBlockCount(blockCount.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> entry.getValue().get())));
         bll.setIsland(island.getUniqueId(), ibc);
-        sender.sendMessage("admin.limits.calc.finished");
+        Bukkit.getScheduler().runTask(addon.getPlugin(), () -> sender.sendMessage("admin.limits.calc.finished"));
     }
 
 }

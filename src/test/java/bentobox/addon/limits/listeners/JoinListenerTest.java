@@ -1,6 +1,3 @@
-/**
- *
- */
 package bentobox.addon.limits.listeners;
 
 import static org.mockito.Mockito.mock;
@@ -10,6 +7,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.times;
 
 
 import java.util.Collections;
@@ -24,7 +22,6 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.permissions.PermissionAttachmentInfo;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -70,11 +67,8 @@ public class JoinListenerTest {
     @Mock
     private Island island;
 
-    /**
-     * @throws java.lang.Exception
-     */
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         jl = new JoinListener(addon);
         // Setup addon
         when(addon.getGameModes()).thenReturn(Collections.singletonList(bskyblock));
@@ -109,13 +103,6 @@ public class JoinListenerTest {
 
         // Island
         when(island.getOwner()).thenReturn(UUID.randomUUID());
-    }
-
-    /**
-     * @throws java.lang.Exception
-     */
-    @After
-    public void tearDown() throws Exception {
     }
 
     /**
@@ -157,7 +144,7 @@ public class JoinListenerTest {
         IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.CREATED);
         jl.onNewIsland(e);
         verify(island).getWorld();
-        verify(owner).getPlayer();
+        verify(owner, times(2)).getPlayer();
     }
 
     /**

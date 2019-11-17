@@ -1,13 +1,6 @@
 package bentobox.addon.limits.listeners;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -98,19 +91,19 @@ public class BlockLimitsListener implements Listener {
         addon.log("Loading default limits");
         if (addon.getConfig().isConfigurationSection("blocklimits")) {
             ConfigurationSection limitConfig = addon.getConfig().getConfigurationSection("blocklimits");
-            defaultLimitMap = loadLimits(limitConfig);
+            defaultLimitMap = loadLimits(Objects.requireNonNull(limitConfig));
         }
 
         // Load specific worlds
         if (addon.getConfig().isConfigurationSection("worlds")) {
             ConfigurationSection worlds = addon.getConfig().getConfigurationSection("worlds");
-            for (String worldName : worlds.getKeys(false)) {
+            for (String worldName : Objects.requireNonNull(worlds).getKeys(false)) {
                 World world = Bukkit.getWorld(worldName);
                 if (world != null && addon.inGameModeWorld(world)) {
                     addon.log("Loading limits for " + world.getName());
                     worldLimitMap.putIfAbsent(world, new HashMap<>());
                     ConfigurationSection matsConfig = worlds.getConfigurationSection(worldName);
-                    worldLimitMap.put(world, loadLimits(matsConfig));
+                    worldLimitMap.put(world, loadLimits(Objects.requireNonNull(matsConfig)));
                 }
             }
         }
@@ -156,7 +149,7 @@ public class BlockLimitsListener implements Listener {
         handleBreak(e, e.getPlayer(), e.getBlock());
     }
 
-    void handleBreak(Cancellable e, Player player, Block b) {
+    private void handleBreak(Cancellable e, Player player, Block b) {
         Material mat = b.getType();
         // Special handling for crops that can break in different ways
         if (mat.equals(Material.WHEAT_SEEDS)) {

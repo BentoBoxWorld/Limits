@@ -2,6 +2,7 @@ package bentobox.addon.limits.commands;
 
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -58,8 +59,8 @@ public class LimitPanel {
                 .put(Material.BEETROOTS, Material.BEETROOT)
                 .put(Material.REDSTONE_WIRE, Material.REDSTONE);
         // Block to Material icons
-        Optional.ofNullable(Material.getMaterial("SWEET_BERRY_BUSH")).ifPresent(material -> builder.put(material, Material.getMaterial("SWEET_BERRIES")));
-        Optional.ofNullable(Material.getMaterial("BAMBOO_SAPLING")).ifPresent(material -> builder.put(material, Material.getMaterial("BAMBOO")));
+        Optional.ofNullable(Material.getMaterial("SWEET_BERRY_BUSH")).ifPresent(material -> builder.put(material, Objects.requireNonNull(Material.getMaterial("SWEET_BERRIES"))));
+        Optional.ofNullable(Material.getMaterial("BAMBOO_SAPLING")).ifPresent(material -> builder.put(material, Objects.requireNonNull(Material.getMaterial("BAMBOO"))));
         B2M = builder.build();
     }
 
@@ -105,7 +106,7 @@ public class LimitPanel {
         addon.getSettings().getLimits().forEach((k,v) -> {
             PanelItemBuilder pib = new PanelItemBuilder();
             pib.name(Util.prettifyText(k.toString()));
-            Material m = Material.BARRIER;
+            Material m;
             try {
                 if (E2M.containsKey(k)) {
                     m = E2M.get(k);

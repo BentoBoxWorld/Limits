@@ -1,6 +1,9 @@
 package bentobox.addon.limits.listeners;
 
+import java.util.Objects;
+
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -41,7 +44,7 @@ public class EntityLimitListener implements Listener {
         }
         if (addon.getSettings().getLimits().containsKey(e.getVehicle().getType())) {
             // If someone in that area has the bypass permission, allow the spawning
-            for (Entity entity : e.getVehicle().getLocation().getWorld().getNearbyEntities(e.getVehicle().getLocation(), 5, 5, 5)) {
+            for (Entity entity : Objects.requireNonNull(e.getVehicle().getLocation().getWorld()).getNearbyEntities(e.getVehicle().getLocation(), 5, 5, 5)) {
                 if (entity instanceof Player) {
                     Player player = (Player)entity;
                     boolean bypass = (player.isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getVehicle().getWorld()) + MOD_BYPASS));
@@ -103,7 +106,7 @@ public class EntityLimitListener implements Listener {
 
     private boolean checkByPass(Location l) {
         // If someone in that area has the bypass permission, allow the spawning
-        for (Entity entity : l.getWorld().getNearbyEntities(l, 5, 5, 5)) {
+        for (Entity entity : Objects.requireNonNull(l.getWorld()).getNearbyEntities(l, 5, 5, 5)) {
             if (entity instanceof Player) {
                 Player player = (Player)entity;
                 if (player.isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(l.getWorld()) + MOD_BYPASS)) {
@@ -121,8 +124,9 @@ public class EntityLimitListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlock(HangingPlaceEvent e) {
         Player player = e.getPlayer();
+        if (player == null) return;
         addon.getIslands().getIslandAt(e.getEntity().getLocation()).ifPresent(island -> {
-            boolean bypass = player.isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getEntity().getWorld()) + MOD_BYPASS);
+            boolean bypass = Objects.requireNonNull(player).isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getEntity().getWorld()) + MOD_BYPASS);
             // Check if entity can be hung
             if (!bypass && !island.isSpawn() && atLimit(island, e.getEntity())) {
                 // Not allowed
@@ -143,7 +147,9 @@ public class EntityLimitListener implements Listener {
                 e.setCancelled(true);
                 // If the reason is anything but because of a spawner then tell players within range
                 if (!e.getSpawnReason().equals(SpawnReason.SPAWNER) && !e.getSpawnReason().equals(SpawnReason.NATURAL) && !e.getSpawnReason().equals(SpawnReason.INFECTION) && !e.getSpawnReason().equals(SpawnReason.NETHER_PORTAL) && !e.getSpawnReason().equals(SpawnReason.REINFORCEMENTS) && !e.getSpawnReason().equals(SpawnReason.SLIME_SPLIT)) {
-                    for (Entity ent : e.getLocation().getWorld().getNearbyEntities(e.getLocation(), 5, 5, 5)) {
+                    World w = e.getLocation().getWorld();
+                    if (w == null) return;
+                    for (Entity ent : w.getNearbyEntities(e.getLocation(), 5, 5, 5)) {
                         if (ent instanceof Player) {
                             User.getInstance(ent).sendMessage("entity-limits.hit-limit", "[entity]",
                                     Util.prettifyText(e.getEntityType().toString()),

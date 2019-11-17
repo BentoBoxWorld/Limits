@@ -24,7 +24,7 @@ public class CalcCommand extends CompositeCommand {
      * @param addon - addon
      */
     public CalcCommand(Limits addon, CompositeCommand parent) {
-        super(parent, "calc");
+        super(parent, "calc", "recount");
         this.addon = addon;
     }
 
@@ -60,7 +60,7 @@ public class CalcCommand extends CompositeCommand {
         }
     }
 
-    public void calcLimits(UUID targetPlayer, User sender) {
+    private void calcLimits(UUID targetPlayer, User sender) {
         if (addon.getIslands().getIsland(getWorld(), targetPlayer) != null) {
             new LimitsCalc(getWorld(), getPlugin(), targetPlayer, addon, sender);
         } else {
