@@ -1,6 +1,14 @@
 package bentobox.addon.limits.listeners;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -8,11 +16,12 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
@@ -26,6 +35,7 @@ import org.bukkit.event.block.EntityBlockFormEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 
 import bentobox.addon.limits.Limits;
 import bentobox.addon.limits.objects.IslandBlockCount;
@@ -146,10 +156,17 @@ public class BlockLimitsListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockBreakEvent e) {
-        handleBreak(e, e.getPlayer(), e.getBlock());
+        handleBreak(e, e.getBlock());
     }
 
-    private void handleBreak(Cancellable e, Player player, Block b) {
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+    public void onTurtleEggBreak(PlayerInteractEvent e) {
+        if (e.getAction().equals(Action.PHYSICAL) && e.getClickedBlock().getType().equals(Material.TURTLE_EGG)) {
+            handleBreak(e, e.getClickedBlock());
+        }
+    }
+
+    private void handleBreak(Event e, Block b) {
         Material mat = b.getType();
         // Special handling for crops that can break in different ways
         if (mat.equals(Material.WHEAT_SEEDS)) {
@@ -166,7 +183,7 @@ public class BlockLimitsListener implements Listener {
                 process(block, false, mat);
             }
         }
-        notify(e, User.getInstance(player), process(b, false, mat), mat);
+        process(b, false, mat);
         // Player breaks a block and there was a redstone dust/repeater/... above
         if (b.getRelative(BlockFace.UP).getType() == Material.REDSTONE_WIRE || b.getRelative(BlockFace.UP).getType() == Material.REPEATER || b.getRelative(BlockFace.UP).getType() == Material.COMPARATOR || b.getRelative(BlockFace.UP).getType() == Material.REDSTONE_TORCH) {
             process(b.getRelative(BlockFace.UP), false);
@@ -243,6 +260,9 @@ public class BlockLimitsListener implements Listener {
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(EntityChangeBlockEvent e) {
         process(e.getBlock(), false);
+        if (e.getBlock().getType().equals(Material.FARMLAND)) {
+            process(e.getBlock().getRelative(BlockFace.UP), false);
+        }
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
