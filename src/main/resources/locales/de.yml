@@ -1,0 +1,24 @@
+---
+block-limits:
+  hit-limit: "&c[material] limitiert auf [number]!"
+entity-limits:
+  hit-limit: "&c[entity] spawning limitiert auf [number]!"
+limits:
+  panel-title: Insel Limit
+admin:
+  limits:
+    main:
+      parameters: "<player>"
+      description: Zeige das Limit für den Spieler an
+    calc:
+      parameters: "<player>"
+      description: Berechne das Insel Level für den Spieler neu
+island:
+  limits:
+    description: Zeige deine Insel Limits
+    max-color: "&c"
+    regular-color: "&a"
+    block-limit-syntax: "[number]/[limit]"
+    no-limits: "&cDiese Welt hat keine Limitierungen"
+    recount:
+      description: Zählt die Limitierungen für deine Insel auf
