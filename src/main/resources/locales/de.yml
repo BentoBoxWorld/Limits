@@ -13,6 +13,7 @@ admin:
     calc:
       parameters: "<player>"
       description: Berechne das Insel Level für den Spieler neu
+      finished: "&aInselberechnung erfolgreich abgeschlossen!"
 island:
   limits:
     description: Zeige deine Insel Limits
