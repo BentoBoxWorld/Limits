@@ -4,19 +4,19 @@ block-limits:
 entity-limits:
   hit-limit: "&c[entity] spawning limitiert auf [number]!"
 limits:
-  panel-title: Insel Limit
+  panel-title: Insel Limitierungen
 admin:
   limits:
     main:
       parameters: "<player>"
-      description: Zeige das Limit für den Spieler an
+      description: Zeige die Limitierungen für den Spieler an
     calc:
       parameters: "<player>"
-      description: Berechne das Insel Level für den Spieler neu
+      description: Berechne die Insel Limitierungen für den Spieler neu
       finished: "&aInselberechnung erfolgreich abgeschlossen!"
 island:
   limits:
-    description: Zeige deine Insel Limits
+    description: Zeige deine Insel Limitierungen
     max-color: "&c"
     regular-color: "&a"
     block-limit-syntax: "[number]/[limit]"
