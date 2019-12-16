@@ -1,4 +1,4 @@
-package bentobox.addon.limits;
+package world.bentobox.limits;
 
 import java.util.Arrays;
 import java.util.EnumMap;

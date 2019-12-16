@@ -1,4 +1,4 @@
-package bentobox.addon.limits.commands;
+package world.bentobox.limits.commands;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -12,14 +12,14 @@ import org.bukkit.entity.EntityType;
 
 import com.google.common.collect.ImmutableMap;
 
-import bentobox.addon.limits.Limits;
-import bentobox.addon.limits.objects.IslandBlockCount;
 import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.panels.builders.PanelBuilder;
 import world.bentobox.bentobox.api.panels.builders.PanelItemBuilder;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Util;
+import world.bentobox.limits.Limits;
+import world.bentobox.limits.objects.IslandBlockCount;
 
 /**
  * Shows a panel of the blocks that are limited and their status

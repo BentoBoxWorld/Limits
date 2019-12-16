@@ -1,4 +1,4 @@
-package bentobox.addon.limits.objects;
+package world.bentobox.limits.objects;
 
 import java.util.HashMap;
 import java.util.Map;

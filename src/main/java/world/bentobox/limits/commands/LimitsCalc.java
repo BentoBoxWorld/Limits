@@ -1,4 +1,4 @@
-package bentobox.addon.limits.commands;
+package world.bentobox.limits.commands;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -9,14 +9,14 @@ import org.bukkit.ChunkSnapshot;
 import org.bukkit.Material;
 import org.bukkit.World;
 
-import bentobox.addon.limits.Limits;
-import bentobox.addon.limits.listeners.BlockLimitsListener;
-import bentobox.addon.limits.objects.IslandBlockCount;
 import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Pair;
 import world.bentobox.bentobox.util.Util;
+import world.bentobox.limits.Limits;
+import world.bentobox.limits.listeners.BlockLimitsListener;
+import world.bentobox.limits.objects.IslandBlockCount;
 
 /**
  *

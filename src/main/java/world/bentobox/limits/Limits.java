@@ -1,17 +1,17 @@
-package bentobox.addon.limits;
+package world.bentobox.limits;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.bukkit.World;
 
-import bentobox.addon.limits.commands.AdminCommand;
-import bentobox.addon.limits.commands.PlayerCommand;
-import bentobox.addon.limits.listeners.BlockLimitsListener;
-import bentobox.addon.limits.listeners.EntityLimitListener;
-import bentobox.addon.limits.listeners.JoinListener;
 import world.bentobox.bentobox.api.addons.Addon;
 import world.bentobox.bentobox.api.addons.GameModeAddon;
+import world.bentobox.limits.commands.AdminCommand;
+import world.bentobox.limits.commands.PlayerCommand;
+import world.bentobox.limits.listeners.BlockLimitsListener;
+import world.bentobox.limits.listeners.EntityLimitListener;
+import world.bentobox.limits.listeners.JoinListener;
 
 
 /**

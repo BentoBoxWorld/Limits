@@ -1,4 +1,4 @@
-package bentobox.addon.limits.listeners;
+package world.bentobox.limits.listeners;
 
 import java.util.Locale;
 import java.util.Objects;
@@ -16,12 +16,12 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 
-import bentobox.addon.limits.Limits;
-import bentobox.addon.limits.objects.IslandBlockCount;
 import world.bentobox.bentobox.api.events.island.IslandEvent;
 import world.bentobox.bentobox.api.events.island.IslandEvent.Reason;
 import world.bentobox.bentobox.api.events.team.TeamEvent.TeamSetownerEvent;
 import world.bentobox.bentobox.database.objects.Island;
+import world.bentobox.limits.Limits;
+import world.bentobox.limits.objects.IslandBlockCount;
 
 /**
  * Sets block limits based on player permission

@@ -1,4 +1,4 @@
-package bentobox.addon.limits.listeners;
+package world.bentobox.limits.listeners;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,13 +37,13 @@ import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 
-import bentobox.addon.limits.Limits;
-import bentobox.addon.limits.objects.IslandBlockCount;
 import world.bentobox.bentobox.api.events.island.IslandEvent.IslandDeleteEvent;
 import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.Database;
 import world.bentobox.bentobox.util.Util;
+import world.bentobox.limits.Limits;
+import world.bentobox.limits.objects.IslandBlockCount;
 
 /**
  * @author tastybento

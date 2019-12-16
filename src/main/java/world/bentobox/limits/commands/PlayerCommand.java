@@ -1,10 +1,10 @@
-package bentobox.addon.limits.commands;
+package world.bentobox.limits.commands;
 
 import java.util.List;
 
-import bentobox.addon.limits.Limits;
 import world.bentobox.bentobox.api.commands.CompositeCommand;
 import world.bentobox.bentobox.api.user.User;
+import world.bentobox.limits.Limits;
 
 /**
  * User command for limits

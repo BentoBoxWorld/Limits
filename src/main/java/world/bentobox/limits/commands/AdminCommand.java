@@ -1,14 +1,14 @@
-package bentobox.addon.limits.commands;
+package world.bentobox.limits.commands;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import bentobox.addon.limits.Limits;
 import world.bentobox.bentobox.api.commands.CompositeCommand;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.util.Util;
+import world.bentobox.limits.Limits;
 
 /**
  * Admin command for limits

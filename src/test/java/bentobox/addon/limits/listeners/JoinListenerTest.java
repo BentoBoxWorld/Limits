@@ -31,14 +31,16 @@ import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
-import bentobox.addon.limits.Limits;
-import bentobox.addon.limits.objects.IslandBlockCount;
 import world.bentobox.bentobox.api.addons.AddonDescription;
 import world.bentobox.bentobox.api.addons.GameModeAddon;
 import world.bentobox.bentobox.api.events.island.IslandEvent;
 import world.bentobox.bentobox.api.events.team.TeamEvent.TeamSetownerEvent;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.managers.IslandsManager;
+import world.bentobox.limits.Limits;
+import world.bentobox.limits.listeners.BlockLimitsListener;
+import world.bentobox.limits.listeners.JoinListener;
+import world.bentobox.limits.objects.IslandBlockCount;
 
 /**
  * @author tastybento
@@ -106,7 +108,7 @@ public class JoinListenerTest {
     }
 
     /**
-     * Test method for {@link bentobox.addon.limits.listeners.JoinListener#onNewIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onNewIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
      */
     @Test
     public void testOnNewIslandWrongReason() {
@@ -116,7 +118,7 @@ public class JoinListenerTest {
     }
 
     /**
-     * Test method for {@link bentobox.addon.limits.listeners.JoinListener#onNewIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onNewIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
      */
     @Test
     public void testOnNewIslandRegistered() {
@@ -126,7 +128,7 @@ public class JoinListenerTest {
     }
 
     /**
-     * Test method for {@link bentobox.addon.limits.listeners.JoinListener#onNewIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onNewIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
      */
     @Test
     public void testOnNewIslandResetted() {
@@ -136,7 +138,7 @@ public class JoinListenerTest {
     }
 
     /**
-     * Test method for {@link bentobox.addon.limits.listeners.JoinListener#onNewIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onNewIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
      */
     @Test
     public void testOnNewIslandCreated() {
@@ -148,7 +150,7 @@ public class JoinListenerTest {
     }
 
     /**
-     * Test method for {@link bentobox.addon.limits.listeners.JoinListener#onNewIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onNewIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
      */
     @Test
     public void testOnNewIslandCreatedOffline() {
@@ -161,7 +163,7 @@ public class JoinListenerTest {
     }
 
     /**
-     * Test method for {@link bentobox.addon.limits.listeners.JoinListener#onNewIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onNewIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
      */
     @Test
     public void testOnNewIslandCreatedNoNameOrPermPrefix() {
@@ -177,7 +179,7 @@ public class JoinListenerTest {
     }
 
     /**
-     * Test method for {@link bentobox.addon.limits.listeners.JoinListener#onOwnerChange(world.bentobox.bentobox.api.events.team.TeamEvent.TeamSetownerEvent)}.
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onOwnerChange(world.bentobox.bentobox.api.events.team.TeamEvent.TeamSetownerEvent)}.
      */
     @Test
     public void testOnOwnerChange() {
@@ -190,7 +192,7 @@ public class JoinListenerTest {
     }
 
     /**
-     * Test method for {@link bentobox.addon.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */
     @Test
     public void testOnPlayerJoin() {
@@ -201,7 +203,7 @@ public class JoinListenerTest {
     }
 
     /**
-     * Test method for {@link bentobox.addon.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */
     @Test
     public void testOnPlayerJoinIBCNull() {
@@ -214,7 +216,7 @@ public class JoinListenerTest {
 
 
     /**
-     * Test method for {@link bentobox.addon.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */
     @Test
     public void testOnPlayerJoinWithPermNotLimits() {
@@ -230,7 +232,7 @@ public class JoinListenerTest {
     }
 
     /**
-     * Test method for {@link bentobox.addon.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */
     @Test
     public void testOnPlayerJoinWithPermLimitsWrongSize() {
@@ -245,7 +247,7 @@ public class JoinListenerTest {
     }
 
     /**
-     * Test method for {@link bentobox.addon.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */
     @Test
     public void testOnPlayerJoinWithPermLimitsInvalidMaterial() {
@@ -260,7 +262,7 @@ public class JoinListenerTest {
     }
 
     /**
-     * Test method for {@link bentobox.addon.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */
     @Test
     public void testOnPlayerJoinWithPermLimitsWildcard() {
@@ -275,7 +277,7 @@ public class JoinListenerTest {
     }
 
     /**
-     * Test method for {@link bentobox.addon.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */
     @Test
     public void testOnPlayerJoinWithPermLimitsNotNumber() {
@@ -290,7 +292,7 @@ public class JoinListenerTest {
     }
 
     /**
-     * Test method for {@link bentobox.addon.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */
     @Test
     public void testOnPlayerJoinWithPermLimitsSuccess() {
@@ -306,7 +308,7 @@ public class JoinListenerTest {
     }
 
     /**
-     * Test method for {@link bentobox.addon.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */
     @Test
     public void testOnPlayerJoinWithPermLimitsMultiPerms() {
@@ -330,7 +332,7 @@ public class JoinListenerTest {
     }
 
     /**
-     * Test method for {@link bentobox.addon.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */
     @Test
     public void testOnPlayerJoinWithPermLimitsMultiPermsSameMaterial() {
@@ -359,7 +361,7 @@ public class JoinListenerTest {
 
 
     /**
-     * Test method for {@link bentobox.addon.limits.listeners.JoinListener#onUnregisterIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onUnregisterIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
      */
     @Test
     public void testOnUnregisterIslandNotUnregistered() {
@@ -369,7 +371,7 @@ public class JoinListenerTest {
     }
 
     /**
-     * Test method for {@link bentobox.addon.limits.listeners.JoinListener#onUnregisterIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onUnregisterIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
      */
     @Test
     public void testOnUnregisterIslandNotInWorld() {
@@ -380,7 +382,7 @@ public class JoinListenerTest {
     }
 
     /**
-     * Test method for {@link bentobox.addon.limits.listeners.JoinListener#onUnregisterIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onUnregisterIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
      */
     @Test
     public void testOnUnregisterIslandInWorld() {
@@ -397,7 +399,7 @@ public class JoinListenerTest {
     }
 
     /**
-     * Test method for {@link bentobox.addon.limits.listeners.JoinListener#onUnregisterIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onUnregisterIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
      */
     @Test
     public void testOnUnregisterIslandInWorldNullIBC() {
