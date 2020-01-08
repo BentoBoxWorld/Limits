@@ -89,6 +89,7 @@ public class LimitPanel {
             user.sendMessage("island.limits.no-limits");
             return;
         }
+        // Material limits
         for (Entry<Material, Integer> en : matLimits.entrySet()) {
             PanelItemBuilder pib = new PanelItemBuilder();
             pib.name(Util.prettifyText(en.getKey().toString()));
@@ -103,6 +104,7 @@ public class LimitPanel {
                             "[limit]", String.valueOf(en.getValue())));
             pb.item(pib.build());
         }
+        // Entity limits
         addon.getSettings().getLimits().forEach((k,v) -> {
             PanelItemBuilder pib = new PanelItemBuilder();
             pib.name(Util.prettifyText(k.toString()));
@@ -131,9 +133,22 @@ public class LimitPanel {
         pb.build();
     }
 
-    private long getCount(Island island, EntityType ent) {
-        return island.getWorld().getEntities().stream()
+    long getCount(Island island, EntityType ent) {
+        long count = island.getWorld().getEntities().stream()
                 .filter(e -> e.getType().equals(ent))
                 .filter(e -> island.inIslandSpace(e.getLocation())).count();
+        // Nether
+        if (addon.getPlugin().getIWM().isNetherIslands(island.getWorld())) {
+            count += addon.getPlugin().getIWM().getNetherWorld(island.getWorld()).getEntities().stream()
+                    .filter(e -> e.getType().equals(ent))
+                    .filter(e -> island.inIslandSpace(e.getLocation())).count();
+        }
+        // End
+        if (addon.getPlugin().getIWM().isEndIslands(island.getWorld())) {
+            count += addon.getPlugin().getIWM().getEndWorld(island.getWorld()).getEntities().stream()
+                    .filter(e -> e.getType().equals(ent))
+                    .filter(e -> island.inIslandSpace(e.getLocation())).count();
+        }
+        return count;
     }
 }
