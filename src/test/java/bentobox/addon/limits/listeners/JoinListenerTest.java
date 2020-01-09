@@ -1,14 +1,13 @@
 package bentobox.addon.limits.listeners;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.times;
-
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -19,6 +18,7 @@ import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.permissions.PermissionAttachmentInfo;
@@ -243,7 +243,7 @@ public class JoinListenerTest {
         when(player.getEffectivePermissions()).thenReturn(perms);
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
         jl.onPlayerJoin(e);
-        verify(addon).logError("Player tastybento has permission: 'bskyblock.island.limit.my.perm.for.game' but format must be 'bskyblock.island.limit.MATERIAL.NUMBER' Ignoring...");
+        verify(addon).logError("Player tastybento has permission: 'bskyblock.island.limit.my.perm.for.game' but format must be 'bskyblock.island.limit.MATERIAL.NUMBER' or 'bskyblock.island.limit.ENTITY-TYPE.NUMBER' Ignoring...");
     }
 
     /**
@@ -258,7 +258,7 @@ public class JoinListenerTest {
         when(player.getEffectivePermissions()).thenReturn(perms);
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
         jl.onPlayerJoin(e);
-        verify(addon).logError("Player tastybento has permission: 'bskyblock.island.limit.mumbo.34' but MUMBO is not a valid material. Ignoring...");
+        verify(addon).logError("Player tastybento has permission: 'bskyblock.island.limit.mumbo.34' but MUMBO is not a valid material or entity type. Ignoring...");
     }
 
     /**
@@ -306,6 +306,22 @@ public class JoinListenerTest {
         verify(addon, never()).logError(anyString());
         verify(ibc).setBlockLimit(eq(Material.STONE), eq(24));
     }
+    
+    /**
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
+     */
+    @Test
+    public void testOnPlayerJoinWithPermLimitsSuccessEntity() {
+        Set<PermissionAttachmentInfo> perms = new HashSet<>();
+        PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
+        when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.BAT.24");
+        perms.add(permAtt);
+        when(player.getEffectivePermissions()).thenReturn(perms);
+        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        jl.onPlayerJoin(e);
+        verify(addon, never()).logError(anyString());
+        verify(ibc).setEntityLimit(eq(EntityType.BAT), eq(24));
+    }
 
     /**
      * Test method for {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
@@ -322,6 +338,12 @@ public class JoinListenerTest {
         PermissionAttachmentInfo permAtt3 = mock(PermissionAttachmentInfo.class);
         when(permAtt3.getPermission()).thenReturn("bskyblock.island.limit.dirt.34");
         perms.add(permAtt3);
+        PermissionAttachmentInfo permAtt4 = mock(PermissionAttachmentInfo.class);
+        when(permAtt4.getPermission()).thenReturn("bskyblock.island.limit.chicken.34");
+        perms.add(permAtt4);
+        PermissionAttachmentInfo permAtt5 = mock(PermissionAttachmentInfo.class);
+        when(permAtt5.getPermission()).thenReturn("bskyblock.island.limit.cave_spider.4");
+        perms.add(permAtt5);
         when(player.getEffectivePermissions()).thenReturn(perms);
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
         jl.onPlayerJoin(e);
@@ -329,6 +351,8 @@ public class JoinListenerTest {
         verify(ibc).setBlockLimit(eq(Material.STONE), eq(24));
         verify(ibc).setBlockLimit(eq(Material.GRASS), eq(14));
         verify(ibc).setBlockLimit(eq(Material.DIRT), eq(34));
+        verify(ibc).setEntityLimit(eq(EntityType.CHICKEN), eq(34));
+        verify(ibc).setEntityLimit(eq(EntityType.CAVE_SPIDER), eq(4));
     }
 
     /**
@@ -357,8 +381,33 @@ public class JoinListenerTest {
         verify(ibc, never()).setBlockLimit(eq(Material.STONE), eq(14));
         verify(ibc).setBlockLimit(eq(Material.STONE), eq(34));
     }
-
-
+    
+    /**
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
+     */
+    @Test
+    public void testOnPlayerJoinWithPermLimitsMultiPermsSameEntity() {
+        // IBC - set the entity limit for BAT to be 25 already
+        when(ibc.getEntityLimit(any())).thenReturn(25);
+        Set<PermissionAttachmentInfo> perms = new HashSet<>();
+        PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
+        when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.BAT.24");
+        perms.add(permAtt);
+        PermissionAttachmentInfo permAtt2 = mock(PermissionAttachmentInfo.class);
+        when(permAtt2.getPermission()).thenReturn("bskyblock.island.limit.BAT.14");
+        perms.add(permAtt2);
+        PermissionAttachmentInfo permAtt3 = mock(PermissionAttachmentInfo.class);
+        when(permAtt3.getPermission()).thenReturn("bskyblock.island.limit.BAT.34");
+        perms.add(permAtt3);
+        when(player.getEffectivePermissions()).thenReturn(perms);
+        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        jl.onPlayerJoin(e);
+        verify(addon, never()).logError(anyString());
+        // Only the limit over 25 should be set
+        verify(ibc, never()).setEntityLimit(eq(EntityType.BAT), eq(24));
+        verify(ibc, never()).setEntityLimit(eq(EntityType.BAT), eq(14));
+        verify(ibc).setEntityLimit(eq(EntityType.BAT), eq(34));
+    }
 
     /**
      * Test method for {@link world.bentobox.limits.listeners.JoinListener#onUnregisterIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.

@@ -1,5 +1,6 @@
 package world.bentobox.limits.listeners;
 
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
@@ -9,6 +10,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -38,41 +40,55 @@ public class JoinListener implements Listener {
 
     private void checkPerms(Player player, String permissionPrefix, String islandId, String gameMode) {
         IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(islandId);
+
         for (PermissionAttachmentInfo perms : player.getEffectivePermissions()) {
-            if (perms.getPermission().startsWith(permissionPrefix)) {
-                // No wildcards
-                if (perms.getPermission().contains(permissionPrefix + "*")) {
-                    logError(player.getName(), perms.getPermission(), "wildcards are not allowed.");
-                    return;
-                }
-                // Get the Material
-                String[] split = perms.getPermission().split("\\.");
-                if (split.length != 5) {
-                    logError(player.getName(), perms.getPermission(), "format must be '" + permissionPrefix + "MATERIAL.NUMBER'");
-                    return;
-                }
-                Material m = Material.getMaterial(split[3].toUpperCase(Locale.ENGLISH));
-                if (m == null) {
-                    logError(player.getName(), perms.getPermission(), split[3].toUpperCase(Locale.ENGLISH) + " is not a valid material.");
-                    return;
-                }
-                // Get the max value should there be more than one
-                if (!NumberUtils.isDigits(split[4])) {
-                    logError(player.getName(), perms.getPermission(), "the last part MUST be a number!");
-                } else {
-                    // Set the limit
-                    if (ibc == null) {
-                        ibc = new IslandBlockCount(islandId, gameMode);
-                    }
+            if (!perms.getPermission().startsWith(permissionPrefix)) continue;
+            // No wildcards
+            if (perms.getPermission().contains(permissionPrefix + "*")) {
+                logError(player.getName(), perms.getPermission(), "wildcards are not allowed.");
+                return;
+            }
+            // Check formatting
+            String[] split = perms.getPermission().split("\\.");
+            if (split.length != 5) {
+                logError(player.getName(), perms.getPermission(), "format must be '" + permissionPrefix + "MATERIAL.NUMBER' or '" + permissionPrefix + "ENTITY-TYPE.NUMBER'");
+                return;
+            }
+            // Check value
+            if (!NumberUtils.isDigits(split[4])) {
+                logError(player.getName(), perms.getPermission(), "the last part MUST be a number!");
+                return;
+            }
+            // Entities & materials
+            EntityType et = Arrays.stream(EntityType.values()).filter(t -> t.name().equalsIgnoreCase(split[3])).findFirst().orElse(null);
+            Material m = Arrays.stream(Material.values()).filter(t -> t.name().equalsIgnoreCase(split[3])).findFirst().orElse(null);
+
+            if (et == null && m == null) {
+                logError(player.getName(), perms.getPermission(), split[3].toUpperCase(Locale.ENGLISH) + " is not a valid material or entity type.");
+                break;
+            }
+            // Make an ibc if required
+            if (ibc == null) {
+                ibc = new IslandBlockCount(islandId, gameMode);
+            }
+            if (et != null && m == null) {
+                // Entity limit
+                ibc.setEntityLimit(et, Math.max(ibc.getEntityLimit(et), Integer.valueOf(split[4])));
+            } else if (m != null && et == null) {
+                // Material limit
+                ibc.setBlockLimit(m, Math.max(ibc.getBlockLimit(m), Integer.valueOf(split[4])));
+            } else {
+                if (m.isBlock()) {
+                    // Material limit
                     ibc.setBlockLimit(m, Math.max(ibc.getBlockLimit(m), Integer.valueOf(split[4])));
+                } else {
+                    // This is an entity setting
+                    ibc.setEntityLimit(et, Math.max(ibc.getEntityLimit(et), Integer.valueOf(split[4])));
                 }
             }
         }
-        // If any changes have been made then store it
-        if (ibc != null) {
-            addon.getBlockLimitListener().setIsland(islandId, ibc);
-        }
-
+        // If any changes have been made then store it - don't make files unless they are needed
+        if (ibc != null) addon.getBlockLimitListener().setIsland(islandId, ibc);
     }
 
     private void logError(String name, String perm, String error) {

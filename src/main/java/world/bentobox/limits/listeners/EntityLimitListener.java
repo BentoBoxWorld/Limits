@@ -173,7 +173,13 @@ public class EntityLimitListener implements Listener {
         long count = ent.getWorld().getEntities().stream()
                 .filter(e -> e.getType().equals(ent.getType()))
                 .filter(e -> island.inIslandSpace(e.getLocation())).count();
-        return addon.getSettings().getLimits().containsKey(ent.getType()) && count >= addon.getSettings().getLimits().get(ent.getType());
+        // Check island settings first
+        int limitAmount = addon.getBlockLimitListener().getIsland(island.getUniqueId()).getEntityLimit(ent.getType());
+        // If no island settings then try global settings
+        if (limitAmount < 0 && addon.getSettings().getLimits().containsKey(ent.getType())) {
+            limitAmount = addon.getSettings().getLimits().get(ent.getType());
+        }
+        return count >= limitAmount;
     }
 }
 
