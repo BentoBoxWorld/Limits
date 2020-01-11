@@ -1,25 +1,25 @@
 ---
+admin:
+  limits:
+    calc:
+      description: pārrēķinā salas ierobežojumus priekš spēlētāja
+      parameters: "<spēlētājs>"
+      finished: "&aSalas ierobežojumu pārrēķināšana pabeigta!"
+    main:
+      description: rāda salas ierobežojumus priekš spēlētāja
+      parameters: "<spēlētājs>"
 block-limits:
   hit-limit: "&c[material] ierobežots līdz [number]!"
 entity-limits:
   hit-limit: "&c[entity] rašanās ierobežots līdz [number]!"
-limits:
-  panel-title: Salas ierobežojumi
-admin:
-  limits:
-    main:
-      parameters: "<spēlētājs>"
-      description: rāda salas ierobežojumus priekš spēlētāja
-    calc:
-      parameters: "<spēlētājs>"
-      description: pārrēķinā salas ierobežojumus priekš spēlētāja
-      finished: "&aSalas ierobežojumi veiskmīgi pārrēķināti!"
 island:
   limits:
+    block-limit-syntax: "[number]/[limit]"
     description: rāda tavas salas ierobežojumus
     max-color: "&c"
-    regular-color: "&a"
-    block-limit-syntax: "[number]/[limit]"
     no-limits: "&cŠai pasaulei nav uzstādīti ierobežojumi"
     recount:
       description: pārrēķina ierobežojumus tavai salai
+    regular-color: "&a"
+limits:
+  panel-title: Salas ierobežojumi
