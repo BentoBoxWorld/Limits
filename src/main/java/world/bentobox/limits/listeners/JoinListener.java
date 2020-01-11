@@ -40,7 +40,11 @@ public class JoinListener implements Listener {
 
     private void checkPerms(Player player, String permissionPrefix, String islandId, String gameMode) {
         IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(islandId);
-
+        if (ibc != null) {
+            // Clear permission limits
+            ibc.getEntityLimits().clear();
+            ibc.getBlockLimits().clear();
+        }
         for (PermissionAttachmentInfo perms : player.getEffectivePermissions()) {
             if (!perms.getPermission().startsWith(permissionPrefix)) continue;
             // No wildcards
@@ -87,6 +91,8 @@ public class JoinListener implements Listener {
                 }
             }
         }
+        // Check removed permissions
+
         // If any changes have been made then store it - don't make files unless they are needed
         if (ibc != null) addon.getBlockLimitListener().setIsland(islandId, ibc);
     }
