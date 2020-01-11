@@ -36,6 +36,7 @@ import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.eclipse.jdt.annotation.Nullable;
 
 import world.bentobox.bentobox.api.events.island.IslandEvent.IslandDeleteEvent;
 import world.bentobox.bentobox.api.localization.TextVariables;
@@ -436,6 +437,7 @@ public class BlockLimitsListener implements Listener {
      * @param islandId - island unique id
      * @return island block count or null if there is none yet
      */
+    @Nullable
     public IslandBlockCount getIsland(String islandId) {
         return islandCountMap.get(islandId);
     }

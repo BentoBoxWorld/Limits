@@ -107,7 +107,7 @@ public class LimitPanel {
         // Entity limits
         Map<EntityType, Integer> map = addon.getSettings().getLimits();
         // Merge in any permission-based limits
-        ibc.getEntityLimits().forEach(map::put);
+        if (ibc != null) ibc.getEntityLimits().forEach(map::put);
         map.forEach((k,v) -> {
             PanelItemBuilder pib = new PanelItemBuilder();
             pib.name(Util.prettifyText(k.toString()));
