@@ -42,32 +42,30 @@ public class EntityLimitListener implements Listener {
         if (!addon.getPlugin().getIWM().inWorld(e.getVehicle().getWorld())) {
             return;
         }
-        if (addon.getSettings().getLimits().containsKey(e.getVehicle().getType())) {
-            // If someone in that area has the bypass permission, allow the spawning
-            for (Entity entity : Objects.requireNonNull(e.getVehicle().getLocation().getWorld()).getNearbyEntities(e.getVehicle().getLocation(), 5, 5, 5)) {
-                if (entity instanceof Player) {
-                    Player player = (Player)entity;
-                    boolean bypass = (player.isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getVehicle().getWorld()) + MOD_BYPASS));
-                    // Check island
-                    addon.getIslands().getProtectedIslandAt(e.getVehicle().getLocation()).ifPresent(island -> {
-                        // Ignore spawn
-                        if (island.isSpawn()) {
-                            return;
-                        }
-                        // Check if the player is at the limit
-                        if (!bypass && atLimit(island, e.getVehicle())) {
-                            e.setCancelled(true);
-                            for (Entity ent : e.getVehicle().getLocation().getWorld().getNearbyEntities(e.getVehicle().getLocation(), 5, 5, 5)) {
-                                if (ent instanceof Player) {
-                                    ((Player) ent).updateInventory();
-                                    User.getInstance(ent).sendMessage("entity-limits.hit-limit", "[entity]",
-                                            Util.prettifyText(e.getVehicle().getType().toString())
-                                            , TextVariables.NUMBER, String.valueOf(addon.getSettings().getLimits().get(e.getVehicle().getType())));
-                                }
+        // If someone in that area has the bypass permission, allow the spawning
+        for (Entity entity : Objects.requireNonNull(e.getVehicle().getLocation().getWorld()).getNearbyEntities(e.getVehicle().getLocation(), 5, 5, 5)) {
+            if (entity instanceof Player) {
+                Player player = (Player)entity;
+                boolean bypass = (player.isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getVehicle().getWorld()) + MOD_BYPASS));
+                // Check island
+                addon.getIslands().getProtectedIslandAt(e.getVehicle().getLocation()).ifPresent(island -> {
+                    // Ignore spawn
+                    if (island.isSpawn()) {
+                        return;
+                    }
+                    // Check if the player is at the limit
+                    if (!bypass && atLimit(island, e.getVehicle())) {
+                        e.setCancelled(true);
+                        for (Entity ent : e.getVehicle().getLocation().getWorld().getNearbyEntities(e.getVehicle().getLocation(), 5, 5, 5)) {
+                            if (ent instanceof Player) {
+                                ((Player) ent).updateInventory();
+                                User.getInstance(ent).sendMessage("entity-limits.hit-limit", "[entity]",
+                                        Util.prettifyText(e.getVehicle().getType().toString())
+                                        , TextVariables.NUMBER, String.valueOf(addon.getSettings().getLimits().get(e.getVehicle().getType())));
                             }
                         }
-                    });
-                }
+                    }
+                });
             }
         }
     }
@@ -76,10 +74,6 @@ public class EntityLimitListener implements Listener {
     public void onCreatureSpawn(final CreatureSpawnEvent e) {
         // Return if not in a known world
         if (!addon.getPlugin().getIWM().inWorld(e.getLocation())) {
-            return;
-        }
-        if (!addon.getSettings().getLimits().containsKey(e.getEntityType())) {
-            // Unknown entity limit or unlimited
             return;
         }
         boolean bypass = false;
