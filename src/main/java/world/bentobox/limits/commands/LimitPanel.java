@@ -141,13 +141,13 @@ public class LimitPanel {
                 .filter(e -> e.getType().equals(ent))
                 .filter(e -> island.inIslandSpace(e.getLocation())).count();
         // Nether
-        if (addon.getPlugin().getIWM().isNetherIslands(island.getWorld())) {
+        if (addon.getPlugin().getIWM().isNetherIslands(island.getWorld()) && addon.getPlugin().getIWM().getNetherWorld(island.getWorld()) != null) {
             count += addon.getPlugin().getIWM().getNetherWorld(island.getWorld()).getEntities().stream()
                     .filter(e -> e.getType().equals(ent))
                     .filter(e -> island.inIslandSpace(e.getLocation())).count();
         }
         // End
-        if (addon.getPlugin().getIWM().isEndIslands(island.getWorld())) {
+        if (addon.getPlugin().getIWM().isEndIslands(island.getWorld()) && addon.getPlugin().getIWM().getEndWorld(island.getWorld()) != null) {
             count += addon.getPlugin().getIWM().getEndWorld(island.getWorld()).getEntities().stream()
                     .filter(e -> e.getType().equals(ent))
                     .filter(e -> island.inIslandSpace(e.getLocation())).count();
