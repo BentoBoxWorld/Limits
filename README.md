@@ -56,4 +56,28 @@ Usage permissions are (put the gamemode name, e.g. acidisland at the front):
     default: op
 ```
 
+## Items that cannot be limited
+Some items cannot be limited (right now). The reasons are usually because there are too many ways to remove the item without it being tracked. If you are a programmer and can work out how to fix these, then please submit a PR!
 
+* Primed TNT
+* Evoker Fangs
+* Llama Spit
+* Dragon Fireball
+* Area Effect Cloud
+* Ender signal
+* Small fireball
+* Fireball
+* Thrown Exp Bottle
+* Shulker Bullet
+* Wither Skull
+* Tridents
+* Arrows
+* Spectral Arrows
+* Snowballs
+* Eggs
+* Leashes
+* Ender crystals
+* Ender pearls
+* Ender dragon
+* Item frames
+* Paintings
