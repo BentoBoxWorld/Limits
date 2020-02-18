@@ -10,6 +10,10 @@ gamemodes:
 # example: bskyblock.island.limit.hopper.10
 # permission activates when player logs in.
 #
+#¿Do you want to use perms to add custom limits to islands?
+#Set it to false if you are a developer and want to handle the custom limit via code
+usepermissions: true
+
 # Cooldown for player recount command in seconds
 cooldown: 120
 
