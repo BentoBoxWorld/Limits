@@ -46,7 +46,7 @@ public class JoinListener implements Listener {
             ibc.getBlockLimits().clear();
         }
         for (PermissionAttachmentInfo perms : player.getEffectivePermissions()) {
-            if (!perms.getPermission().startsWith(permissionPrefix)) continue;
+            if (!perms.getValue() || !perms.getPermission().startsWith(permissionPrefix)) continue;
             // No wildcards
             if (perms.getPermission().contains(permissionPrefix + "*")) {
                 logError(player.getName(), perms.getPermission(), "wildcards are not allowed.");

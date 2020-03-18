@@ -239,6 +239,7 @@ public class JoinListenerTest {
         Set<PermissionAttachmentInfo> perms = new HashSet<>();
         PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
         when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.my.perm.for.game");
+        when(permAtt.getValue()).thenReturn(true);
         perms.add(permAtt);
         when(player.getEffectivePermissions()).thenReturn(perms);
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
@@ -254,6 +255,7 @@ public class JoinListenerTest {
         Set<PermissionAttachmentInfo> perms = new HashSet<>();
         PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
         when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.mumbo.34");
+        when(permAtt.getValue()).thenReturn(true);
         perms.add(permAtt);
         when(player.getEffectivePermissions()).thenReturn(perms);
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
@@ -269,6 +271,7 @@ public class JoinListenerTest {
         Set<PermissionAttachmentInfo> perms = new HashSet<>();
         PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
         when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.*");
+        when(permAtt.getValue()).thenReturn(true);
         perms.add(permAtt);
         when(player.getEffectivePermissions()).thenReturn(perms);
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
@@ -284,6 +287,7 @@ public class JoinListenerTest {
         Set<PermissionAttachmentInfo> perms = new HashSet<>();
         PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
         when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.STONE.abc");
+        when(permAtt.getValue()).thenReturn(true);
         perms.add(permAtt);
         when(player.getEffectivePermissions()).thenReturn(perms);
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
@@ -299,6 +303,7 @@ public class JoinListenerTest {
         Set<PermissionAttachmentInfo> perms = new HashSet<>();
         PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
         when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.STONE.24");
+        when(permAtt.getValue()).thenReturn(true);
         perms.add(permAtt);
         when(player.getEffectivePermissions()).thenReturn(perms);
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
@@ -315,6 +320,7 @@ public class JoinListenerTest {
         Set<PermissionAttachmentInfo> perms = new HashSet<>();
         PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
         when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.BAT.24");
+        when(permAtt.getValue()).thenReturn(true);
         perms.add(permAtt);
         when(player.getEffectivePermissions()).thenReturn(perms);
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
@@ -331,19 +337,29 @@ public class JoinListenerTest {
         Set<PermissionAttachmentInfo> perms = new HashSet<>();
         PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
         when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.STONE.24");
+        when(permAtt.getValue()).thenReturn(true);
         perms.add(permAtt);
         PermissionAttachmentInfo permAtt2 = mock(PermissionAttachmentInfo.class);
         when(permAtt2.getPermission()).thenReturn("bskyblock.island.limit.grass.14");
+        when(permAtt2.getValue()).thenReturn(true);
         perms.add(permAtt2);
         PermissionAttachmentInfo permAtt3 = mock(PermissionAttachmentInfo.class);
         when(permAtt3.getPermission()).thenReturn("bskyblock.island.limit.dirt.34");
+        when(permAtt3.getValue()).thenReturn(true);
         perms.add(permAtt3);
         PermissionAttachmentInfo permAtt4 = mock(PermissionAttachmentInfo.class);
         when(permAtt4.getPermission()).thenReturn("bskyblock.island.limit.chicken.34");
+        when(permAtt4.getValue()).thenReturn(true);
         perms.add(permAtt4);
         PermissionAttachmentInfo permAtt5 = mock(PermissionAttachmentInfo.class);
         when(permAtt5.getPermission()).thenReturn("bskyblock.island.limit.cave_spider.4");
+        when(permAtt5.getValue()).thenReturn(true);
         perms.add(permAtt5);
+        PermissionAttachmentInfo permAtt6 = mock(PermissionAttachmentInfo.class);
+        when(permAtt6.getPermission()).thenReturn("bskyblock.island.limit.cave_spider.4");
+        when(permAtt6.getValue()).thenReturn(false); // negative perm
+        perms.add(permAtt6);
+        
         when(player.getEffectivePermissions()).thenReturn(perms);
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
         jl.onPlayerJoin(e);
@@ -365,12 +381,15 @@ public class JoinListenerTest {
         Set<PermissionAttachmentInfo> perms = new HashSet<>();
         PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
         when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.STONE.24");
+        when(permAtt.getValue()).thenReturn(true);
         perms.add(permAtt);
         PermissionAttachmentInfo permAtt2 = mock(PermissionAttachmentInfo.class);
         when(permAtt2.getPermission()).thenReturn("bskyblock.island.limit.STONE.14");
+        when(permAtt2.getValue()).thenReturn(true);
         perms.add(permAtt2);
         PermissionAttachmentInfo permAtt3 = mock(PermissionAttachmentInfo.class);
         when(permAtt3.getPermission()).thenReturn("bskyblock.island.limit.STONE.34");
+        when(permAtt3.getValue()).thenReturn(true);
         perms.add(permAtt3);
         when(player.getEffectivePermissions()).thenReturn(perms);
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
@@ -392,12 +411,15 @@ public class JoinListenerTest {
         Set<PermissionAttachmentInfo> perms = new HashSet<>();
         PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
         when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.BAT.24");
+        when(permAtt.getValue()).thenReturn(true);
         perms.add(permAtt);
         PermissionAttachmentInfo permAtt2 = mock(PermissionAttachmentInfo.class);
         when(permAtt2.getPermission()).thenReturn("bskyblock.island.limit.BAT.14");
+        when(permAtt2.getValue()).thenReturn(true);
         perms.add(permAtt2);
         PermissionAttachmentInfo permAtt3 = mock(PermissionAttachmentInfo.class);
         when(permAtt3.getPermission()).thenReturn("bskyblock.island.limit.BAT.34");
+        when(permAtt3.getValue()).thenReturn(true);
         perms.add(permAtt3);
         when(player.getEffectivePermissions()).thenReturn(perms);
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
