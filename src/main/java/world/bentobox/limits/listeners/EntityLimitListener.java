@@ -59,7 +59,7 @@ public class EntityLimitListener implements Listener {
                         for (Entity ent : e.getVehicle().getLocation().getWorld().getNearbyEntities(e.getVehicle().getLocation(), 5, 5, 5)) {
                             if (ent instanceof Player) {
                                 ((Player) ent).updateInventory();
-                                User.getInstance(ent).sendMessage("entity-limits.hit-limit", "[entity]",
+                                User.getInstance(ent).notify("entity-limits.hit-limit", "[entity]",
                                         Util.prettifyText(e.getVehicle().getType().toString())
                                         , TextVariables.NUMBER, String.valueOf(addon.getSettings().getLimits().get(e.getVehicle().getType())));
                             }
@@ -125,7 +125,7 @@ public class EntityLimitListener implements Listener {
             if (!bypass && !island.isSpawn() && atLimit(island, e.getEntity())) {
                 // Not allowed
                 e.setCancelled(true);
-                User.getInstance(player).sendMessage("block-limits.hit-limit", "[material]",
+                User.getInstance(player).notify("block-limits.hit-limit", "[material]",
                         Util.prettifyText(e.getEntity().getType().toString()),
                         TextVariables.NUMBER, String.valueOf(addon.getSettings().getLimits().getOrDefault(e.getEntity().getType(), -1)));
 
@@ -145,7 +145,7 @@ public class EntityLimitListener implements Listener {
                     if (w == null) return;
                     for (Entity ent : w.getNearbyEntities(e.getLocation(), 5, 5, 5)) {
                         if (ent instanceof Player) {
-                            User.getInstance(ent).sendMessage("entity-limits.hit-limit", "[entity]",
+                            User.getInstance(ent).notify("entity-limits.hit-limit", "[entity]",
                                     Util.prettifyText(e.getEntityType().toString()),
                                     TextVariables.NUMBER, String.valueOf(addon.getSettings().getLimits().get(e.getEntityType())));
                         }
