@@ -1,9 +1,13 @@
 package world.bentobox.limits;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.EntityType;
@@ -11,6 +15,7 @@ import org.bukkit.entity.EntityType;
 public class Settings {
 
     private final Map<EntityType, Integer> limits = new EnumMap<>(EntityType.class);
+    private final Map<EntityType, List<EntityGroup>> groupLimits = new EnumMap<>(EntityType.class);
     private final List<String> gameModes;
     private static final List<EntityType> DISALLOWED = Arrays.asList(
             EntityType.PRIMED_TNT,
@@ -60,6 +65,33 @@ public class Settings {
         }
         addon.log("Entity limits:");
         limits.entrySet().stream().map(e -> "Limit " + e.getKey().toString() + " to " + e.getValue()).forEach(addon::log);
+        
+        //group limits
+        el = addon.getConfig().getConfigurationSection("entitygrouplimits");
+        if (el != null) {
+            for (String name : el.getKeys(false)) {
+                int limit = el.getInt(name + ".limit");
+                Set<EntityType> entities = el.getStringList(name + ".entities").stream().map(s -> {
+                    EntityType type = getType(s);
+                    if (type != null) {
+                        if (DISALLOWED.contains(type)) {
+                            addon.logError("Entity type: " + s + " is not supported - skipping...");
+                        } else {
+                            return type;
+                        }
+                    } else {
+                        addon.logError("Unknown entity type: " + s + " - skipping...");
+                    }
+                    return null;
+                }).filter(e -> e != null).collect(Collectors.toSet());
+                EntityGroup group = new EntityGroup(name, entities, limit);
+                entities.forEach(e -> {
+                    List<EntityGroup> groups = groupLimits.getOrDefault(e, new ArrayList());
+                    groups.add(group);
+                    groupLimits.put(e, groups);
+                });
+            }
+        }
     }
 
     private EntityType getType(String key) {
@@ -74,10 +106,44 @@ public class Settings {
     }
 
     /**
+     * @return the group limits
+     */
+    public Map<EntityType, List<EntityGroup>> getGroupLimits() {
+        return groupLimits;
+    }
+
+    /**
      * @return the gameModes
      */
     public List<String> getGameModes() {
         return gameModes;
     }
 
+    public static class EntityGroup {
+        private final String name;
+        private final Set<EntityType> types;
+        private final int limit;
+
+        public EntityGroup(String name, Set<EntityType> types, int limit) {
+            this.name = name;
+            this.types = types;
+            this.limit = limit;
+        }
+        
+        public boolean contains(EntityType type) {
+            return types.contains(type);
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public Set<EntityType> getTypes() {
+            return types;
+        }
+
+        public int getLimit() {
+            return limit;
+        }
+    }
 }

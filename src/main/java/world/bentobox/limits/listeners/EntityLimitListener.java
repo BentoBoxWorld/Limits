@@ -1,5 +1,7 @@
 package world.bentobox.limits.listeners;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import org.bukkit.Location;
@@ -19,6 +21,7 @@ import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Util;
 import world.bentobox.limits.Limits;
+import world.bentobox.limits.Settings;
 
 public class EntityLimitListener implements Listener {
     private static final String MOD_BYPASS = "mod.bypass";
@@ -166,6 +169,7 @@ public class EntityLimitListener implements Listener {
     private boolean atLimit(Island island, Entity ent) {
         // Check island settings first
         int limitAmount = -1;
+        List<Settings.EntityGroup> groups = new ArrayList();
         if (addon.getBlockLimitListener().getIsland(island.getUniqueId()) != null) {
             limitAmount = addon.getBlockLimitListener().getIsland(island.getUniqueId()).getEntityLimit(ent.getType());
         }
@@ -173,11 +177,28 @@ public class EntityLimitListener implements Listener {
         if (limitAmount < 0 && addon.getSettings().getLimits().containsKey(ent.getType())) {
             limitAmount = addon.getSettings().getLimits().get(ent.getType());
         }
-        if (limitAmount < 0) return false;
+        if (groups.isEmpty() && addon.getSettings().getGroupLimits().containsKey(ent.getType())) {
+            groups = addon.getSettings().getGroupLimits().get(ent.getType());
+        }
+        if (limitAmount < 0 && groups.isEmpty()) return false;
+        
         // We have to count the entities
-        return ent.getWorld().getEntities().stream()
+        int count = (int) ent.getWorld().getEntities().stream()
                 .filter(e -> e.getType().equals(ent.getType()))
-                .filter(e -> island.inIslandSpace(e.getLocation())).count() >= limitAmount;
+                .filter(e -> island.inIslandSpace(e.getLocation())).count();
+        if (count >= limitAmount)
+            return true;
+        
+        // Now do the group limits
+        for (Settings.EntityGroup group : groups) //do not use lambda
+        {
+            count = (int) ent.getWorld().getEntities().stream()
+                    .filter(e -> group.contains(e.getType()))
+                    .filter(e -> island.inIslandSpace(e.getLocation())).count();
+            if (count >= group.getLimit())
+                return true;
+        }
+        return false;
     }
 }
 
