@@ -11,6 +11,8 @@ import org.bukkit.World;
 import org.bukkit.entity.EntityType;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.panels.builders.PanelBuilder;
@@ -19,6 +21,8 @@ import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Util;
 import world.bentobox.limits.Limits;
+import world.bentobox.limits.Settings;
+import world.bentobox.limits.Settings.EntityGroup;
 import world.bentobox.limits.objects.IslandBlockCount;
 
 /**
@@ -133,6 +137,37 @@ public class LimitPanel {
                             "[limit]", String.valueOf(v)));
             pb.item(pib.build());
         });
+        
+        // Entity group limits
+        List<Settings.EntityGroup> groupmap = addon.getSettings().getGroupLimitDefinitions();
+        // Merge in any permission-based limits
+//        if (ibc != null) ibc.getEntityLimits().forEach(map::put);
+        groupmap.forEach(v -> {
+            PanelItemBuilder pib = new PanelItemBuilder();
+            EntityType k = v.getTypes().iterator().next();
+            pib.name(v.getName() + " (" + v.getTypes().stream().map(e -> Util.prettifyText(e.toString())).collect(Collectors.joining(", ")) + ")");
+            Material m;
+            try {
+                if (E2M.containsKey(k)) {
+                    m = E2M.get(k);
+                } else if (k.isAlive()) {
+                    m = Material.valueOf(k.toString() + "_SPAWN_EGG");
+                } else {
+                    // Regular material
+                    m = Material.valueOf(k.toString());
+                }
+            } catch (Exception e) {
+                m = Material.BARRIER;
+            }
+            pib.icon(m);
+            long count = getCount(island, v);
+            String color = count >= v.getLimit() ? user.getTranslation("island.limits.max-color") : user.getTranslation("island.limits.regular-color");
+            pib.description(color
+                    + user.getTranslation("island.limits.block-limit-syntax",
+                            TextVariables.NUMBER, String.valueOf(count),
+                            "[limit]", String.valueOf(v.getLimit())));
+            pb.item(pib.build());
+        });
         pb.build();
     }
 
@@ -150,6 +185,25 @@ public class LimitPanel {
         if (addon.getPlugin().getIWM().isEndIslands(island.getWorld()) && addon.getPlugin().getIWM().getEndWorld(island.getWorld()) != null) {
             count += addon.getPlugin().getIWM().getEndWorld(island.getWorld()).getEntities().stream()
                     .filter(e -> e.getType().equals(ent))
+                    .filter(e -> island.inIslandSpace(e.getLocation())).count();
+        }
+        return count;
+    }
+    
+    long getCount(Island island, EntityGroup group) {
+        long count = island.getWorld().getEntities().stream()
+                .filter(e -> group.contains(e.getType()))
+                .filter(e -> island.inIslandSpace(e.getLocation())).count();
+        // Nether
+        if (addon.getPlugin().getIWM().isNetherIslands(island.getWorld()) && addon.getPlugin().getIWM().getNetherWorld(island.getWorld()) != null) {
+            count += addon.getPlugin().getIWM().getNetherWorld(island.getWorld()).getEntities().stream()
+                    .filter(e -> group.contains(e.getType()))
+                    .filter(e -> island.inIslandSpace(e.getLocation())).count();
+        }
+        // End
+        if (addon.getPlugin().getIWM().isEndIslands(island.getWorld()) && addon.getPlugin().getIWM().getEndWorld(island.getWorld()) != null) {
+            count += addon.getPlugin().getIWM().getEndWorld(island.getWorld()).getEntities().stream()
+                    .filter(e -> group.contains(e.getType()))
                     .filter(e -> island.inIslandSpace(e.getLocation())).count();
         }
         return count;

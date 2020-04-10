@@ -6,6 +6,7 @@ import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -84,6 +85,8 @@ public class Settings {
                     }
                     return null;
                 }).filter(e -> e != null).collect(Collectors.toSet());
+                if (entities.isEmpty())
+                    continue;
                 EntityGroup group = new EntityGroup(name, entities, limit);
                 entities.forEach(e -> {
                     List<EntityGroup> groups = groupLimits.getOrDefault(e, new ArrayList());
@@ -110,6 +113,10 @@ public class Settings {
      */
     public Map<EntityType, List<EntityGroup>> getGroupLimits() {
         return groupLimits;
+    }
+    
+    public List<EntityGroup> getGroupLimitDefinitions() {
+        return groupLimits.values().stream().flatMap(e -> e.stream()).distinct().collect(Collectors.toList());
     }
 
     /**
@@ -144,6 +151,29 @@ public class Settings {
 
         public int getLimit() {
             return limit;
+        }
+
+        @Override
+        public int hashCode()
+        {
+            int hash = 7;
+            hash = 83 * hash + Objects.hashCode(this.name);
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object obj)
+        {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            final EntityGroup other = (EntityGroup) obj;
+            if (!Objects.equals(this.name, other.name))
+                return false;
+            return true;
         }
     }
 }
