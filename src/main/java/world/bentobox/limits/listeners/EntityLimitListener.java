@@ -1,5 +1,6 @@
 package world.bentobox.limits.listeners;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.stream.Collectors;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -25,6 +27,7 @@ import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Util;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.Settings;
+import world.bentobox.limits.Settings.EntityGroup;
 
 public class EntityLimitListener implements Listener {
     private static final String MOD_BYPASS = "mod.bypass";
@@ -60,14 +63,21 @@ public class EntityLimitListener implements Listener {
                         return;
                     }
                     // Check if the player is at the limit
-                    if (!bypass && atLimit(island, e.getVehicle())) {
+                    AtLimitResult res;
+                    if (!bypass && (res = atLimit(island, e.getVehicle())).hit()) {
                         e.setCancelled(true);
                         for (Entity ent : e.getVehicle().getLocation().getWorld().getNearbyEntities(e.getVehicle().getLocation(), 5, 5, 5)) {
                             if (ent instanceof Player) {
                                 ((Player) ent).updateInventory();
-                                User.getInstance(ent).notify("entity-limits.hit-limit", "[entity]",
-                                        Util.prettifyText(e.getVehicle().getType().toString())
-                                        , TextVariables.NUMBER, String.valueOf(addon.getSettings().getLimits().get(e.getVehicle().getType())));
+                                if (res.getTypelimit() != null) {
+                                    User.getInstance(ent).notify("entity-limits.hit-limit", "[entity]",
+                                            Util.prettifyText(e.getVehicle().getType().toString()),
+                                            TextVariables.NUMBER, String.valueOf(res.getTypelimit().getValue()));
+                                } else {
+                                    User.getInstance(ent).notify("entity-limits.hit-limit", "[entity]",
+                                            res.getGrouplimit().getKey().getName() + " (" + res.getGrouplimit().getKey().getTypes().stream().map(x -> Util.prettifyText(x.toString())).collect(Collectors.joining(", ")) + ")",
+                                            TextVariables.NUMBER, String.valueOf(res.getGrouplimit().getValue()));
+                                }
                             }
                         }
                     }
@@ -128,13 +138,19 @@ public class EntityLimitListener implements Listener {
         addon.getIslands().getIslandAt(e.getEntity().getLocation()).ifPresent(island -> {
             boolean bypass = Objects.requireNonNull(player).isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getEntity().getWorld()) + MOD_BYPASS);
             // Check if entity can be hung
-            if (!bypass && !island.isSpawn() && atLimit(island, e.getEntity())) {
+            AtLimitResult res;
+            if (!bypass && !island.isSpawn() && (res = atLimit(island, e.getEntity())).hit()) {
                 // Not allowed
                 e.setCancelled(true);
-                User.getInstance(player).notify("block-limits.hit-limit", "[material]",
-                        Util.prettifyText(e.getEntity().getType().toString()),
-                        TextVariables.NUMBER, String.valueOf(addon.getSettings().getLimits().getOrDefault(e.getEntity().getType(), -1)));
-
+                if (res.getTypelimit() != null) {
+                    User.getInstance(player).notify("block-limits.hit-limit", "[material]",
+                            Util.prettifyText(e.getEntity().getType().toString()),
+                            TextVariables.NUMBER, String.valueOf(res.getTypelimit().getValue()));
+                } else {
+                    User.getInstance(player).notify("block-limits.hit-limit", "[material]",
+                            res.getGrouplimit().getKey().getName() + " (" + res.getGrouplimit().getKey().getTypes().stream().map(x -> Util.prettifyText(x.toString())).collect(Collectors.joining(", ")) + ")",
+                            TextVariables.NUMBER, String.valueOf(res.getGrouplimit().getValue()));
+                }
             }
         });
     }
@@ -142,7 +158,8 @@ public class EntityLimitListener implements Listener {
     private void checkLimit(CreatureSpawnEvent e, boolean bypass) {
         addon.getIslands().getIslandAt(e.getLocation()).ifPresent(island -> {
             // Check if creature is allowed to spawn or not
-            if (!bypass && !island.isSpawn() && atLimit(island, e.getEntity())) {
+            AtLimitResult res;
+            if (!bypass && !island.isSpawn() && (res = atLimit(island, e.getEntity())).hit()) {
                 // Not allowed
                 e.setCancelled(true);
                 // If the reason is anything but because of a spawner then tell players within range
@@ -151,9 +168,15 @@ public class EntityLimitListener implements Listener {
                     if (w == null) return;
                     for (Entity ent : w.getNearbyEntities(e.getLocation(), 5, 5, 5)) {
                         if (ent instanceof Player) {
-                            User.getInstance(ent).notify("entity-limits.hit-limit", "[entity]",
-                                    Util.prettifyText(e.getEntityType().toString()),
-                                    TextVariables.NUMBER, String.valueOf(addon.getSettings().getLimits().get(e.getEntityType())));
+                            if (res.getTypelimit() != null) {
+                                User.getInstance(ent).notify("entity-limits.hit-limit", "[entity]",
+                                        Util.prettifyText(e.getEntityType().toString()),
+                                        TextVariables.NUMBER, String.valueOf(res.getTypelimit().getValue()));
+                            } else {
+                                User.getInstance(ent).notify("entity-limits.hit-limit", "[entity]",
+                                        res.getGrouplimit().getKey().getName() + " (" + res.getGrouplimit().getKey().getTypes().stream().map(x -> Util.prettifyText(x.toString())).collect(Collectors.joining(", ")) + ")",
+                                        TextVariables.NUMBER, String.valueOf(res.getGrouplimit().getValue()));
+                            }
                         }
                     }
                 }
@@ -169,7 +192,7 @@ public class EntityLimitListener implements Listener {
      * @param ent - the entity
      * @return true if at the limit, false if not
      */
-    private boolean atLimit(Island island, Entity ent) {
+    private AtLimitResult atLimit(Island island, Entity ent) {
         // Check island settings first
         int limitAmount = -1;
         Map<Settings.EntityGroup, Integer> groupsLimits = new HashMap<>();
@@ -191,14 +214,14 @@ public class EntityLimitListener implements Listener {
                     .filter(group -> !groupsLimits.containsKey(group) || groupsLimits.get(group) > group.getLimit())
                     .forEach(group -> groupsLimits.put(group, group.getLimit()));
         }
-        if (limitAmount < 0 && groupsLimits.isEmpty()) return false;
+        if (limitAmount < 0 && groupsLimits.isEmpty()) return new AtLimitResult();
         
         // We have to count the entities
         int count = (int) ent.getWorld().getEntities().stream()
                 .filter(e -> e.getType().equals(ent.getType()))
                 .filter(e -> island.inIslandSpace(e.getLocation())).count();
         if (count >= limitAmount)
-            return true;
+            return new AtLimitResult(ent.getType(), limitAmount);
         
         // Now do the group limits
         for (Map.Entry<Settings.EntityGroup, Integer> group : groupsLimits.entrySet()) { //do not use lambda
@@ -206,9 +229,36 @@ public class EntityLimitListener implements Listener {
                     .filter(e -> group.getKey().contains(e.getType()))
                     .filter(e -> island.inIslandSpace(e.getLocation())).count();
             if (count >= group.getValue())
-                return true;
+                return new AtLimitResult(group.getKey(), group.getValue());
         }
-        return false;
+        return new AtLimitResult();
+    }
+    
+    private class AtLimitResult {
+        private Map.Entry<EntityType, Integer> typelimit;
+        private Map.Entry<EntityGroup, Integer> grouplimit;
+
+        public AtLimitResult() {}
+        
+        public AtLimitResult(EntityType type, int limit) {
+            typelimit = new AbstractMap.SimpleEntry<>(type, limit);
+        }
+
+        public AtLimitResult(EntityGroup type, int limit) {
+            grouplimit = new AbstractMap.SimpleEntry<>(type, limit);
+        }
+        
+        public boolean hit() {
+            return typelimit != null || grouplimit != null;
+        }
+
+        public Map.Entry<EntityType, Integer> getTypelimit() {
+            return typelimit;
+        }
+
+        public Map.Entry<EntityGroup, Integer> getGrouplimit() {
+            return grouplimit;
+        }
     }
 }
 
