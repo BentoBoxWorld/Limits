@@ -1,8 +1,11 @@
 package world.bentobox.limits.listeners;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -169,18 +172,26 @@ public class EntityLimitListener implements Listener {
     private boolean atLimit(Island island, Entity ent) {
         // Check island settings first
         int limitAmount = -1;
-        List<Settings.EntityGroup> groups = new ArrayList();
+        Map<Settings.EntityGroup, Integer> groupsLimits = new HashMap<>();
         if (addon.getBlockLimitListener().getIsland(island.getUniqueId()) != null) {
             limitAmount = addon.getBlockLimitListener().getIsland(island.getUniqueId()).getEntityLimit(ent.getType());
+            List<Settings.EntityGroup> groupdefs = addon.getSettings().getGroupLimits().getOrDefault(ent.getType(), new ArrayList());
+            groupdefs.forEach(def -> {
+                int limit = addon.getBlockLimitListener().getIsland(island.getUniqueId()).getEntityGroupLimit(def.getName());
+                if (limit >= 0)
+                    groupsLimits.put(def, limit);
+            });
         }
         // If no island settings then try global settings
         if (limitAmount < 0 && addon.getSettings().getLimits().containsKey(ent.getType())) {
             limitAmount = addon.getSettings().getLimits().get(ent.getType());
         }
-        if (groups.isEmpty() && addon.getSettings().getGroupLimits().containsKey(ent.getType())) {
-            groups = addon.getSettings().getGroupLimits().get(ent.getType());
+        if (addon.getSettings().getGroupLimits().containsKey(ent.getType())) {
+            addon.getSettings().getGroupLimits().getOrDefault(ent.getType(), new ArrayList<>()).stream()
+                    .filter(group -> !groupsLimits.containsKey(group) || groupsLimits.get(group) > group.getLimit())
+                    .forEach(group -> groupsLimits.put(group, group.getLimit()));
         }
-        if (limitAmount < 0 && groups.isEmpty()) return false;
+        if (limitAmount < 0 && groupsLimits.isEmpty()) return false;
         
         // We have to count the entities
         int count = (int) ent.getWorld().getEntities().stream()
@@ -190,12 +201,11 @@ public class EntityLimitListener implements Listener {
             return true;
         
         // Now do the group limits
-        for (Settings.EntityGroup group : groups) //do not use lambda
-        {
+        for (Map.Entry<Settings.EntityGroup, Integer> group : groupsLimits.entrySet()) { //do not use lambda
             count = (int) ent.getWorld().getEntities().stream()
-                    .filter(e -> group.contains(e.getType()))
+                    .filter(e -> group.getKey().contains(e.getType()))
                     .filter(e -> island.inIslandSpace(e.getLocation())).count();
-            if (count >= group.getLimit())
+            if (count >= group.getValue())
                 return true;
         }
         return false;

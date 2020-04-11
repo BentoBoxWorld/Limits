@@ -1,6 +1,7 @@
 package world.bentobox.limits.objects;
 
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.bukkit.Material;
@@ -32,6 +33,8 @@ public class IslandBlockCount implements DataObject {
     private Map<Material, Integer> blockLimits = new EnumMap<>(Material.class);
     @Expose
     private Map<EntityType, Integer> entityLimits = new EnumMap<>(EntityType.class);
+    @Expose
+    private Map<String, Integer> entityGroupLimits = new HashMap<>();
 
     // Required for YAML database
     public IslandBlockCount() {}
@@ -201,4 +204,42 @@ public class IslandBlockCount implements DataObject {
         entityLimits.clear();
     }
     
+    /**
+     * @return the entityGroupLimits
+     */
+    public Map<String, Integer> getEntityGroupLimits() {
+        return entityGroupLimits;
+    }
+
+    /**
+     * @param entityGroupLimits the entityGroupLimits to set
+     */
+    public void setEntityGroupLimits(Map<String, Integer> entityGroupLimits) {
+        this.entityGroupLimits = entityGroupLimits;
+    }
+    
+    /**
+     * Set an island-specific entity group limit
+     * @param name - entity group
+     * @param limit - limit
+     */
+    public void setEntityGroupLimit(String name, int limit) {
+        entityGroupLimits.put(name, limit);
+    }
+    
+    /**
+     * Get the limit for an entity group
+     * @param name - entity group
+     * @return limit or -1 for unlimited
+     */
+    public int getEntityGroupLimit(String name) {
+        return entityGroupLimits.getOrDefault(name, -1);
+    }
+    
+    /**
+     * Clear all island-specific entity group limits
+     */
+    public void clearEntityGroupLimits() {
+        entityGroupLimits.clear();
+    }
 }

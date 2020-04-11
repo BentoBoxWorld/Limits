@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -84,7 +85,7 @@ public class Settings {
                         addon.logError("Unknown entity type: " + s + " - skipping...");
                     }
                     return null;
-                }).filter(e -> e != null).collect(Collectors.toSet());
+                }).filter(e -> e != null).collect(Collectors.toCollection(LinkedHashSet::new));
                 if (entities.isEmpty())
                     continue;
                 EntityGroup group = new EntityGroup(name, entities, limit);
@@ -95,6 +96,9 @@ public class Settings {
                 });
             }
         }
+        
+        addon.log("Entity group limits:");
+        getGroupLimitDefinitions().stream().map(e -> "Limit " + e.getName() + " to " + e.getLimit()).forEach(addon::log);
     }
 
     private EntityType getType(String key) {
@@ -115,6 +119,9 @@ public class Settings {
         return groupLimits;
     }
     
+    /**
+     * @return the group limit definitions
+     */
     public List<EntityGroup> getGroupLimitDefinitions() {
         return groupLimits.values().stream().flatMap(e -> e.stream()).distinct().collect(Collectors.toList());
     }
