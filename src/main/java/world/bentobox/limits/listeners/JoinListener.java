@@ -44,6 +44,7 @@ public class JoinListener implements Listener {
         if (ibc != null) {
             // Clear permission limits
             ibc.getEntityLimits().clear();
+            ibc.getEntityGroupLimits().clear();
             ibc.getBlockLimits().clear();
         }
         for (PermissionAttachmentInfo perms : player.getEffectivePermissions()) {
@@ -69,8 +70,8 @@ public class JoinListener implements Listener {
             Material m = Arrays.stream(Material.values()).filter(t -> t.name().equalsIgnoreCase(split[3])).findFirst().orElse(null);
             EntityGroup entgroup = addon.getSettings().getGroupLimitDefinitions().stream().filter(e -> e.getName().equalsIgnoreCase(split[3])).findFirst().orElse(null);
 
-            if (et == null && m == null) {
-                logError(player.getName(), perms.getPermission(), split[3].toUpperCase(Locale.ENGLISH) + " is not a valid material or entity type.");
+            if (entgroup == null && et == null && m == null) {
+                logError(player.getName(), perms.getPermission(), split[3].toUpperCase(Locale.ENGLISH) + " is not a valid material or entity type/group.");
                 break;
             }
             // Make an ibc if required
@@ -78,6 +79,7 @@ public class JoinListener implements Listener {
                 ibc = new IslandBlockCount(islandId, gameMode);
             }
             if (entgroup != null) {
+                // Entity group limit
                 ibc.setEntityGroupLimit(entgroup.getName(), Math.max(ibc.getEntityGroupLimit(entgroup.getName()), Integer.valueOf(split[4])));
             } else if (et != null && m == null) {
                 // Entity limit

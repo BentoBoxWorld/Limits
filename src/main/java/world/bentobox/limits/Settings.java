@@ -182,5 +182,11 @@ public class Settings {
                 return false;
             return true;
         }
+
+        @Override
+        public String toString()
+        {
+            return "EntityGroup{" + "name=" + name + ", types=" + types + ", limit=" + limit + '}';
+        }
     }
 }
