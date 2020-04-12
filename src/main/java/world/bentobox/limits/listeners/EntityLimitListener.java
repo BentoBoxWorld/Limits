@@ -225,6 +225,8 @@ public class EntityLimitListener implements Listener {
         
         // Now do the group limits
         for (Map.Entry<Settings.EntityGroup, Integer> group : groupsLimits.entrySet()) { //do not use lambda
+            if (group.getValue() < 0)
+                continue;
             count = (int) ent.getWorld().getEntities().stream()
                     .filter(e -> group.getKey().contains(e.getType()))
                     .filter(e -> island.inIslandSpace(e.getLocation())).count();
