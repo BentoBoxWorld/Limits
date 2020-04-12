@@ -98,7 +98,7 @@ public class Settings {
         }
         
         addon.log("Entity group limits:");
-        getGroupLimitDefinitions().stream().map(e -> "Limit " + e.getName() + " to " + e.getLimit()).forEach(addon::log);
+        getGroupLimitDefinitions().stream().map(e -> "Limit " + e.getName() + " (" + e.getTypes().stream().map(x -> x.name()).collect(Collectors.joining(", ")) + ") to " + e.getLimit()).forEach(addon::log);
     }
 
     private EntityType getType(String key) {

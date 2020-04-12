@@ -217,17 +217,20 @@ public class EntityLimitListener implements Listener {
         if (limitAmount < 0 && groupsLimits.isEmpty()) return new AtLimitResult();
         
         // We have to count the entities
-        int count = (int) ent.getWorld().getEntities().stream()
-                .filter(e -> e.getType().equals(ent.getType()))
-                .filter(e -> island.inIslandSpace(e.getLocation())).count();
-        if (count >= limitAmount)
-            return new AtLimitResult(ent.getType(), limitAmount);
+        if (limitAmount >= 0)
+        {
+            int count = (int) ent.getWorld().getEntities().stream()
+                    .filter(e -> e.getType().equals(ent.getType()))
+                    .filter(e -> island.inIslandSpace(e.getLocation())).count();
+            if (count >= limitAmount)
+                return new AtLimitResult(ent.getType(), limitAmount);
+        }
         
         // Now do the group limits
         for (Map.Entry<Settings.EntityGroup, Integer> group : groupsLimits.entrySet()) { //do not use lambda
             if (group.getValue() < 0)
                 continue;
-            count = (int) ent.getWorld().getEntities().stream()
+            int count = (int) ent.getWorld().getEntities().stream()
                     .filter(e -> group.getKey().contains(e.getType()))
                     .filter(e -> island.inIslandSpace(e.getLocation())).count();
             if (count >= group.getValue())
