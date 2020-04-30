@@ -1,6 +1,7 @@
 package world.bentobox.limits;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +71,7 @@ public class Settings {
      * @return the limits
      */
     public Map<EntityType, Integer> getLimits() {
-        return limits;
+        return Collections.unmodifiableMap(limits);
     }
 
     /**

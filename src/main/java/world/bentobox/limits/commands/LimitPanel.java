@@ -1,5 +1,6 @@
 package world.bentobox.limits.commands;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -105,7 +106,7 @@ public class LimitPanel {
             pb.item(pib.build());
         }
         // Entity limits
-        Map<EntityType, Integer> map = addon.getSettings().getLimits();
+        Map<EntityType, Integer> map = new HashMap<>(addon.getSettings().getLimits());
         // Merge in any permission-based limits
         if (ibc != null) ibc.getEntityLimits().forEach(map::put);
         map.forEach((k,v) -> {
