@@ -38,9 +38,20 @@ public class LimitsCalc {
     private final User sender;
     private final Set<Pair<Integer, Integer>> chunksToScan;
     private int count;
+    private int chunksToScanCount;
+    private BentoBox plugin;
 
 
+    /**
+     * Perform a count of all limited blocks or entities on an island
+     * @param world - game world to scan
+     * @param instance - BentoBox
+     * @param targetPlayer - target player's island
+     * @param addon - addon instance
+     * @param sender - requester of the count
+     */
     LimitsCalc(World world, BentoBox instance, UUID targetPlayer, Limits addon, User sender) {
+        this.plugin = instance;
         this.addon = addon;
         this.island = instance.getIslands().getIsland(world, targetPlayer);
         this.bll = addon.getBlockLimitListener();
@@ -52,18 +63,35 @@ public class LimitsCalc {
         // Get chunks to scan
         chunksToScan = getChunksToScan(island);
         count = 0;
-        chunksToScan.forEach(c -> Util.getChunkAtAsync(world, c.x, c.z).thenAccept(ch -> {
+
+        boolean isNether = plugin.getIWM().isNetherGenerate(world) && plugin.getIWM().isNetherIslands(world);
+        boolean isEnd = plugin.getIWM().isEndGenerate(world) && plugin.getIWM().isEndIslands(world);
+        // Calculate how many chunks need to be scanned
+        chunksToScanCount = chunksToScan.size() + (isNether ? chunksToScan.size():0) + (isEnd ? chunksToScan.size():0);
+        chunksToScan.forEach(c -> {
+            asyncScan(world, c);
+            if (isNether) asyncScan(plugin.getIWM().getNetherWorld(world), c);
+            if (isEnd) asyncScan(plugin.getIWM().getEndWorld(world), c);
+        });
+
+    }
+    
+
+
+    private void asyncScan(World world2, Pair<Integer, Integer> c) {
+        Util.getChunkAtAsync(world2, c.x, c.z).thenAccept(ch -> {
             ChunkSnapshot snapShot = ch.getChunkSnapshot();
             Bukkit.getScheduler().runTaskAsynchronously(addon.getPlugin(), () -> {
                 this.scanChunk(snapShot);
                 count++;
-                if (count == chunksToScan.size()) {
+                if (count == chunksToScanCount) {
                     this.tidyUp();
                 }
             });
-        }));
-
+        });
     }
+
+
 
     private void scanChunk(ChunkSnapshot chunk) {
         for (int x = 0; x < 16; x++) {
