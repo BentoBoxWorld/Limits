@@ -23,6 +23,7 @@ import world.bentobox.bentobox.api.events.island.IslandEvent.Reason;
 import world.bentobox.bentobox.api.events.team.TeamEvent.TeamSetownerEvent;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.limits.Limits;
+import world.bentobox.limits.events.LimitsJoinPermCheckEvent;
 import world.bentobox.limits.objects.IslandBlockCount;
 
 /**
@@ -40,6 +41,18 @@ public class JoinListener implements Listener {
 
     private void checkPerms(Player player, String permissionPrefix, String islandId, String gameMode) {
         IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(islandId);
+        // Fire event, so other addons can cancel this permissions change
+        LimitsJoinPermCheckEvent e = new LimitsJoinPermCheckEvent(player, gameMode, ibc);
+        Bukkit.getPluginManager().callEvent(e);
+        if (e.isCancelled()) return;
+        // Get ibc from event if it has changed
+        ibc = e.getIbc();
+        // If perms should be ignored, but the IBC given in the event used, then set it and return
+        if (e.isIgnorePerms() && ibc != null) {
+            addon.getBlockLimitListener().setIsland(islandId, ibc);
+            return;
+        }
+        // Check permissions
         if (ibc != null) {
             // Clear permission limits
             ibc.getEntityLimits().clear();
@@ -127,7 +140,7 @@ public class JoinListener implements Listener {
         // Check if player has any islands in the game modes
         addon.getGameModes().forEach(gm -> {
             if (addon.getIslands().hasIsland(gm.getOverWorld(), e.getPlayer().getUniqueId())) {
-                String islandId = addon.getIslands().getIsland(gm.getOverWorld(), e.getPlayer().getUniqueId()).getUniqueId();
+                String islandId = Objects.requireNonNull(addon.getIslands().getIsland(gm.getOverWorld(), e.getPlayer().getUniqueId())).getUniqueId();
                 checkPerms(e.getPlayer(), gm.getPermissionPrefix() + "island.limit.", islandId, gm.getDescription().getName());
             }
         });
