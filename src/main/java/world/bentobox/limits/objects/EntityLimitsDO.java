@@ -7,11 +7,13 @@ import java.util.UUID;
 import com.google.gson.annotations.Expose;
 
 import world.bentobox.bentobox.database.objects.DataObject;
+import world.bentobox.bentobox.database.objects.Table;
 
 /**
  * @author tastybento
  *
  */
+@Table(name = "EntityLimits")
 public class EntityLimitsDO implements DataObject {
 
     @Expose
