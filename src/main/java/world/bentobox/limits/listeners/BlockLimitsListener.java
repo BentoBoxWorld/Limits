@@ -146,7 +146,7 @@ public class BlockLimitsListener implements Listener {
      * Save the count database completely
      */
     public void save() {
-        islandCountMap.values().forEach(handler::saveObject);
+        islandCountMap.values().forEach(handler::saveObjectAsync);
     }
 
     // Player-related events
@@ -349,7 +349,7 @@ public class BlockLimitsListener implements Listener {
                 }
             }
             if (saveMap.get(id) > CHANGE_LIMIT) {
-                handler.saveObject(islandCountMap.get(id));
+                handler.saveObjectAsync(islandCountMap.get(id));
                 saveMap.remove(id);
             }
             return -1;
@@ -428,7 +428,7 @@ public class BlockLimitsListener implements Listener {
      */
     public void setIsland(String islandId, IslandBlockCount ibc) {
         islandCountMap.put(islandId, ibc);
-        handler.saveObject(ibc);
+        handler.saveObjectAsync(ibc);
     }
 
     /**

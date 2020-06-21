@@ -10,11 +10,13 @@ import org.bukkit.entity.EntityType;
 import com.google.gson.annotations.Expose;
 
 import world.bentobox.bentobox.database.objects.DataObject;
+import world.bentobox.bentobox.database.objects.Table;
 
 /**
  * @author tastybento
  *
  */
+@Table(name = "IslandBlockCount")
 public class IslandBlockCount implements DataObject {
 
     @Expose
@@ -178,7 +180,7 @@ public class IslandBlockCount implements DataObject {
     public void setEntityLimits(Map<EntityType, Integer> entityLimits) {
         this.entityLimits = entityLimits;
     }
-    
+
     /**
      * Set an island-specific entity type limit
      * @param t - entity type
@@ -187,7 +189,7 @@ public class IslandBlockCount implements DataObject {
     public void setEntityLimit(EntityType t, int limit) {
         entityLimits.put(t, limit);
     }
-    
+
     /**
      * Get the limit for an entity type
      * @param t - entity type
@@ -196,7 +198,7 @@ public class IslandBlockCount implements DataObject {
     public int getEntityLimit(EntityType t) {
         return entityLimits.getOrDefault(t, -1);
     }
-    
+
     /**
      * Clear all island-specific entity type limits
      */

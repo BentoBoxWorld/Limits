@@ -2,6 +2,7 @@ package world.bentobox.limits;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -109,7 +110,7 @@ public class Settings {
      * @return the limits
      */
     public Map<EntityType, Integer> getLimits() {
-        return limits;
+        return Collections.unmodifiableMap(limits);
     }
 
     /**

@@ -24,6 +24,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.permissions.PermissionAttachmentInfo;
+import org.bukkit.plugin.PluginManager;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -73,6 +74,8 @@ public class JoinListenerTest {
     private OfflinePlayer owner;
     @Mock
     private Island island;
+    @Mock
+    private PluginManager pim;
 
     @Before
     public void setUp() {
@@ -110,6 +113,7 @@ public class JoinListenerTest {
         when(owner.isOnline()).thenReturn(true);
         when(owner.getPlayer()).thenReturn(player);
         when(Bukkit.getOfflinePlayer(any(UUID.class))).thenReturn(owner);
+        when(Bukkit.getPluginManager()).thenReturn(pim);
 
         // Island
         when(island.getOwner()).thenReturn(UUID.randomUUID());
@@ -319,7 +323,7 @@ public class JoinListenerTest {
         verify(addon, never()).logError(anyString());
         verify(ibc).setBlockLimit(eq(Material.STONE), eq(24));
     }
-    
+
     /**
      * Test method for {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */
@@ -384,7 +388,7 @@ public class JoinListenerTest {
         when(permAtt6.getPermission()).thenReturn("bskyblock.island.limit.cave_spider.4");
         when(permAtt6.getValue()).thenReturn(false); // negative perm
         perms.add(permAtt6);
-        
+
         when(player.getEffectivePermissions()).thenReturn(perms);
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
         jl.onPlayerJoin(e);
@@ -425,7 +429,7 @@ public class JoinListenerTest {
         verify(ibc, never()).setBlockLimit(eq(Material.STONE), eq(14));
         verify(ibc).setBlockLimit(eq(Material.STONE), eq(34));
     }
-    
+
     /**
      * Test method for {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */

@@ -24,6 +24,7 @@ import world.bentobox.bentobox.api.events.team.TeamEvent.TeamSetownerEvent;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.Settings.EntityGroup;
+import world.bentobox.limits.events.LimitsJoinPermCheckEvent;
 import world.bentobox.limits.objects.IslandBlockCount;
 
 /**
@@ -41,6 +42,18 @@ public class JoinListener implements Listener {
 
     private void checkPerms(Player player, String permissionPrefix, String islandId, String gameMode) {
         IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(islandId);
+        // Fire event, so other addons can cancel this permissions change
+        LimitsJoinPermCheckEvent e = new LimitsJoinPermCheckEvent(player, gameMode, ibc);
+        Bukkit.getPluginManager().callEvent(e);
+        if (e.isCancelled()) return;
+        // Get ibc from event if it has changed
+        ibc = e.getIbc();
+        // If perms should be ignored, but the IBC given in the event used, then set it and return
+        if (e.isIgnorePerms() && ibc != null) {
+            addon.getBlockLimitListener().setIsland(islandId, ibc);
+            return;
+        }
+        // Check permissions
         if (ibc != null) {
             // Clear permission limits
             ibc.getEntityLimits().clear();
@@ -68,7 +81,7 @@ public class JoinListener implements Listener {
             // Entities & materials
             EntityType et = Arrays.stream(EntityType.values()).filter(t -> t.name().equalsIgnoreCase(split[3])).findFirst().orElse(null);
             Material m = Arrays.stream(Material.values()).filter(t -> t.name().equalsIgnoreCase(split[3])).findFirst().orElse(null);
-            EntityGroup entgroup = addon.getSettings().getGroupLimitDefinitions().stream().filter(e -> e.getName().equalsIgnoreCase(split[3])).findFirst().orElse(null);
+            EntityGroup entgroup = addon.getSettings().getGroupLimitDefinitions().stream().filter(t -> t.getName().equalsIgnoreCase(split[3])).findFirst().orElse(null);
 
             if (entgroup == null && et == null && m == null) {
                 logError(player.getName(), perms.getPermission(), split[3].toUpperCase(Locale.ENGLISH) + " is not a valid material or entity type/group.");
@@ -133,7 +146,7 @@ public class JoinListener implements Listener {
         // Check if player has any islands in the game modes
         addon.getGameModes().forEach(gm -> {
             if (addon.getIslands().hasIsland(gm.getOverWorld(), e.getPlayer().getUniqueId())) {
-                String islandId = addon.getIslands().getIsland(gm.getOverWorld(), e.getPlayer().getUniqueId()).getUniqueId();
+                String islandId = Objects.requireNonNull(addon.getIslands().getIsland(gm.getOverWorld(), e.getPlayer().getUniqueId())).getUniqueId();
                 checkPerms(e.getPlayer(), gm.getPermissionPrefix() + "island.limit.", islandId, gm.getDescription().getName());
             }
         });
