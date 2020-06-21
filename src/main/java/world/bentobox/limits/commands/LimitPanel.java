@@ -12,8 +12,8 @@ import org.bukkit.World;
 import org.bukkit.entity.EntityType;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.panels.builders.PanelBuilder;
@@ -146,7 +146,9 @@ public class LimitPanel {
         groupmap.forEach(v -> {
             PanelItemBuilder pib = new PanelItemBuilder();
             EntityType k = v.getTypes().iterator().next();
-            pib.name(v.getName() + " (" + v.getTypes().stream().map(e -> Util.prettifyText(e.toString())).collect(Collectors.joining(", ")) + ")");
+            pib.name(v.getName());
+            String description = "";
+            description += "(" + prettyNames(v) + ")\n";
             Material m;
             try {
                 if (E2M.containsKey(k)) {
@@ -163,10 +165,11 @@ public class LimitPanel {
             pib.icon(m);
             long count = getCount(island, v);
             String color = count >= v.getLimit() ? user.getTranslation("island.limits.max-color") : user.getTranslation("island.limits.regular-color");
-            pib.description(color
-                    + user.getTranslation("island.limits.block-limit-syntax",
+            description += color
+                            + user.getTranslation("island.limits.block-limit-syntax",
                             TextVariables.NUMBER, String.valueOf(count),
-                            "[limit]", String.valueOf(v.getLimit())));
+                            "[limit]", String.valueOf(v.getLimit()));
+            pib.description(description);
             pb.item(pib.build());
         });
         pb.build();
@@ -208,5 +211,19 @@ public class LimitPanel {
                     .filter(e -> island.inIslandSpace(e.getLocation())).count();
         }
         return count;
+    }
+    
+    private String prettyNames(EntityGroup v) {
+        StringBuilder sb = new StringBuilder();
+        List<EntityType> l = new ArrayList<>(v.getTypes());
+        for(int i = 0; i < l.size(); i++)
+        {
+            sb.append(Util.prettifyText(l.get(i).toString()));
+            if (i + 1 < l.size())
+                sb.append(", ");
+            if((i+1) % 5 == 0)
+                sb.append("\n");
+        }
+        return sb.toString();
     }
 }
