@@ -23,6 +23,7 @@ import world.bentobox.bentobox.api.events.island.IslandEvent.Reason;
 import world.bentobox.bentobox.api.events.team.TeamEvent.TeamSetownerEvent;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.limits.Limits;
+import world.bentobox.limits.Settings.EntityGroup;
 import world.bentobox.limits.events.LimitsJoinPermCheckEvent;
 import world.bentobox.limits.objects.IslandBlockCount;
 
@@ -56,6 +57,7 @@ public class JoinListener implements Listener {
         if (ibc != null) {
             // Clear permission limits
             ibc.getEntityLimits().clear();
+            ibc.getEntityGroupLimits().clear();
             ibc.getBlockLimits().clear();
         }
         for (PermissionAttachmentInfo perms : player.getEffectivePermissions()) {
@@ -68,7 +70,7 @@ public class JoinListener implements Listener {
             // Check formatting
             String[] split = perms.getPermission().split("\\.");
             if (split.length != 5) {
-                logError(player.getName(), perms.getPermission(), "format must be '" + permissionPrefix + "MATERIAL.NUMBER' or '" + permissionPrefix + "ENTITY-TYPE.NUMBER'");
+                logError(player.getName(), perms.getPermission(), "format must be '" + permissionPrefix + "MATERIAL.NUMBER', '" + permissionPrefix + "ENTITY-TYPE.NUMBER', or '" + permissionPrefix + "ENTITY-GROUP.NUMBER'");
                 return;
             }
             // Check value
@@ -79,16 +81,20 @@ public class JoinListener implements Listener {
             // Entities & materials
             EntityType et = Arrays.stream(EntityType.values()).filter(t -> t.name().equalsIgnoreCase(split[3])).findFirst().orElse(null);
             Material m = Arrays.stream(Material.values()).filter(t -> t.name().equalsIgnoreCase(split[3])).findFirst().orElse(null);
+            EntityGroup entgroup = addon.getSettings().getGroupLimitDefinitions().stream().filter(t -> t.getName().equalsIgnoreCase(split[3])).findFirst().orElse(null);
 
-            if (et == null && m == null) {
-                logError(player.getName(), perms.getPermission(), split[3].toUpperCase(Locale.ENGLISH) + " is not a valid material or entity type.");
+            if (entgroup == null && et == null && m == null) {
+                logError(player.getName(), perms.getPermission(), split[3].toUpperCase(Locale.ENGLISH) + " is not a valid material or entity type/group.");
                 break;
             }
             // Make an ibc if required
             if (ibc == null) {
                 ibc = new IslandBlockCount(islandId, gameMode);
             }
-            if (et != null && m == null) {
+            if (entgroup != null) {
+                // Entity group limit
+                ibc.setEntityGroupLimit(entgroup.getName(), Math.max(ibc.getEntityGroupLimit(entgroup.getName()), Integer.valueOf(split[4])));
+            } else if (et != null && m == null) {
                 // Entity limit
                 ibc.setEntityLimit(et, Math.max(ibc.getEntityLimit(et), Integer.valueOf(split[4])));
             } else if (m != null && et == null) {

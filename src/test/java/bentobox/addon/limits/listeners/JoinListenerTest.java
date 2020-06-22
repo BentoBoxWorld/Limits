@@ -1,5 +1,7 @@
 package bentobox.addon.limits.listeners;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -39,6 +41,7 @@ import world.bentobox.bentobox.api.events.team.TeamEvent.TeamSetownerEvent;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.managers.IslandsManager;
 import world.bentobox.limits.Limits;
+import world.bentobox.limits.Settings;
 import world.bentobox.limits.listeners.BlockLimitsListener;
 import world.bentobox.limits.listeners.JoinListener;
 import world.bentobox.limits.objects.IslandBlockCount;
@@ -53,6 +56,8 @@ public class JoinListenerTest {
 
     @Mock
     private Limits addon;
+    @Mock
+    private Settings settings;
     @Mock
     private GameModeAddon bskyblock;
     @Mock
@@ -79,6 +84,9 @@ public class JoinListenerTest {
         when(addon.getGameModes()).thenReturn(Collections.singletonList(bskyblock));
         when(addon.getGameModeName(any())).thenReturn("bskyblock");
         when(addon.getGameModePermPrefix(any())).thenReturn("bskyblock.");
+        when(addon.getSettings()).thenReturn(settings);
+        // Settings
+        when(settings.getGroupLimitDefinitions()).thenReturn(new ArrayList(Arrays.asList(new Settings.EntityGroup("friendly", new HashSet<>(), -1))));
         // Island Manager
         when(im.hasIsland(any(), any(UUID.class))).thenReturn(true);
         when(island.getUniqueId()).thenReturn("unique_id");
@@ -248,7 +256,7 @@ public class JoinListenerTest {
         when(player.getEffectivePermissions()).thenReturn(perms);
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
         jl.onPlayerJoin(e);
-        verify(addon).logError("Player tastybento has permission: 'bskyblock.island.limit.my.perm.for.game' but format must be 'bskyblock.island.limit.MATERIAL.NUMBER' or 'bskyblock.island.limit.ENTITY-TYPE.NUMBER' Ignoring...");
+        verify(addon).logError("Player tastybento has permission: 'bskyblock.island.limit.my.perm.for.game' but format must be 'bskyblock.island.limit.MATERIAL.NUMBER', 'bskyblock.island.limit.ENTITY-TYPE.NUMBER', or 'bskyblock.island.limit.ENTITY-GROUP.NUMBER' Ignoring...");
     }
 
     /**
@@ -264,7 +272,7 @@ public class JoinListenerTest {
         when(player.getEffectivePermissions()).thenReturn(perms);
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
         jl.onPlayerJoin(e);
-        verify(addon).logError("Player tastybento has permission: 'bskyblock.island.limit.mumbo.34' but MUMBO is not a valid material or entity type. Ignoring...");
+        verify(addon).logError("Player tastybento has permission: 'bskyblock.island.limit.mumbo.34' but MUMBO is not a valid material or entity type/group. Ignoring...");
     }
 
     /**
@@ -331,6 +339,23 @@ public class JoinListenerTest {
         jl.onPlayerJoin(e);
         verify(addon, never()).logError(anyString());
         verify(ibc).setEntityLimit(eq(EntityType.BAT), eq(24));
+    }
+    
+    /**
+     * Test method for {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
+     */
+    @Test
+    public void testOnPlayerJoinWithPermLimitsSuccessEntityGroup() {
+        Set<PermissionAttachmentInfo> perms = new HashSet<>();
+        PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
+        when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.friendly.24");
+        when(permAtt.getValue()).thenReturn(true);
+        perms.add(permAtt);
+        when(player.getEffectivePermissions()).thenReturn(perms);
+        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        jl.onPlayerJoin(e);
+        verify(addon, never()).logError(anyString());
+        verify(ibc).setEntityGroupLimit(eq("friendly"), eq(24));
     }
 
     /**
