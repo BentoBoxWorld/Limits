@@ -33,7 +33,6 @@ public class LimitPanel {
     // This maps the entity types to the icon that should be shown in the panel
     // If the icon is null, then the entity type is not covered by the addon
     private static final Map<EntityType, Material> E2M = ImmutableMap.<EntityType, Material>builder()
-            .put(EntityType.PIG_ZOMBIE, Material.ZOMBIE_PIGMAN_SPAWN_EGG)
             .put(EntityType.MUSHROOM_COW, Material.MOOSHROOM_SPAWN_EGG)
             .put(EntityType.SNOWMAN, Material.SNOW_BLOCK)
             .put(EntityType.IRON_GOLEM, Material.IRON_BLOCK)
