@@ -86,7 +86,7 @@ public class JoinListenerTest {
         when(addon.getGameModePermPrefix(any())).thenReturn("bskyblock.");
         when(addon.getSettings()).thenReturn(settings);
         // Settings
-        when(settings.getGroupLimitDefinitions()).thenReturn(new ArrayList(Arrays.asList(new Settings.EntityGroup("friendly", new HashSet<>(), -1))));
+        when(settings.getGroupLimitDefinitions()).thenReturn(new ArrayList<>(Arrays.asList(new Settings.EntityGroup("friendly", new HashSet<>(), -1))));
         // Island Manager
         when(im.hasIsland(any(), any(UUID.class))).thenReturn(true);
         when(island.getUniqueId()).thenReturn("unique_id");
@@ -340,7 +340,7 @@ public class JoinListenerTest {
         verify(addon, never()).logError(anyString());
         verify(ibc).setEntityLimit(eq(EntityType.BAT), eq(24));
     }
-    
+
     /**
      * Test method for {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */
