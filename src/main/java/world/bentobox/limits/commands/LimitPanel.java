@@ -12,6 +12,8 @@ import org.bukkit.World;
 import org.bukkit.entity.EntityType;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
+import java.util.List;
 
 import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.panels.builders.PanelBuilder;
@@ -20,6 +22,8 @@ import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Util;
 import world.bentobox.limits.Limits;
+import world.bentobox.limits.Settings;
+import world.bentobox.limits.Settings.EntityGroup;
 import world.bentobox.limits.objects.IslandBlockCount;
 
 /**
@@ -133,6 +137,40 @@ public class LimitPanel {
                             "[limit]", String.valueOf(v)));
             pb.item(pib.build());
         });
+        
+        // Entity group limits
+        List<Settings.EntityGroup> groupmap = addon.getSettings().getGroupLimitDefinitions();
+        // Merge in any permission-based limits
+//        if (ibc != null) ibc.getEntityLimits().forEach(map::put);
+        groupmap.forEach(v -> {
+            PanelItemBuilder pib = new PanelItemBuilder();
+            EntityType k = v.getTypes().iterator().next();
+            pib.name(v.getName());
+            String description = "";
+            description += "(" + prettyNames(v) + ")\n";
+            Material m;
+            try {
+                if (E2M.containsKey(k)) {
+                    m = E2M.get(k);
+                } else if (k.isAlive()) {
+                    m = Material.valueOf(k.toString() + "_SPAWN_EGG");
+                } else {
+                    // Regular material
+                    m = Material.valueOf(k.toString());
+                }
+            } catch (Exception e) {
+                m = Material.BARRIER;
+            }
+            pib.icon(m);
+            long count = getCount(island, v);
+            String color = count >= v.getLimit() ? user.getTranslation("island.limits.max-color") : user.getTranslation("island.limits.regular-color");
+            description += color
+                            + user.getTranslation("island.limits.block-limit-syntax",
+                            TextVariables.NUMBER, String.valueOf(count),
+                            "[limit]", String.valueOf(v.getLimit()));
+            pib.description(description);
+            pb.item(pib.build());
+        });
         pb.build();
     }
 
@@ -153,5 +191,38 @@ public class LimitPanel {
                     .filter(e -> island.inIslandSpace(e.getLocation())).count();
         }
         return count;
+    }
+    
+    long getCount(Island island, EntityGroup group) {
+        long count = island.getWorld().getEntities().stream()
+                .filter(e -> group.contains(e.getType()))
+                .filter(e -> island.inIslandSpace(e.getLocation())).count();
+        // Nether
+        if (addon.getPlugin().getIWM().isNetherIslands(island.getWorld()) && addon.getPlugin().getIWM().getNetherWorld(island.getWorld()) != null) {
+            count += addon.getPlugin().getIWM().getNetherWorld(island.getWorld()).getEntities().stream()
+                    .filter(e -> group.contains(e.getType()))
+                    .filter(e -> island.inIslandSpace(e.getLocation())).count();
+        }
+        // End
+        if (addon.getPlugin().getIWM().isEndIslands(island.getWorld()) && addon.getPlugin().getIWM().getEndWorld(island.getWorld()) != null) {
+            count += addon.getPlugin().getIWM().getEndWorld(island.getWorld()).getEntities().stream()
+                    .filter(e -> group.contains(e.getType()))
+                    .filter(e -> island.inIslandSpace(e.getLocation())).count();
+        }
+        return count;
+    }
+    
+    private String prettyNames(EntityGroup v) {
+        StringBuilder sb = new StringBuilder();
+        List<EntityType> l = new ArrayList<>(v.getTypes());
+        for(int i = 0; i < l.size(); i++)
+        {
+            sb.append(Util.prettifyText(l.get(i).toString()));
+            if (i + 1 < l.size())
+                sb.append(", ");
+            if((i+1) % 5 == 0)
+                sb.append("\n");
+        }
+        return sb.toString();
     }
 }
