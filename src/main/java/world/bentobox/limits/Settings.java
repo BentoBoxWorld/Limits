@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -68,7 +67,7 @@ public class Settings {
         }
         addon.log("Entity limits:");
         limits.entrySet().stream().map(e -> "Limit " + e.getKey().toString() + " to " + e.getValue()).forEach(addon::log);
-        
+
         //group limits
         el = addon.getConfig().getConfigurationSection("entitygrouplimits");
         if (el != null) {
@@ -91,13 +90,13 @@ public class Settings {
                     continue;
                 EntityGroup group = new EntityGroup(name, entities, limit);
                 entities.forEach(e -> {
-                    List<EntityGroup> groups = groupLimits.getOrDefault(e, new ArrayList());
+                    List<EntityGroup> groups = groupLimits.getOrDefault(e, new ArrayList<>());
                     groups.add(group);
                     groupLimits.put(e, groups);
                 });
             }
         }
-        
+
         addon.log("Entity group limits:");
         getGroupLimitDefinitions().stream().map(e -> "Limit " + e.getName() + " (" + e.getTypes().stream().map(x -> x.name()).collect(Collectors.joining(", ")) + ") to " + e.getLimit()).forEach(addon::log);
     }
@@ -119,7 +118,7 @@ public class Settings {
     public Map<EntityType, List<EntityGroup>> getGroupLimits() {
         return groupLimits;
     }
-    
+
     /**
      * @return the group limit definitions
      */
@@ -144,7 +143,7 @@ public class Settings {
             this.types = types;
             this.limit = limit;
         }
-        
+
         public boolean contains(EntityType type) {
             return types.contains(type);
         }

@@ -198,7 +198,7 @@ public class EntityLimitListener implements Listener {
         Map<Settings.EntityGroup, Integer> groupsLimits = new HashMap<>();
         if (addon.getBlockLimitListener().getIsland(island.getUniqueId()) != null) {
             limitAmount = addon.getBlockLimitListener().getIsland(island.getUniqueId()).getEntityLimit(ent.getType());
-            List<Settings.EntityGroup> groupdefs = addon.getSettings().getGroupLimits().getOrDefault(ent.getType(), new ArrayList());
+            List<Settings.EntityGroup> groupdefs = addon.getSettings().getGroupLimits().getOrDefault(ent.getType(), new ArrayList<>());
             groupdefs.forEach(def -> {
                 int limit = addon.getBlockLimitListener().getIsland(island.getUniqueId()).getEntityGroupLimit(def.getName());
                 if (limit >= 0)
@@ -211,11 +211,11 @@ public class EntityLimitListener implements Listener {
         }
         if (addon.getSettings().getGroupLimits().containsKey(ent.getType())) {
             addon.getSettings().getGroupLimits().getOrDefault(ent.getType(), new ArrayList<>()).stream()
-                    .filter(group -> !groupsLimits.containsKey(group) || groupsLimits.get(group) > group.getLimit())
-                    .forEach(group -> groupsLimits.put(group, group.getLimit()));
+            .filter(group -> !groupsLimits.containsKey(group) || groupsLimits.get(group) > group.getLimit())
+            .forEach(group -> groupsLimits.put(group, group.getLimit()));
         }
         if (limitAmount < 0 && groupsLimits.isEmpty()) return new AtLimitResult();
-        
+
         // We have to count the entities
         if (limitAmount >= 0)
         {
@@ -225,7 +225,7 @@ public class EntityLimitListener implements Listener {
             if (count >= limitAmount)
                 return new AtLimitResult(ent.getType(), limitAmount);
         }
-        
+
         // Now do the group limits
         for (Map.Entry<Settings.EntityGroup, Integer> group : groupsLimits.entrySet()) { //do not use lambda
             if (group.getValue() < 0)
@@ -238,13 +238,13 @@ public class EntityLimitListener implements Listener {
         }
         return new AtLimitResult();
     }
-    
+
     private class AtLimitResult {
         private Map.Entry<EntityType, Integer> typelimit;
         private Map.Entry<EntityGroup, Integer> grouplimit;
 
         public AtLimitResult() {}
-        
+
         public AtLimitResult(EntityType type, int limit) {
             typelimit = new AbstractMap.SimpleEntry<>(type, limit);
         }
@@ -252,7 +252,7 @@ public class EntityLimitListener implements Listener {
         public AtLimitResult(EntityGroup type, int limit) {
             grouplimit = new AbstractMap.SimpleEntry<>(type, limit);
         }
-        
+
         public boolean hit() {
             return typelimit != null || grouplimit != null;
         }
