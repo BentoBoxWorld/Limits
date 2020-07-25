@@ -1,13 +1,16 @@
 package world.bentobox.limits.listeners;
 
+import java.text.NumberFormat;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
@@ -21,6 +24,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
 
+import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
@@ -92,6 +96,7 @@ public class EntityLimitListener implements Listener {
         if (!addon.getPlugin().getIWM().inWorld(e.getLocation())) {
             return;
         }
+        long timer = System.nanoTime();
         boolean bypass = false;
         // Check why it was spawned
         switch (e.getSpawnReason()) {
@@ -109,9 +114,14 @@ public class EntityLimitListener implements Listener {
             // Other natural reasons
             break;
         }
+        // BentoBox.getInstance().logDebug("Bypass check took " + getTime(timer));
         // Tag the entity with the island spawn location
         checkLimit(e, bypass);
+        // BentoBox.getInstance().logDebug("Creature spawn event total = " + getTime(timer));
+    }
 
+    private String getTime(long timer) {
+        return  NumberFormat.getNumberInstance(Locale.US).format(((double)(System.nanoTime() - timer) / 1000000)) + "ms";
     }
 
     private boolean checkByPass(Location l) {
@@ -156,33 +166,48 @@ public class EntityLimitListener implements Listener {
     }
 
     private void checkLimit(CreatureSpawnEvent e, boolean bypass) {
-        addon.getIslands().getIslandAt(e.getLocation()).ifPresent(island -> {
-            // Check if creature is allowed to spawn or not
-            AtLimitResult res;
-            if (!bypass && !island.isSpawn() && (res = atLimit(island, e.getEntity())).hit()) {
-                // Not allowed
-                e.setCancelled(true);
-                // If the reason is anything but because of a spawner then tell players within range
-                if (!e.getSpawnReason().equals(SpawnReason.SPAWNER) && !e.getSpawnReason().equals(SpawnReason.NATURAL) && !e.getSpawnReason().equals(SpawnReason.INFECTION) && !e.getSpawnReason().equals(SpawnReason.NETHER_PORTAL) && !e.getSpawnReason().equals(SpawnReason.REINFORCEMENTS) && !e.getSpawnReason().equals(SpawnReason.SLIME_SPLIT)) {
-                    World w = e.getLocation().getWorld();
-                    if (w == null) return;
-                    for (Entity ent : w.getNearbyEntities(e.getLocation(), 5, 5, 5)) {
-                        if (ent instanceof Player) {
-                            if (res.getTypelimit() != null) {
-                                User.getInstance(ent).notify("entity-limits.hit-limit", "[entity]",
-                                        Util.prettifyText(e.getEntityType().toString()),
-                                        TextVariables.NUMBER, String.valueOf(res.getTypelimit().getValue()));
-                            } else {
-                                User.getInstance(ent).notify("entity-limits.hit-limit", "[entity]",
-                                        res.getGrouplimit().getKey().getName() + " (" + res.getGrouplimit().getKey().getTypes().stream().map(x -> Util.prettifyText(x.toString())).collect(Collectors.joining(", ")) + ")",
-                                        TextVariables.NUMBER, String.valueOf(res.getGrouplimit().getValue()));
-                            }
-                        }
-                    }
+        Bukkit.getScheduler().runTaskAsynchronously(BentoBox.getInstance(), () -> {
+            addon.getIslands().getIslandAt(e.getLocation()).ifPresent(island -> {
+                // Check if creature is allowed to spawn or not
+                AtLimitResult res;
+                if (!bypass && !island.isSpawn() && (res = atLimit(island, e.getEntity())).hit()) {
+                    //// BentoBox.getInstance().logDebug("Entity limit hit");
+                    // Not allowed
+                    Bukkit.getScheduler().runTask(BentoBox.getInstance(), () -> {
+                        //e.setCancelled(true);
+                        e.getEntity().remove();
+                        // If the reason is anything but because of a spawner then tell players within range
+                        tellPlayers(e, res);
+                    });
                 }
 
-            }
+            });
         });
+
+    }
+
+    private void tellPlayers(CreatureSpawnEvent e, AtLimitResult res) {
+        if (!e.getSpawnReason().equals(SpawnReason.SPAWNER) && !e.getSpawnReason().equals(SpawnReason.NATURAL)
+                && !e.getSpawnReason().equals(SpawnReason.INFECTION) && !e.getSpawnReason().equals(SpawnReason.NETHER_PORTAL)
+                && !e.getSpawnReason().equals(SpawnReason.REINFORCEMENTS) && !e.getSpawnReason().equals(SpawnReason.SLIME_SPLIT)) {
+            World w = e.getLocation().getWorld();
+            if (w == null) return;
+            long localTime = System.nanoTime();
+            for (Entity ent : w.getNearbyEntities(e.getLocation(), 5, 5, 5)) {
+                if (ent instanceof Player) {
+                    if (res.getTypelimit() != null) {
+                        User.getInstance(ent).notify("entity-limits.hit-limit", "[entity]",
+                                Util.prettifyText(e.getEntityType().toString()),
+                                TextVariables.NUMBER, String.valueOf(res.getTypelimit().getValue()));
+                    } else {
+                        User.getInstance(ent).notify("entity-limits.hit-limit", "[entity]",
+                                res.getGrouplimit().getKey().getName() + " (" + res.getGrouplimit().getKey().getTypes().stream().map(x -> Util.prettifyText(x.toString())).collect(Collectors.joining(", ")) + ")",
+                                TextVariables.NUMBER, String.valueOf(res.getGrouplimit().getValue()));
+                    }
+                }
+            }
+            // BentoBox.getInstance().logDebug("Notification to players took " + getTime(localTime));
+        }
 
     }
 
@@ -193,6 +218,7 @@ public class EntityLimitListener implements Listener {
      * @return true if at the limit, false if not
      */
     private AtLimitResult atLimit(Island island, Entity ent) {
+        long localTime = System.nanoTime();
         // Check island settings first
         int limitAmount = -1;
         Map<Settings.EntityGroup, Integer> groupsLimits = new HashMap<>();
@@ -205,6 +231,8 @@ public class EntityLimitListener implements Listener {
                     groupsLimits.put(def, limit);
             });
         }
+        // BentoBox.getInstance().logDebug("Island limits check took " + getTime(localTime));
+        localTime = System.nanoTime();
         // If no island settings then try global settings
         if (limitAmount < 0 && addon.getSettings().getLimits().containsKey(ent.getType())) {
             limitAmount = addon.getSettings().getLimits().get(ent.getType());
@@ -214,14 +242,18 @@ public class EntityLimitListener implements Listener {
             .filter(group -> !groupsLimits.containsKey(group) || groupsLimits.get(group) > group.getLimit())
             .forEach(group -> groupsLimits.put(group, group.getLimit()));
         }
+        // BentoBox.getInstance().logDebug("Global limits check took " + getTime(localTime));
+        localTime = System.nanoTime();
         if (limitAmount < 0 && groupsLimits.isEmpty()) return new AtLimitResult();
-
         // We have to count the entities
         if (limitAmount >= 0)
         {
-            int count = (int) ent.getWorld().getEntities().stream()
-                    .filter(e -> e.getType().equals(ent.getType()))
-                    .filter(e -> island.inIslandSpace(e.getLocation())).count();
+            int count = (int) ent.getWorld().getEntitiesByClasses(ent.getClass()).stream()
+                    //.filter(e -> e.getType().equals(ent.getType()))
+                    .filter(e -> island.inIslandSpace(e.getLocation()))
+                    .count();
+            // BentoBox.getInstance().logDebug("Island entity count took " + getTime(localTime));
+            localTime = System.nanoTime();
             if (count >= limitAmount)
                 return new AtLimitResult(ent.getType(), limitAmount);
         }
@@ -233,9 +265,12 @@ public class EntityLimitListener implements Listener {
             int count = (int) ent.getWorld().getEntities().stream()
                     .filter(e -> group.getKey().contains(e.getType()))
                     .filter(e -> island.inIslandSpace(e.getLocation())).count();
+            // BentoBox.getInstance().logDebug("Island group limits check took " + getTime(localTime));
+            localTime = System.nanoTime();
             if (count >= group.getValue())
                 return new AtLimitResult(group.getKey(), group.getValue());
         }
+        // BentoBox.getInstance().logDebug("Island limits to find no limits took " + getTime(localTime));
         return new AtLimitResult();
     }
 
