@@ -8,7 +8,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -20,7 +22,9 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
+import org.bukkit.inventory.ItemStack;
 
+import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
@@ -111,7 +115,6 @@ public class EntityLimitListener implements Listener {
         }
         // Tag the entity with the island spawn location
         checkLimit(e, bypass);
-
     }
 
     private boolean checkByPass(Location l) {
@@ -156,33 +159,77 @@ public class EntityLimitListener implements Listener {
     }
 
     private void checkLimit(CreatureSpawnEvent e, boolean bypass) {
+        Bukkit.getScheduler().runTaskAsynchronously(BentoBox.getInstance(), () ->
         addon.getIslands().getIslandAt(e.getLocation()).ifPresent(island -> {
             // Check if creature is allowed to spawn or not
             AtLimitResult res;
             if (!bypass && !island.isSpawn() && (res = atLimit(island, e.getEntity())).hit()) {
                 // Not allowed
-                e.setCancelled(true);
-                // If the reason is anything but because of a spawner then tell players within range
-                if (!e.getSpawnReason().equals(SpawnReason.SPAWNER) && !e.getSpawnReason().equals(SpawnReason.NATURAL) && !e.getSpawnReason().equals(SpawnReason.INFECTION) && !e.getSpawnReason().equals(SpawnReason.NETHER_PORTAL) && !e.getSpawnReason().equals(SpawnReason.REINFORCEMENTS) && !e.getSpawnReason().equals(SpawnReason.SLIME_SPLIT)) {
-                    World w = e.getLocation().getWorld();
-                    if (w == null) return;
-                    for (Entity ent : w.getNearbyEntities(e.getLocation(), 5, 5, 5)) {
-                        if (ent instanceof Player) {
-                            if (res.getTypelimit() != null) {
-                                User.getInstance(ent).notify("entity-limits.hit-limit", "[entity]",
-                                        Util.prettifyText(e.getEntityType().toString()),
-                                        TextVariables.NUMBER, String.valueOf(res.getTypelimit().getValue()));
-                            } else {
-                                User.getInstance(ent).notify("entity-limits.hit-limit", "[entity]",
-                                        res.getGrouplimit().getKey().getName() + " (" + res.getGrouplimit().getKey().getTypes().stream().map(x -> Util.prettifyText(x.toString())).collect(Collectors.joining(", ")) + ")",
-                                        TextVariables.NUMBER, String.valueOf(res.getGrouplimit().getValue()));
-                            }
-                        }
+                Bukkit.getScheduler().runTask(BentoBox.getInstance(), () -> {
+                    e.getEntity().remove();
+                    // If the entity was build, drop the building materials
+                    Bukkit.getScheduler().runTask(addon.getPlugin(), () -> replaceEntity(e));
+                    // If the reason is anything but because of a spawner then tell players within range
+                    tellPlayers(e, res);
+                });
+            }
+
+        }));
+    }
+
+    private void replaceEntity(CreatureSpawnEvent e) {
+        World world = e.getEntity().getWorld();
+        Location l = e.getLocation();
+        switch (e.getSpawnReason()) {
+        case BUILD_IRONGOLEM:
+            world.dropItem(l, new ItemStack(Material.IRON_BLOCK,3));
+            world.dropItem(l, new ItemStack(Material.CARVED_PUMPKIN));
+            break;
+        case BUILD_SNOWMAN:
+            world.dropItem(l, new ItemStack(Material.SNOW_BLOCK,2));
+            world.dropItem(l, new ItemStack(Material.CARVED_PUMPKIN));
+            l.getBlock().setType(Material.AIR);
+            break;
+        case BUILD_WITHER:
+            world.dropItem(l, new ItemStack(Material.SOUL_SAND,3));
+            world.dropItem(l, new ItemStack(Material.WITHER_SKELETON_SKULL, 3));
+            break;
+        case CURED:
+            world.spawnEntity(e.getLocation(), EntityType.ZOMBIE_VILLAGER);
+            break;
+        case DISPENSE_EGG:
+            break;
+        case EGG:
+            world.dropItem(l, new ItemStack(Material.EGG));
+            break;
+        case SPAWNER_EGG:
+            break;
+        default:
+            break;
+
+        }
+    }
+
+    private void tellPlayers(CreatureSpawnEvent e, AtLimitResult res) {
+        if (!e.getSpawnReason().equals(SpawnReason.SPAWNER) && !e.getSpawnReason().equals(SpawnReason.NATURAL)
+                && !e.getSpawnReason().equals(SpawnReason.INFECTION) && !e.getSpawnReason().equals(SpawnReason.NETHER_PORTAL)
+                && !e.getSpawnReason().equals(SpawnReason.REINFORCEMENTS) && !e.getSpawnReason().equals(SpawnReason.SLIME_SPLIT)) {
+            World w = e.getLocation().getWorld();
+            if (w == null) return;
+            for (Entity ent : w.getNearbyEntities(e.getLocation(), 5, 5, 5)) {
+                if (ent instanceof Player) {
+                    if (res.getTypelimit() != null) {
+                        User.getInstance(ent).notify("entity-limits.hit-limit", "[entity]",
+                                Util.prettifyText(e.getEntityType().toString()),
+                                TextVariables.NUMBER, String.valueOf(res.getTypelimit().getValue()));
+                    } else {
+                        User.getInstance(ent).notify("entity-limits.hit-limit", "[entity]",
+                                res.getGrouplimit().getKey().getName() + " (" + res.getGrouplimit().getKey().getTypes().stream().map(x -> Util.prettifyText(x.toString())).collect(Collectors.joining(", ")) + ")",
+                                TextVariables.NUMBER, String.valueOf(res.getGrouplimit().getValue()));
                     }
                 }
-
             }
-        });
+        }
 
     }
 
@@ -215,14 +262,13 @@ public class EntityLimitListener implements Listener {
             .forEach(group -> groupsLimits.put(group, group.getLimit()));
         }
         if (limitAmount < 0 && groupsLimits.isEmpty()) return new AtLimitResult();
-
         // We have to count the entities
         if (limitAmount >= 0)
         {
-            int count = (int) ent.getWorld().getEntities().stream()
-                    .filter(e -> e.getType().equals(ent.getType()))
-                    .filter(e -> island.inIslandSpace(e.getLocation())).count();
-            if (count >= limitAmount)
+            int count = (int) ent.getWorld().getEntitiesByClasses(ent.getClass()).stream()
+                    .filter(e -> island.inIslandSpace(e.getLocation()))
+                    .count();
+            if (count > limitAmount)
                 return new AtLimitResult(ent.getType(), limitAmount);
         }
 
@@ -233,7 +279,7 @@ public class EntityLimitListener implements Listener {
             int count = (int) ent.getWorld().getEntities().stream()
                     .filter(e -> group.getKey().contains(e.getType()))
                     .filter(e -> island.inIslandSpace(e.getLocation())).count();
-            if (count >= group.getValue())
+            if (count > group.getValue())
                 return new AtLimitResult(group.getKey(), group.getValue());
         }
         return new AtLimitResult();

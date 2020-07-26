@@ -8,30 +8,12 @@ authors: tastybento
 softdepend: AcidIsland, BSkyBlock, CaveBlock
 
 permissions:    
-  acidisland.limits.player.limits:
+  '[gamemode].limits.player.limits':
     description: Player can use limits command
     default: true
-  acidisland.limits.player.recount:
+  '[gamemode].limits.player.recount':
     description: Player can use recount command
     default: true
-  acidisland.limits.admin.limits:
-    description: Player can use admin limits command
-    default: op
-  bskyblock.limits.player.limits:
-    description: Player can use limits command
-    default: true
-  bskyblock.limits.player.recount:
-    description: Player can use recount command
-    default: true
-  bskyblock.limits.admin.limits:
-    description: Player can use admin limits command
-    default: op
-  caveblock.limits.player.limits:
-    description: Player can use limits command
-    default: true
-  caveblock.limits.player.recount:
-    description: Player can use recount command
-    default: true
-  caveblock.limits.admin.limits:
+  '[gamemode].limits.admin.limits':
     description: Player can use admin limits command
     default: op
