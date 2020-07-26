@@ -113,7 +113,6 @@ public class EntityLimitListener implements Listener {
             // Other natural reasons
             break;
         }
-        // BentoBox.getInstance().logDebug("Bypass check took " + getTime(timer));
         // Tag the entity with the island spawn location
         checkLimit(e, bypass);
     }
@@ -160,25 +159,22 @@ public class EntityLimitListener implements Listener {
     }
 
     private void checkLimit(CreatureSpawnEvent e, boolean bypass) {
-        Bukkit.getScheduler().runTaskAsynchronously(BentoBox.getInstance(), () -> {
-            addon.getIslands().getIslandAt(e.getLocation()).ifPresent(island -> {
-                // Check if creature is allowed to spawn or not
-                AtLimitResult res;
-                if (!bypass && !island.isSpawn() && (res = atLimit(island, e.getEntity())).hit()) {
-                    //// BentoBox.getInstance().logDebug("Entity limit hit");
-                    // Not allowed
-                    Bukkit.getScheduler().runTask(BentoBox.getInstance(), () -> {
-                        e.getEntity().remove();
-                        // If the entity was build, drop the building materials
-                        Bukkit.getScheduler().runTask(addon.getPlugin(), () -> replaceEntity(e));
-                        // If the reason is anything but because of a spawner then tell players within range
-                        tellPlayers(e, res);
-                    });
-                }
+        Bukkit.getScheduler().runTaskAsynchronously(BentoBox.getInstance(), () ->
+        addon.getIslands().getIslandAt(e.getLocation()).ifPresent(island -> {
+            // Check if creature is allowed to spawn or not
+            AtLimitResult res;
+            if (!bypass && !island.isSpawn() && (res = atLimit(island, e.getEntity())).hit()) {
+                // Not allowed
+                Bukkit.getScheduler().runTask(BentoBox.getInstance(), () -> {
+                    e.getEntity().remove();
+                    // If the entity was build, drop the building materials
+                    Bukkit.getScheduler().runTask(addon.getPlugin(), () -> replaceEntity(e));
+                    // If the reason is anything but because of a spawner then tell players within range
+                    tellPlayers(e, res);
+                });
+            }
 
-            });
-        });
-
+        }));
     }
 
     private void replaceEntity(CreatureSpawnEvent e) {
