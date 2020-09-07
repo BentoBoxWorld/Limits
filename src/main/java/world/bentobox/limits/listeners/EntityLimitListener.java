@@ -6,12 +6,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -22,7 +24,6 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
-import org.bukkit.inventory.ItemStack;
 
 import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.api.localization.TextVariables;
@@ -36,6 +37,7 @@ import world.bentobox.limits.Settings.EntityGroup;
 public class EntityLimitListener implements Listener {
     private static final String MOD_BYPASS = "mod.bypass";
     private final Limits addon;
+    private final List<UUID> justSpawned = new ArrayList<>();
 
     /**
      * Handles entity and natural limitations
@@ -43,6 +45,7 @@ public class EntityLimitListener implements Listener {
      */
     public EntityLimitListener(Limits addon) {
         this.addon = addon;
+        justSpawned.clear();
     }
 
     /**
@@ -53,6 +56,10 @@ public class EntityLimitListener implements Listener {
     public void onMinecart(VehicleCreateEvent e) {
         // Return if not in a known world
         if (!addon.getPlugin().getIWM().inWorld(e.getVehicle().getWorld())) {
+            return;
+        }
+        if (justSpawned.contains(e.getVehicle().getUniqueId())) {
+            justSpawned.remove(e.getVehicle().getUniqueId());
             return;
         }
         // If someone in that area has the bypass permission, allow the spawning
@@ -94,6 +101,10 @@ public class EntityLimitListener implements Listener {
     public void onCreatureSpawn(final CreatureSpawnEvent e) {
         // Return if not in a known world
         if (!addon.getPlugin().getIWM().inWorld(e.getLocation())) {
+            return;
+        }
+        if (justSpawned.contains(e.getEntity().getUniqueId())) {
+            justSpawned.remove(e.getEntity().getUniqueId());
             return;
         }
         boolean bypass = false;
@@ -159,56 +170,79 @@ public class EntityLimitListener implements Listener {
     }
 
     private void checkLimit(CreatureSpawnEvent e, boolean bypass) {
+        e.setCancelled(true);
+        Location l = e.getLocation();
         Bukkit.getScheduler().runTaskAsynchronously(BentoBox.getInstance(), () ->
         addon.getIslands().getIslandAt(e.getLocation()).ifPresent(island -> {
             // Check if creature is allowed to spawn or not
-            AtLimitResult res;
-            if (!bypass && !island.isSpawn() && (res = atLimit(island, e.getEntity())).hit()) {
-                // Not allowed
+            AtLimitResult res = atLimit(island, e.getEntity());
+
+            if (bypass || island.isSpawn() || !res.hit()) {
+                // Allowed
                 Bukkit.getScheduler().runTask(BentoBox.getInstance(), () -> {
+                    //BentoBox.getInstance().logDebug("Allowed " + e.getEntity());
+                    /*
                     e.getEntity().remove();
                     // If the entity was build, drop the building materials
                     Bukkit.getScheduler().runTask(addon.getPlugin(), () -> replaceEntity(e));
-                    // If the reason is anything but because of a spawner then tell players within range
-                    tellPlayers(e, res);
+                     */
+
+                    l.getWorld().spawn(l, e.getEntity().getClass(), entity -> {
+                        justSpawned.add(entity.getUniqueId());
+                        // Check for entities that need cleanup
+                        switch (e.getSpawnReason()) {
+                        case BUILD_IRONGOLEM:
+                            l.getBlock().setType(Material.AIR);
+                            l.getBlock().getRelative(BlockFace.UP).setType(Material.AIR);
+                            l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.UP).setType(Material.AIR);
+                            // Look for arms
+                            if (l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.NORTH).getType().equals(Material.IRON_BLOCK)) {
+                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.NORTH).setType(Material.AIR);
+                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.SOUTH).setType(Material.AIR);
+                            } else {
+                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.EAST).setType(Material.AIR);
+                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.WEST).setType(Material.AIR);
+                            }
+                            break;
+                        case BUILD_SNOWMAN:
+                            l.getBlock().setType(Material.AIR);
+                            l.getBlock().getRelative(BlockFace.UP).setType(Material.AIR);
+                            l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.UP).setType(Material.AIR);
+                            break;
+                        case BUILD_WITHER:
+                            l.getBlock().setType(Material.AIR);
+                            l.getBlock().getRelative(BlockFace.UP).setType(Material.AIR);
+                            l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.UP).setType(Material.AIR);
+                            // Look for arms
+                            if (l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.NORTH).getType().equals(Material.SOUL_SAND)) {
+                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.NORTH).setType(Material.AIR);
+                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.SOUTH).setType(Material.AIR);
+                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.NORTH).getRelative(BlockFace.UP).setType(Material.AIR);
+                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.SOUTH).getRelative(BlockFace.UP).setType(Material.AIR);
+                            } else {
+                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.EAST).setType(Material.AIR);
+                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.WEST).setType(Material.AIR);
+                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.EAST).getRelative(BlockFace.UP).setType(Material.AIR);
+                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.WEST).getRelative(BlockFace.UP).setType(Material.AIR);
+                            }
+                            // Create explosion
+                            l.getWorld().createExplosion(l, 7F, true, true, entity);
+                            break;
+                        default:
+                            break;
+
+                        }
+                    });
                 });
+            } else {
+                e.getEntity().remove();
+                // If the reason is anything but because of a spawner then tell players within range
+                tellPlayers(e, res);
             }
 
         }));
     }
 
-    private void replaceEntity(CreatureSpawnEvent e) {
-        World world = e.getEntity().getWorld();
-        Location l = e.getLocation();
-        switch (e.getSpawnReason()) {
-        case BUILD_IRONGOLEM:
-            world.dropItem(l, new ItemStack(Material.IRON_BLOCK,3));
-            world.dropItem(l, new ItemStack(Material.CARVED_PUMPKIN));
-            break;
-        case BUILD_SNOWMAN:
-            world.dropItem(l, new ItemStack(Material.SNOW_BLOCK,2));
-            world.dropItem(l, new ItemStack(Material.CARVED_PUMPKIN));
-            l.getBlock().setType(Material.AIR);
-            break;
-        case BUILD_WITHER:
-            world.dropItem(l, new ItemStack(Material.SOUL_SAND,3));
-            world.dropItem(l, new ItemStack(Material.WITHER_SKELETON_SKULL, 3));
-            break;
-        case CURED:
-            world.spawnEntity(e.getLocation(), EntityType.ZOMBIE_VILLAGER);
-            break;
-        case DISPENSE_EGG:
-            break;
-        case EGG:
-            world.dropItem(l, new ItemStack(Material.EGG));
-            break;
-        case SPAWNER_EGG:
-            break;
-        default:
-            break;
-
-        }
-    }
 
     private void tellPlayers(CreatureSpawnEvent e, AtLimitResult res) {
         if (!e.getSpawnReason().equals(SpawnReason.SPAWNER) && !e.getSpawnReason().equals(SpawnReason.NATURAL)
@@ -216,19 +250,21 @@ public class EntityLimitListener implements Listener {
                 && !e.getSpawnReason().equals(SpawnReason.REINFORCEMENTS) && !e.getSpawnReason().equals(SpawnReason.SLIME_SPLIT)) {
             World w = e.getLocation().getWorld();
             if (w == null) return;
-            for (Entity ent : w.getNearbyEntities(e.getLocation(), 5, 5, 5)) {
-                if (ent instanceof Player) {
-                    if (res.getTypelimit() != null) {
-                        User.getInstance(ent).notify("entity-limits.hit-limit", "[entity]",
-                                Util.prettifyText(e.getEntityType().toString()),
-                                TextVariables.NUMBER, String.valueOf(res.getTypelimit().getValue()));
-                    } else {
-                        User.getInstance(ent).notify("entity-limits.hit-limit", "[entity]",
-                                res.getGrouplimit().getKey().getName() + " (" + res.getGrouplimit().getKey().getTypes().stream().map(x -> Util.prettifyText(x.toString())).collect(Collectors.joining(", ")) + ")",
-                                TextVariables.NUMBER, String.valueOf(res.getGrouplimit().getValue()));
+            Bukkit.getScheduler().runTask(addon.getPlugin(), () -> {
+                for (Entity ent : w.getNearbyEntities(e.getLocation(), 5, 5, 5)) {
+                    if (ent instanceof Player) {
+                        if (res.getTypelimit() != null) {
+                            User.getInstance(ent).notify("entity-limits.hit-limit", "[entity]",
+                                    Util.prettifyText(e.getEntityType().toString()),
+                                    TextVariables.NUMBER, String.valueOf(res.getTypelimit().getValue()));
+                        } else {
+                            User.getInstance(ent).notify("entity-limits.hit-limit", "[entity]",
+                                    res.getGrouplimit().getKey().getName() + " (" + res.getGrouplimit().getKey().getTypes().stream().map(x -> Util.prettifyText(x.toString())).collect(Collectors.joining(", ")) + ")",
+                                    TextVariables.NUMBER, String.valueOf(res.getGrouplimit().getValue()));
+                        }
                     }
                 }
-            }
+            });
         }
 
     }
@@ -268,7 +304,7 @@ public class EntityLimitListener implements Listener {
             int count = (int) ent.getWorld().getEntitiesByClasses(ent.getClass()).stream()
                     .filter(e -> island.inIslandSpace(e.getLocation()))
                     .count();
-            if (count > limitAmount)
+            if (count >= limitAmount)
                 return new AtLimitResult(ent.getType(), limitAmount);
         }
 
@@ -279,7 +315,7 @@ public class EntityLimitListener implements Listener {
             int count = (int) ent.getWorld().getEntities().stream()
                     .filter(e -> group.getKey().contains(e.getType()))
                     .filter(e -> island.inIslandSpace(e.getLocation())).count();
-            if (count > group.getValue())
+            if (count >= group.getValue())
                 return new AtLimitResult(group.getKey(), group.getValue());
         }
         return new AtLimitResult();
@@ -299,6 +335,9 @@ public class EntityLimitListener implements Listener {
             grouplimit = new AbstractMap.SimpleEntry<>(type, limit);
         }
 
+        /**
+         * @return true if at limit
+         */
         public boolean hit() {
             return typelimit != null || grouplimit != null;
         }
