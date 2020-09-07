@@ -27,15 +27,17 @@ import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.managers.IslandWorldManager;
 import world.bentobox.limits.Limits;
+import world.bentobox.limits.Settings;
+import world.bentobox.limits.objects.IslandBlockCount;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest( Bukkit.class )
-public class LimitPanelTest {
+public class LimitTabTest {
 
     @Mock
     private Limits addon;
-    
-    private LimitPanel lp;
+
+    private LimitTab lp;
 
     @Mock
     private Island island;
@@ -47,8 +49,10 @@ public class LimitPanelTest {
     private World end;
     @Mock
     private BentoBox plugin;
-@Mock
+    @Mock
     private IslandWorldManager iwm;
+    @Mock
+    private Settings settings;
 
     @Before
     public void setUp() throws Exception {
@@ -56,19 +60,21 @@ public class LimitPanelTest {
         when(island.getWorld()).thenReturn(world);
         // Addon
         when(addon.getPlugin()).thenReturn(plugin);
+        when(addon.getSettings()).thenReturn(settings);
+        when(settings.getLimits()).thenReturn(Collections.emptyMap());
         when(plugin.getIWM()).thenReturn(iwm);
         when(iwm.isNetherIslands(any())).thenReturn(true);
         when(iwm.isEndIslands(any())).thenReturn(true);
         when(iwm.getNetherWorld(eq(world))).thenReturn(nether);
         when(iwm.getEndWorld(eq(world))).thenReturn(end);
-        // Worlds        
+        // Worlds
         Entity entity = mock(Entity.class);
         when(entity.getType()).thenReturn(EntityType.BAT);
         when(entity.getLocation()).thenReturn(mock(Location.class));
         when(world.getEntities()).thenReturn(Collections.singletonList(entity));
         when(nether.getEntities()).thenReturn(Collections.singletonList(entity));
         when(end.getEntities()).thenReturn(Collections.singletonList(entity));
-        lp = new LimitPanel(addon);
+        lp = new LimitTab(addon, new IslandBlockCount(), Collections.emptyMap(), island, world, null, LimitTab.SORT_BY.A2Z);
     }
 
     @After
@@ -95,7 +101,7 @@ public class LimitPanelTest {
         ent = EntityType.BAT;
         assertEquals(1L, lp.getCount(island, ent));
     }
-    
+
     @Test
     public void testGetCountNotInIslandSpace() {
         EntityType ent = EntityType.BAT;
