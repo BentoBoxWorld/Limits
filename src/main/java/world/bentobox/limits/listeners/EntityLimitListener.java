@@ -16,7 +16,9 @@ import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -120,12 +122,49 @@ public class EntityLimitListener implements Listener {
         case SPAWNER_EGG:
             bypass = checkByPass(e.getLocation());
             break;
+        case SHOULDER_ENTITY:
+            // Special case - do nothing - jumping around spawns parrots as they drop off player's shoulder
+            return;
         default:
             // Other natural reasons
             break;
         }
-        // Tag the entity with the island spawn location
-        checkLimit(e, bypass);
+        // Some checks can be done async, some not
+        switch (e.getSpawnReason()) {
+        case BEEHIVE:
+        case BREEDING:
+        case CURED:
+        case DISPENSE_EGG:
+        case EGG:
+        case ENDER_PEARL:
+        case EXPLOSION:
+        case INFECTION:
+        case JOCKEY:
+        case LIGHTNING:
+        case MOUNT:
+        case NETHER_PORTAL:
+        case OCELOT_BABY:
+        case PATROL:
+        case RAID:
+        case REINFORCEMENTS:
+        case SHEARED:
+        case SHOULDER_ENTITY:
+        case SILVERFISH_BLOCK:
+        case SLIME_SPLIT:
+        case SPAWNER_EGG:
+        case TRAP:
+        case VILLAGE_DEFENSE:
+        case VILLAGE_INVASION:
+         // Check limit sync
+            checkLimit(e, e.getEntity(), e.getSpawnReason(), bypass, false);
+            break;
+        default:
+            // Check limit async
+            checkLimit(e, e.getEntity(), e.getSpawnReason(), bypass, true);
+            break;
+
+        }
+        
     }
 
     private boolean checkByPass(Location l) {
@@ -169,93 +208,107 @@ public class EntityLimitListener implements Listener {
         });
     }
 
-    private void checkLimit(CreatureSpawnEvent e, boolean bypass) {
-        e.setCancelled(true);
+    /**
+     * Check if a creature is allowed to spawn or not
+     * @param e - CreatureSpawnEvent
+     * @param bypass - true if the player involved can bypass the checks
+     * @param async 
+     */
+    private void checkLimit(Cancellable c, LivingEntity e, SpawnReason reason, boolean bypass, boolean async) {
         Location l = e.getLocation();
-        Bukkit.getScheduler().runTaskAsynchronously(BentoBox.getInstance(), () ->
+        if (async) {
+            c.setCancelled(true);
+            Bukkit.getScheduler().runTaskAsynchronously(BentoBox.getInstance(), () -> processIsland(c, e, l, reason, bypass, async));
+        } else {
+            processIsland(c, e, l, reason, bypass, async);
+        }
+    }
+
+    private void processIsland(Cancellable c, LivingEntity e, Location l, SpawnReason reason, boolean bypass, boolean async) {
         addon.getIslands().getIslandAt(e.getLocation()).ifPresent(island -> {
             // Check if creature is allowed to spawn or not
-            AtLimitResult res = atLimit(island, e.getEntity());
+            AtLimitResult res = atLimit(island, e);
 
             if (bypass || island.isSpawn() || !res.hit()) {
                 // Allowed
-                Bukkit.getScheduler().runTask(BentoBox.getInstance(), () -> {
-                    //BentoBox.getInstance().logDebug("Allowed " + e.getEntity());
-                    /*
-                    e.getEntity().remove();
-                    // If the entity was build, drop the building materials
-                    Bukkit.getScheduler().runTask(addon.getPlugin(), () -> replaceEntity(e));
-                     */
-
-                    l.getWorld().spawn(l, e.getEntity().getClass(), entity -> {
-                        justSpawned.add(entity.getUniqueId());
-                        // Check for entities that need cleanup
-                        switch (e.getSpawnReason()) {
-                        case BUILD_IRONGOLEM:
-                            l.getBlock().setType(Material.AIR);
-                            l.getBlock().getRelative(BlockFace.UP).setType(Material.AIR);
-                            l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.UP).setType(Material.AIR);
-                            // Look for arms
-                            if (l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.NORTH).getType().equals(Material.IRON_BLOCK)) {
-                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.NORTH).setType(Material.AIR);
-                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.SOUTH).setType(Material.AIR);
-                            } else {
-                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.EAST).setType(Material.AIR);
-                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.WEST).setType(Material.AIR);
-                            }
-                            break;
-                        case BUILD_SNOWMAN:
-                            l.getBlock().setType(Material.AIR);
-                            l.getBlock().getRelative(BlockFace.UP).setType(Material.AIR);
-                            l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.UP).setType(Material.AIR);
-                            break;
-                        case BUILD_WITHER:
-                            l.getBlock().setType(Material.AIR);
-                            l.getBlock().getRelative(BlockFace.UP).setType(Material.AIR);
-                            l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.UP).setType(Material.AIR);
-                            // Look for arms
-                            if (l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.NORTH).getType().equals(Material.SOUL_SAND)) {
-                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.NORTH).setType(Material.AIR);
-                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.SOUTH).setType(Material.AIR);
-                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.NORTH).getRelative(BlockFace.UP).setType(Material.AIR);
-                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.SOUTH).getRelative(BlockFace.UP).setType(Material.AIR);
-                            } else {
-                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.EAST).setType(Material.AIR);
-                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.WEST).setType(Material.AIR);
-                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.EAST).getRelative(BlockFace.UP).setType(Material.AIR);
-                                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.WEST).getRelative(BlockFace.UP).setType(Material.AIR);
-                            }
-                            // Create explosion
-                            l.getWorld().createExplosion(l, 7F, true, true, entity);
-                            break;
-                        default:
-                            break;
-
-                        }
+                if (async) {
+                    Bukkit.getScheduler().runTask(BentoBox.getInstance(), () -> {
+                        l.getWorld().spawn(l, e.getClass(), entity -> preSpawn(entity, reason, l));
                     });
-                });
+                } // else do nothing
             } else {
-                e.getEntity().remove();
+                if (async) {
+                    e.remove();
+                } else {
+                    c.setCancelled(true);
+                }
                 // If the reason is anything but because of a spawner then tell players within range
-                tellPlayers(e, res);
+                tellPlayers(c, l, e, reason, res);
             }
 
-        }));
+        });
     }
 
+    private void preSpawn(Entity entity, SpawnReason reason, Location l) {
+        justSpawned.add(entity.getUniqueId());
+        // Check for entities that need cleanup
+        switch (reason) {
+        case BUILD_IRONGOLEM:
+            l.getBlock().setType(Material.AIR);
+            l.getBlock().getRelative(BlockFace.UP).setType(Material.AIR);
+            l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.UP).setType(Material.AIR);
+            // Look for arms
+            if (l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.NORTH).getType().equals(Material.IRON_BLOCK)) {
+                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.NORTH).setType(Material.AIR);
+                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.SOUTH).setType(Material.AIR);
+            } else {
+                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.EAST).setType(Material.AIR);
+                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.WEST).setType(Material.AIR);
+            }
+            break;
+        case BUILD_SNOWMAN:
+            l.getBlock().setType(Material.AIR);
+            l.getBlock().getRelative(BlockFace.UP).setType(Material.AIR);
+            l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.UP).setType(Material.AIR);
+            break;
+        case BUILD_WITHER:
+            l.getBlock().setType(Material.AIR);
+            l.getBlock().getRelative(BlockFace.UP).setType(Material.AIR);
+            l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.UP).setType(Material.AIR);
+            // Look for arms
+            if (l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.NORTH).getType().equals(Material.SOUL_SAND)) {
+                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.NORTH).setType(Material.AIR);
+                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.SOUTH).setType(Material.AIR);
+                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.NORTH).getRelative(BlockFace.UP).setType(Material.AIR);
+                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.SOUTH).getRelative(BlockFace.UP).setType(Material.AIR);
+            } else {
+                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.EAST).setType(Material.AIR);
+                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.WEST).setType(Material.AIR);
+                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.EAST).getRelative(BlockFace.UP).setType(Material.AIR);
+                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.WEST).getRelative(BlockFace.UP).setType(Material.AIR);
+            }
+            // Create explosion
+            l.getWorld().createExplosion(l, 7F, true, true, entity);
+            break;
+        default:
+            break;
 
-    private void tellPlayers(CreatureSpawnEvent e, AtLimitResult res) {
-        if (!e.getSpawnReason().equals(SpawnReason.SPAWNER) && !e.getSpawnReason().equals(SpawnReason.NATURAL)
-                && !e.getSpawnReason().equals(SpawnReason.INFECTION) && !e.getSpawnReason().equals(SpawnReason.NETHER_PORTAL)
-                && !e.getSpawnReason().equals(SpawnReason.REINFORCEMENTS) && !e.getSpawnReason().equals(SpawnReason.SLIME_SPLIT)) {
-            World w = e.getLocation().getWorld();
+
+        }
+    }
+
+    private void tellPlayers(Cancellable e, Location l, LivingEntity entity, SpawnReason reason, AtLimitResult res) {
+        if (!reason.equals(SpawnReason.SPAWNER) && !reason.equals(SpawnReason.NATURAL)
+                && !reason.equals(SpawnReason.INFECTION) && !reason.equals(SpawnReason.NETHER_PORTAL)
+                && !reason.equals(SpawnReason.REINFORCEMENTS) && !reason.equals(SpawnReason.SLIME_SPLIT)) {
+            World w = l.getWorld();
             if (w == null) return;
             Bukkit.getScheduler().runTask(addon.getPlugin(), () -> {
-                for (Entity ent : w.getNearbyEntities(e.getLocation(), 5, 5, 5)) {
+                for (Entity ent : w.getNearbyEntities(l, 5, 5, 5)) {
                     if (ent instanceof Player) {
                         if (res.getTypelimit() != null) {
                             User.getInstance(ent).notify("entity-limits.hit-limit", "[entity]",
-                                    Util.prettifyText(e.getEntityType().toString()),
+                                    Util.prettifyText(entity.getType().toString()),
                                     TextVariables.NUMBER, String.valueOf(res.getTypelimit().getValue()));
                         } else {
                             User.getInstance(ent).notify("entity-limits.hit-limit", "[entity]",
