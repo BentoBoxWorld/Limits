@@ -42,6 +42,7 @@ public class EntityLimitListener implements Listener {
     private static final String MOD_BYPASS = "mod.bypass";
     private final Limits addon;
     private final List<UUID> justSpawned = new ArrayList<>();
+    private final boolean jetsMinions;
     private static final List<BlockFace> CARDINALS;
     static {
         List<BlockFace> cardinals = new ArrayList<>();
@@ -61,6 +62,8 @@ public class EntityLimitListener implements Listener {
     public EntityLimitListener(Limits addon) {
         this.addon = addon;
         justSpawned.clear();
+        // Check for JetsMinions
+        jetsMinions = Bukkit.getPluginManager().getPlugin("JetsMinions") != null;
     }
 
     /**
@@ -143,6 +146,12 @@ public class EntityLimitListener implements Listener {
             break;
         }
         // Some checks can be done async, some not
+        // Special handling for JetsMinions
+        if (jetsMinions && e.getEntityType().equals(EntityType.ARMOR_STAND)) {
+            // Check limit sync
+            checkLimit(e, e.getEntity(), e.getSpawnReason(), bypass, false);
+            return;
+        }
         switch (e.getSpawnReason()) {
         case BEEHIVE:
         case BREEDING:
