@@ -2,6 +2,7 @@ package world.bentobox.limits.listeners;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -40,6 +42,17 @@ public class EntityLimitListener implements Listener {
     private static final String MOD_BYPASS = "mod.bypass";
     private final Limits addon;
     private final List<UUID> justSpawned = new ArrayList<>();
+    private static final List<BlockFace> CARDINALS;
+    static {
+        List<BlockFace> cardinals = new ArrayList<>();
+        cardinals.add(BlockFace.UP);
+        cardinals.add(BlockFace.NORTH);
+        cardinals.add(BlockFace.SOUTH);
+        cardinals.add(BlockFace.EAST);
+        cardinals.add(BlockFace.WEST);
+        cardinals.add(BlockFace.DOWN);
+        CARDINALS = Collections.unmodifiableList(cardinals);
+    }
 
     /**
      * Handles entity and natural limitations
@@ -155,7 +168,7 @@ public class EntityLimitListener implements Listener {
         case TRAP:
         case VILLAGE_DEFENSE:
         case VILLAGE_INVASION:
-         // Check limit sync
+            // Check limit sync
             checkLimit(e, e.getEntity(), e.getSpawnReason(), bypass, false);
             break;
         default:
@@ -164,7 +177,7 @@ public class EntityLimitListener implements Listener {
             break;
 
         }
-        
+
     }
 
     private boolean checkByPass(Location l) {
@@ -212,7 +225,7 @@ public class EntityLimitListener implements Listener {
      * Check if a creature is allowed to spawn or not
      * @param e - CreatureSpawnEvent
      * @param bypass - true if the player involved can bypass the checks
-     * @param async 
+     * @param async
      */
     private void checkLimit(Cancellable c, LivingEntity e, SpawnReason reason, boolean bypass, boolean async) {
         Location l = e.getLocation();
@@ -254,39 +267,13 @@ public class EntityLimitListener implements Listener {
         // Check for entities that need cleanup
         switch (reason) {
         case BUILD_IRONGOLEM:
-            l.getBlock().setType(Material.AIR);
-            l.getBlock().getRelative(BlockFace.UP).setType(Material.AIR);
-            l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.UP).setType(Material.AIR);
-            // Look for arms
-            if (l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.NORTH).getType().equals(Material.IRON_BLOCK)) {
-                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.NORTH).setType(Material.AIR);
-                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.SOUTH).setType(Material.AIR);
-            } else {
-                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.EAST).setType(Material.AIR);
-                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.WEST).setType(Material.AIR);
-            }
+            detectIronGolem(l);
             break;
         case BUILD_SNOWMAN:
-            l.getBlock().setType(Material.AIR);
-            l.getBlock().getRelative(BlockFace.UP).setType(Material.AIR);
-            l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.UP).setType(Material.AIR);
+            detectSnowman(l);
             break;
         case BUILD_WITHER:
-            l.getBlock().setType(Material.AIR);
-            l.getBlock().getRelative(BlockFace.UP).setType(Material.AIR);
-            l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.UP).setType(Material.AIR);
-            // Look for arms
-            if (l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.NORTH).getType().equals(Material.SOUL_SAND)) {
-                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.NORTH).setType(Material.AIR);
-                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.SOUTH).setType(Material.AIR);
-                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.NORTH).getRelative(BlockFace.UP).setType(Material.AIR);
-                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.SOUTH).getRelative(BlockFace.UP).setType(Material.AIR);
-            } else {
-                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.EAST).setType(Material.AIR);
-                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.WEST).setType(Material.AIR);
-                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.EAST).getRelative(BlockFace.UP).setType(Material.AIR);
-                l.getBlock().getRelative(BlockFace.UP).getRelative(BlockFace.WEST).getRelative(BlockFace.UP).setType(Material.AIR);
-            }
+            detectWither(l);
             // Create explosion
             l.getWorld().createExplosion(l, 7F, true, true, entity);
             break;
@@ -296,6 +283,96 @@ public class EntityLimitListener implements Listener {
 
         }
     }
+
+    private void detectIronGolem(Location l) {
+        // Erase legs
+        l.getBlock().setType(Material.AIR);
+        // Look around for possible constructions
+        for (BlockFace bf : CARDINALS) {
+            Block body = l.getBlock().getRelative(bf);
+            if (body.getType().equals(Material.IRON_BLOCK)) {
+                // Check for head
+                Block head = body.getRelative(bf);
+                if (head.getType().equals(Material.CARVED_PUMPKIN)) {
+                    // Check for arms the rule is that they must be opposite and have nothing "beneath" them
+                    for (BlockFace bf2 : CARDINALS) {
+                        Block arm1 = body.getRelative(bf2);
+                        Block arm2 = body.getRelative(bf2.getOppositeFace());
+                        if (arm1.getType() == Material.IRON_BLOCK && arm2.getType() == Material.IRON_BLOCK
+                                && arm1.getRelative(bf.getOppositeFace()).isEmpty()
+                                && arm2.getRelative(bf.getOppositeFace()).isEmpty()) {
+                            // Erase!
+                            body.setType(Material.AIR);
+                            arm1.setType(Material.AIR);
+                            arm2.setType(Material.AIR);
+                            head.setType(Material.AIR);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
+    private void detectSnowman(Location l) {
+        // Erase legs
+        l.getBlock().setType(Material.AIR);
+        // Look around for possible constructions
+        for (BlockFace bf : CARDINALS) {
+            Block body = l.getBlock().getRelative(bf);
+            if (body.getType().equals(Material.SNOW_BLOCK)) {
+                // Check for head
+                Block head = body.getRelative(bf);
+                if (head.getType().equals(Material.CARVED_PUMPKIN)) {
+                    // Erase
+                    body.setType(Material.AIR);
+                    head.setType(Material.AIR);
+                    return;
+                }
+            }
+        }
+
+    }
+
+    private void detectWither(Location l) {
+        // Erase legs
+        l.getBlock().setType(Material.AIR);
+        // Look around for possible constructions
+        for (BlockFace bf : CARDINALS) {
+            Block body = l.getBlock().getRelative(bf);
+            if (body.getType().equals(Material.SOUL_SAND)) {
+                // Check for head
+                Block head = body.getRelative(bf);
+                if (head.getType().equals(Material.WITHER_SKELETON_SKULL) || head.getType().equals(Material.WITHER_SKELETON_WALL_SKULL)) {
+                    // Check for arms the rule is that they must be opposite and have nothing "beneath" them
+                    for (BlockFace bf2 : CARDINALS) {
+                        Block arm1 = body.getRelative(bf2);
+                        Block arm2 = body.getRelative(bf2.getOppositeFace());
+                        Block head2 = arm1.getRelative(bf);
+                        Block head3 = arm2.getRelative(bf);
+                        if (arm1.getType() == Material.SOUL_SAND
+                                && arm2.getType() == Material.SOUL_SAND
+                                && arm1.getRelative(bf.getOppositeFace()).isEmpty()
+                                && arm2.getRelative(bf.getOppositeFace()).isEmpty()
+                                && (head2.getType().equals(Material.WITHER_SKELETON_SKULL) || head2.getType().equals(Material.WITHER_SKELETON_WALL_SKULL))
+                                && (head3.getType().equals(Material.WITHER_SKELETON_SKULL) || head3.getType().equals(Material.WITHER_SKELETON_WALL_SKULL))
+                                ) {
+                            // Erase!
+                            body.setType(Material.AIR);
+                            arm1.setType(Material.AIR);
+                            arm2.setType(Material.AIR);
+                            head.setType(Material.AIR);
+                            head2.setType(Material.AIR);
+                            head3.setType(Material.AIR);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 
     private void tellPlayers(Cancellable e, Location l, LivingEntity entity, SpawnReason reason, AtLimitResult res) {
         if (!reason.equals(SpawnReason.SPAWNER) && !reason.equals(SpawnReason.NATURAL)
