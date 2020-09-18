@@ -181,8 +181,8 @@ public class EntityLimitListener implements Listener {
             checkLimit(e, e.getEntity(), e.getSpawnReason(), bypass, false);
             break;
         default:
-            // Check limit async
-            checkLimit(e, e.getEntity(), e.getSpawnReason(), bypass, true);
+            // Check limit sync - TODO, work out why async causes problems.
+            checkLimit(e, e.getEntity(), e.getSpawnReason(), bypass, false);
             break;
 
         }
@@ -234,7 +234,7 @@ public class EntityLimitListener implements Listener {
      * Check if a creature is allowed to spawn or not
      * @param e - CreatureSpawnEvent
      * @param bypass - true if the player involved can bypass the checks
-     * @param async
+     * @param async - true if check can be done async, false if not
      */
     private void checkLimit(Cancellable c, LivingEntity e, SpawnReason reason, boolean bypass, boolean async) {
         Location l = e.getLocation();
