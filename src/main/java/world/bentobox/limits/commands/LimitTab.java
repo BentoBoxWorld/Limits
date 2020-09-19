@@ -15,6 +15,7 @@ import org.bukkit.entity.EntityType;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.stream.Collectors;
 
 import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.panels.PanelItem;
@@ -86,7 +87,7 @@ public class LimitTab implements Tab {
         result = new ArrayList<>();
         addMaterialIcons(ibc, matLimits);
         addEntityLimits(ibc, island);
-        addEntityGroupLimits(island);
+        addEntityGroupLimits(ibc, island);
         // Sort
         switch (sortBy) {
         default:
@@ -99,12 +100,15 @@ public class LimitTab implements Tab {
 
     }
 
-    private void addEntityGroupLimits(Island island) {
+    private void addEntityGroupLimits(IslandBlockCount ibc, Island island) {
         // Entity group limits
-        List<Settings.EntityGroup> groupmap = addon.getSettings().getGroupLimitDefinitions();
+        Map<EntityGroup, Integer> groupmap = addon.getSettings().getGroupLimitDefinitions().stream().collect(Collectors.toMap(e -> e, e -> e.getLimit()));
+        Map<String, EntityGroup> groupbyname = groupmap.keySet().stream().collect(Collectors.toMap(e -> e.getName(), e -> e));
         // Merge in any permission-based limits
-        //        if (ibc != null) ibc.getEntityLimits().forEach(map::put);
-        groupmap.forEach(v -> {
+        if (ibc != null) ibc.getEntityGroupLimits().entrySet().stream()
+                .filter(e -> groupbyname.containsKey(e.getKey()))
+                .forEach(e -> groupmap.put(groupbyname.get(e.getKey()), e.getValue()));
+        groupmap.forEach((v, limit) -> {
             PanelItemBuilder pib = new PanelItemBuilder();
             EntityType k = v.getTypes().iterator().next();
             pib.name(v.getName());
@@ -125,11 +129,11 @@ public class LimitTab implements Tab {
             }
             pib.icon(m);
             long count = getCount(island, v);
-            String color = count >= v.getLimit() ? user.getTranslation("island.limits.max-color") : user.getTranslation("island.limits.regular-color");
+            String color = count >= limit ? user.getTranslation("island.limits.max-color") : user.getTranslation("island.limits.regular-color");
             description += color
                     + user.getTranslation("island.limits.block-limit-syntax",
                             TextVariables.NUMBER, String.valueOf(count),
-                            "[limit]", String.valueOf(v.getLimit()));
+                            "[limit]", String.valueOf(limit));
             pib.description(description);
             result.add(pib.build());
         });
