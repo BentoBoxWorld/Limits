@@ -323,7 +323,6 @@ public class BlockLimitsListener implements Listener {
                 return -1;
             }
             islandCountMap.putIfAbsent(id, new IslandBlockCount(id, gameMode));
-            saveMap.putIfAbsent(id, 0);
             if (add) {
                 // Check limit
                 int limit = checkLimit(b.getWorld(), fixMaterial(b.getType()), id);
@@ -331,7 +330,6 @@ public class BlockLimitsListener implements Listener {
                     return limit;
                 }
                 islandCountMap.get(id).add(fixMaterial(b.getType()));
-                saveMap.merge(id, 1, Integer::sum);
             } else {
                 if (islandCountMap.containsKey(id)) {
                     // Check for changes
@@ -345,16 +343,38 @@ public class BlockLimitsListener implements Listener {
                         islandCountMap.get(id).add(fixed);
                     }
                     islandCountMap.get(id).remove(fixMaterial(b.getType()));
-                    saveMap.merge(id, 1, Integer::sum);
                 }
             }
-            if (saveMap.get(id) > CHANGE_LIMIT) {
-                handler.saveObjectAsync(islandCountMap.get(id));
-                saveMap.remove(id);
-            }
+            updateSaveMap(id);
             return -1;
         }).orElse(-1);
     }
+
+    /**
+     * Removed a block from any island limit count
+     * @param b - block to remove
+     */
+    public void removeBlock(Block b) {
+        // Get island
+        addon.getIslands().getIslandAt(b.getLocation()).ifPresent(i -> {
+            String id = i.getUniqueId();
+            String gameMode = addon.getGameModeName(b.getWorld());
+            if (gameMode.isEmpty()) {
+                // Invalid world
+                return;
+            }
+            islandCountMap.computeIfAbsent(id, k -> new IslandBlockCount(id, gameMode)).remove(fixMaterial(b.getType()));
+            updateSaveMap(id);
+        });
+    }
+    private void updateSaveMap(String id) {
+        saveMap.putIfAbsent(id, 0);
+        if (saveMap.merge(id, 1, Integer::sum) > CHANGE_LIMIT) {
+            handler.saveObjectAsync(islandCountMap.get(id));
+            saveMap.remove(id);
+        }
+    }
+
 
     /**
      * Check if this material is at its limit for world on this island

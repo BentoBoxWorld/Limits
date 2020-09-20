@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -42,7 +43,6 @@ public class EntityLimitListener implements Listener {
     private static final String MOD_BYPASS = "mod.bypass";
     private final Limits addon;
     private final List<UUID> justSpawned = new ArrayList<>();
-    private final boolean jetsMinions;
     private static final List<BlockFace> CARDINALS;
     static {
         List<BlockFace> cardinals = new ArrayList<>();
@@ -62,8 +62,6 @@ public class EntityLimitListener implements Listener {
     public EntityLimitListener(Limits addon) {
         this.addon = addon;
         justSpawned.clear();
-        // Check for JetsMinions
-        jetsMinions = Bukkit.getPluginManager().getPlugin("JetsMinions") != null;
     }
 
     /**
@@ -146,42 +144,13 @@ public class EntityLimitListener implements Listener {
             break;
         }
         // Some checks can be done async, some not
-        // Special handling for JetsMinions
-        if (jetsMinions && e.getEntityType().equals(EntityType.ARMOR_STAND)) {
-            // Check limit sync
-            checkLimit(e, e.getEntity(), e.getSpawnReason(), bypass, false);
-            return;
-        }
         switch (e.getSpawnReason()) {
-        case BEEHIVE:
-        case BREEDING:
-        case CURED:
-        case DISPENSE_EGG:
-        case EGG:
-        case ENDER_PEARL:
-        case EXPLOSION:
-        case INFECTION:
-        case JOCKEY:
-        case LIGHTNING:
-        case MOUNT:
-        case NETHER_PORTAL:
-        case OCELOT_BABY:
-        case PATROL:
-        case RAID:
-        case REINFORCEMENTS:
-        case SHEARED:
-        case SHOULDER_ENTITY:
-        case SILVERFISH_BLOCK:
-        case SLIME_SPLIT:
-        case SPAWNER_EGG:
-        case TRAP:
-        case VILLAGE_DEFENSE:
-        case VILLAGE_INVASION:
-            // Check limit sync
-            checkLimit(e, e.getEntity(), e.getSpawnReason(), bypass, false);
-            break;
+        case BUILD_WITHER:
+        case BUILD_SNOWMAN:
+        case BUILD_IRONGOLEM:
+            checkLimit(e, e.getEntity(), e.getSpawnReason(), bypass, true);
         default:
-            // Check limit sync - TODO, work out why async causes problems.
+            // Check limit sync
             checkLimit(e, e.getEntity(), e.getSpawnReason(), bypass, false);
             break;
 
@@ -294,11 +263,13 @@ public class EntityLimitListener implements Listener {
     }
 
     private void detectIronGolem(Location l) {
+        Block legs = l.getBlock();
         // Erase legs
-        l.getBlock().setType(Material.AIR);
+        addon.getBlockLimitListener().removeBlock(legs);
+        legs.setType(Material.AIR);
         // Look around for possible constructions
         for (BlockFace bf : CARDINALS) {
-            Block body = l.getBlock().getRelative(bf);
+            Block body = legs.getRelative(bf);
             if (body.getType().equals(Material.IRON_BLOCK)) {
                 // Check for head
                 Block head = body.getRelative(bf);
@@ -311,6 +282,10 @@ public class EntityLimitListener implements Listener {
                                 && arm1.getRelative(bf.getOppositeFace()).isEmpty()
                                 && arm2.getRelative(bf.getOppositeFace()).isEmpty()) {
                             // Erase!
+                            addon.getBlockLimitListener().removeBlock(body);
+                            addon.getBlockLimitListener().removeBlock(arm1);
+                            addon.getBlockLimitListener().removeBlock(arm2);
+                            addon.getBlockLimitListener().removeBlock(head);
                             body.setType(Material.AIR);
                             arm1.setType(Material.AIR);
                             arm2.setType(Material.AIR);
@@ -325,16 +300,21 @@ public class EntityLimitListener implements Listener {
     }
 
     private void detectSnowman(Location l) {
+        Block legs = l.getBlock();
         // Erase legs
-        l.getBlock().setType(Material.AIR);
+        addon.getBlockLimitListener().removeBlock(legs);
+        legs.setType(Material.AIR);
         // Look around for possible constructions
         for (BlockFace bf : CARDINALS) {
-            Block body = l.getBlock().getRelative(bf);
+            Block body = legs.getRelative(bf);
             if (body.getType().equals(Material.SNOW_BLOCK)) {
                 // Check for head
                 Block head = body.getRelative(bf);
                 if (head.getType().equals(Material.CARVED_PUMPKIN)) {
                     // Erase
+                    addon.getBlockLimitListener().removeBlock(body);
+                    addon.getBlockLimitListener().removeBlock(head);
+
                     body.setType(Material.AIR);
                     head.setType(Material.AIR);
                     return;
@@ -345,12 +325,14 @@ public class EntityLimitListener implements Listener {
     }
 
     private void detectWither(Location l) {
+        Block legs = l.getBlock();
         // Erase legs
-        l.getBlock().setType(Material.AIR);
+        addon.getBlockLimitListener().removeBlock(legs);
+        legs.setType(Material.AIR);
         // Look around for possible constructions
         for (BlockFace bf : CARDINALS) {
-            Block body = l.getBlock().getRelative(bf);
-            if (body.getType().equals(Material.SOUL_SAND)) {
+            Block body = legs.getRelative(bf);
+            if (isWither(body)) {
                 // Check for head
                 Block head = body.getRelative(bf);
                 if (head.getType().equals(Material.WITHER_SKELETON_SKULL) || head.getType().equals(Material.WITHER_SKELETON_WALL_SKULL)) {
@@ -360,14 +342,20 @@ public class EntityLimitListener implements Listener {
                         Block arm2 = body.getRelative(bf2.getOppositeFace());
                         Block head2 = arm1.getRelative(bf);
                         Block head3 = arm2.getRelative(bf);
-                        if (arm1.getType() == Material.SOUL_SAND
-                                && arm2.getType() == Material.SOUL_SAND
+                        if (isWither(arm1)
+                                && isWither(arm2)
                                 && arm1.getRelative(bf.getOppositeFace()).isEmpty()
                                 && arm2.getRelative(bf.getOppositeFace()).isEmpty()
                                 && (head2.getType().equals(Material.WITHER_SKELETON_SKULL) || head2.getType().equals(Material.WITHER_SKELETON_WALL_SKULL))
                                 && (head3.getType().equals(Material.WITHER_SKELETON_SKULL) || head3.getType().equals(Material.WITHER_SKELETON_WALL_SKULL))
                                 ) {
                             // Erase!
+                            addon.getBlockLimitListener().removeBlock(body);
+                            addon.getBlockLimitListener().removeBlock(arm1);
+                            addon.getBlockLimitListener().removeBlock(arm2);
+                            addon.getBlockLimitListener().removeBlock(head);
+                            addon.getBlockLimitListener().removeBlock(head2);
+                            addon.getBlockLimitListener().removeBlock(head3);
                             body.setType(Material.AIR);
                             arm1.setType(Material.AIR);
                             arm2.setType(Material.AIR);
@@ -382,6 +370,13 @@ public class EntityLimitListener implements Listener {
         }
     }
 
+
+    private boolean isWither(Block body) {
+        if (Util.getMinecraftVersion() < 16) {
+            return body.getType().equals(Material.SOUL_SAND);
+        }
+        return Tag.WITHER_SUMMON_BASE_BLOCKS.isTagged(body.getType());
+    }
 
     private void tellPlayers(Cancellable e, Location l, LivingEntity entity, SpawnReason reason, AtLimitResult res) {
         if (!reason.equals(SpawnReason.SPAWNER) && !reason.equals(SpawnReason.NATURAL)
