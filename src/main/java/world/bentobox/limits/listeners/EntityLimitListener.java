@@ -409,7 +409,7 @@ public class EntityLimitListener implements Listener {
      * @param ent - the entity
      * @return true if at the limit, false if not
      */
-    private AtLimitResult atLimit(Island island, Entity ent) {
+    AtLimitResult atLimit(Island island, Entity ent) {
         // Check island settings first
         int limitAmount = -1;
         Map<Settings.EntityGroup, Integer> groupsLimits = new HashMap<>();
@@ -455,7 +455,7 @@ public class EntityLimitListener implements Listener {
         return new AtLimitResult();
     }
 
-    private class AtLimitResult {
+    class AtLimitResult {
         private Map.Entry<EntityType, Integer> typelimit;
         private Map.Entry<EntityGroup, Integer> grouplimit;
 
