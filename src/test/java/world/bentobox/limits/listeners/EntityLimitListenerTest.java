@@ -8,7 +8,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
@@ -48,7 +48,7 @@ public class EntityLimitListenerTest {
     private Settings settings;
     @Mock
     private World world;
-    private Collection<Entity> collection;
+    private List<Entity> collection;
     @Mock
     private Location location;
     private IslandBlockCount ibc;
@@ -81,7 +81,7 @@ public class EntityLimitListenerTest {
         collection.add(ent);
         collection.add(ent);
         collection.add(ent);
-        when(world.getEntitiesByClasses(any())).thenReturn(collection);
+        when(world.getEntities()).thenReturn(collection);
 
         ell = new EntityLimitListener(addon);
     }

@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -15,7 +16,6 @@ import org.bukkit.entity.EntityType;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.stream.Collectors;
 
 import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.panels.PanelItem;
@@ -25,7 +25,6 @@ import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Util;
 import world.bentobox.limits.Limits;
-import world.bentobox.limits.Settings;
 import world.bentobox.limits.Settings.EntityGroup;
 import world.bentobox.limits.objects.IslandBlockCount;
 

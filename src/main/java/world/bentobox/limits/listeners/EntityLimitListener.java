@@ -435,7 +435,8 @@ public class EntityLimitListener implements Listener {
         // We have to count the entities
         if (limitAmount >= 0)
         {
-            int count = (int) ent.getWorld().getEntitiesByClasses(ent.getClass()).stream()
+            int count = (int) ent.getWorld().getEntities().stream()
+                    .filter(e -> e.getType().equals(ent.getType()))
                     .filter(e -> island.inIslandSpace(e.getLocation()))
                     .count();
             if (count >= limitAmount)
