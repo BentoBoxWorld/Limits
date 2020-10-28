@@ -15,6 +15,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.TechnicalPiston;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.event.Cancellable;
@@ -170,22 +171,16 @@ public class BlockLimitsListener implements Listener {
 
     private void handleBreak(Event e, Block b) {
         Material mat = b.getType();
-        // Special handling for crops that can break in different ways
-        if (mat.equals(Material.WHEAT_SEEDS)) {
-            mat = Material.WHEAT;
-        } else if (mat.equals(Material.BEETROOT_SEEDS)) {
-            mat = Material.BEETROOT;
-        }
         // Check for stackable plants
         if (STACKABLE.contains(b.getType())) {
             // Check for blocks above
             Block block = b;
             while(block.getRelative(BlockFace.UP).getType().equals(mat) && block.getY() < b.getWorld().getMaxHeight()) {
                 block = block.getRelative(BlockFace.UP);
-                process(block, false, mat);
+                process(block, false);
             }
         }
-        process(b, false, mat);
+        process(b, false);
         // Player breaks a block and there was a redstone dust/repeater/... above
         if (b.getRelative(BlockFace.UP).getType() == Material.REDSTONE_WIRE || b.getRelative(BlockFace.UP).getType() == Material.REPEATER || b.getRelative(BlockFace.UP).getType() == Material.COMPARATOR || b.getRelative(BlockFace.UP).getType() == Material.REDSTONE_TORCH) {
             process(b.getRelative(BlockFace.UP), false);
@@ -279,21 +274,12 @@ public class BlockLimitsListener implements Listener {
         }
     }
 
-    private int process(Block b, boolean add) {
-        return process(b, add, b.getType());
-    }
 
 
 
     // Return equivalents. b can be Block/Material
-    public Material fixMaterial(Object b) {
-        Material mat;
-        if (b instanceof Block) {
-            mat = ((Block) b).getType();
-        }
-        else {
-            mat = (Material) b;
-        }
+    public Material fixMaterial(BlockData b) {
+        Material mat = b.getMaterial();
         
         if (mat == Material.REDSTONE_WALL_TORCH) {
             return Material.REDSTONE_TORCH;
@@ -310,8 +296,7 @@ public class BlockLimitsListener implements Listener {
         } else if (mat != null && mat == Material.getMaterial("BAMBOO_SAPLING")) {
             return Material.getMaterial("BAMBOO");
         } else if (mat == Material.PISTON_HEAD || mat == Material.MOVING_PISTON) {
-            Block block = ((Block) b);
-            TechnicalPiston tp = (TechnicalPiston) block.getBlockData();
+            TechnicalPiston tp = (TechnicalPiston) b;
             if (tp.getType() == TechnicalPiston.Type.NORMAL) {
                 return Material.PISTON;
             } else {
@@ -329,8 +314,8 @@ public class BlockLimitsListener implements Listener {
      * @param changeTo - material this block will become
      * @return limit amount if over limit, or -1 if no limitation
      */
-    private int process(Block b, boolean add, Material changeTo) {
-        if (DO_NOT_COUNT.contains(fixMaterial(b)) || !addon.inGameModeWorld(b.getWorld())) {
+    private int process(Block b, boolean add) {
+        if (DO_NOT_COUNT.contains(fixMaterial(b.getBlockData())) || !addon.inGameModeWorld(b.getWorld())) {
             return -1;
         }
         // Check if on island
@@ -344,24 +329,14 @@ public class BlockLimitsListener implements Listener {
             islandCountMap.putIfAbsent(id, new IslandBlockCount(id, gameMode));
             if (add) {
                 // Check limit
-                int limit = checkLimit(b.getWorld(), fixMaterial(b), id);
+                int limit = checkLimit(b.getWorld(), fixMaterial(b.getBlockData()), id);
                 if (limit > -1) {
                     return limit;
                 }
-                islandCountMap.get(id).add(fixMaterial(b));
+                islandCountMap.get(id).add(fixMaterial(b.getBlockData()));
             } else {
                 if (islandCountMap.containsKey(id)) {
-                    // Check for changes
-                    Material fixed = fixMaterial(changeTo);
-                    if (!fixed.equals(fixMaterial(b)) && fixed.isBlock() && !DO_NOT_COUNT.contains(fixed)) {
-                        // Check limit
-                        int limit = checkLimit(b.getWorld(), fixed, id);
-                        if (limit > -1) {
-                            return limit;
-                        }
-                        islandCountMap.get(id).add(fixed);
-                    }
-                    islandCountMap.get(id).remove(fixMaterial(b));
+                    islandCountMap.get(id).remove(fixMaterial(b.getBlockData()));
                 }
             }
             updateSaveMap(id);
@@ -382,7 +357,7 @@ public class BlockLimitsListener implements Listener {
                 // Invalid world
                 return;
             }
-            islandCountMap.computeIfAbsent(id, k -> new IslandBlockCount(id, gameMode)).remove(fixMaterial(b));
+            islandCountMap.computeIfAbsent(id, k -> new IslandBlockCount(id, gameMode)).remove(fixMaterial(b.getBlockData()));
             updateSaveMap(id);
         });
     }

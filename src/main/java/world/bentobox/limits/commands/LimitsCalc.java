@@ -13,6 +13,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.data.BlockData;
 
 import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.api.user.User;
@@ -105,9 +106,9 @@ public class LimitsCalc {
                     continue;
                 }
                 for (int y = 0; y < Objects.requireNonNull(island.getCenter().getWorld()).getMaxHeight(); y++) {
-                    Material blockData = chunk.getBlockType(x, y, z);
+                    BlockData blockData = chunk.getBlockData(x, y, z);
                     // Air is free
-                    if (!blockData.equals(Material.AIR)) {
+                    if (!blockData.getMaterial().equals(Material.AIR)) {
                         checkBlock(blockData);
                     }
                 }
@@ -115,8 +116,8 @@ public class LimitsCalc {
         }
     }
 
-    private void checkBlock(Material md) {
-        md = bll.fixMaterial(md);
+    private void checkBlock(BlockData b) {
+        Material md = bll.fixMaterial(b);
         // md is limited
         if (bll.getMaterialLimits(world, island.getUniqueId()).containsKey(md)) {
             if (!blockCount.containsKey(md)) {
