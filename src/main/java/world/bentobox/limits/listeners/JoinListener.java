@@ -93,7 +93,7 @@ public class JoinListener implements Listener {
                 ibc = new IslandBlockCount(islandId, gameMode);
             }
 
-            int value = Integer.valueOf(split[4]);
+            int value = Integer.parseInt(split[4]);
             // Fire perm check event
             LimitsPermCheckEvent l = new LimitsPermCheckEvent(player, gameMode, ibc, entgroup, et, m, value);
             Bukkit.getPluginManager().callEvent(l);
