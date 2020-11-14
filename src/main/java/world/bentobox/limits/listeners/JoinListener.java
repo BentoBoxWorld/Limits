@@ -115,10 +115,10 @@ public class JoinListener implements Listener {
                 // Material limit
                 ibc.setBlockLimit(m, Math.max(ibc.getBlockLimit(m), value));
             } else {
-                if (m.isBlock()) {
+                if (m != null && m.isBlock()) {
                     // Material limit
                     ibc.setBlockLimit(m, Math.max(ibc.getBlockLimit(m), value));
-                } else {
+                } else if (et != null){
                     // This is an entity setting
                     ibc.setEntityLimit(et, Math.max(ibc.getEntityLimit(et), value));
                 }
