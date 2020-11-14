@@ -133,6 +133,10 @@ public class Settings {
         return gameModes;
     }
 
+    /**
+     * A named class representing a group of entities and their limits
+     *
+     */
     public static class EntityGroup {
         private final String name;
         private final Set<EntityType> types;

@@ -25,6 +25,7 @@ import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.Settings.EntityGroup;
 import world.bentobox.limits.events.LimitsJoinPermCheckEvent;
+import world.bentobox.limits.events.LimitsPermCheckEvent;
 import world.bentobox.limits.objects.IslandBlockCount;
 
 /**
@@ -91,22 +92,35 @@ public class JoinListener implements Listener {
             if (ibc == null) {
                 ibc = new IslandBlockCount(islandId, gameMode);
             }
+
+            int value = Integer.parseInt(split[4]);
+            // Fire perm check event
+            LimitsPermCheckEvent l = new LimitsPermCheckEvent(player, gameMode, ibc, entgroup, et, m, value);
+            Bukkit.getPluginManager().callEvent(l);
+            if (l.isCancelled()) continue;
+            // Use event values
+            ibc = l.getIbc();
+            entgroup = l.getEntityGroup();
+            et = l.getEntityType();
+            m = l.getMaterial();
+            value = l.getValue();
+
             if (entgroup != null) {
                 // Entity group limit
-                ibc.setEntityGroupLimit(entgroup.getName(), Math.max(ibc.getEntityGroupLimit(entgroup.getName()), Integer.valueOf(split[4])));
+                ibc.setEntityGroupLimit(entgroup.getName(), Math.max(ibc.getEntityGroupLimit(entgroup.getName()), value));
             } else if (et != null && m == null) {
                 // Entity limit
-                ibc.setEntityLimit(et, Math.max(ibc.getEntityLimit(et), Integer.valueOf(split[4])));
+                ibc.setEntityLimit(et, Math.max(ibc.getEntityLimit(et), value));
             } else if (m != null && et == null) {
                 // Material limit
-                ibc.setBlockLimit(m, Math.max(ibc.getBlockLimit(m), Integer.valueOf(split[4])));
+                ibc.setBlockLimit(m, Math.max(ibc.getBlockLimit(m), value));
             } else {
-                if (m.isBlock()) {
+                if (m != null && m.isBlock()) {
                     // Material limit
-                    ibc.setBlockLimit(m, Math.max(ibc.getBlockLimit(m), Integer.valueOf(split[4])));
-                } else {
+                    ibc.setBlockLimit(m, Math.max(ibc.getBlockLimit(m), value));
+                } else if (et != null){
                     // This is an entity setting
-                    ibc.setEntityLimit(et, Math.max(ibc.getEntityLimit(et), Integer.valueOf(split[4])));
+                    ibc.setEntityLimit(et, Math.max(ibc.getEntityLimit(et), value));
                 }
             }
         }
