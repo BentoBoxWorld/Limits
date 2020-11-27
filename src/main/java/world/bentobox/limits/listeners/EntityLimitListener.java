@@ -443,6 +443,14 @@ public class EntityLimitListener implements Listener {
                 return new AtLimitResult(ent.getType(), limitAmount);
         }
 
+        // Merge in any permission-based limits
+        if (addon.getBlockLimitListener().getIsland(island.getUniqueId()) != null) {
+            Map<String, EntityGroup> groupbyname = groupsLimits.keySet().stream().collect(Collectors.toMap(e -> e.getName(), e -> e));
+            addon.getBlockLimitListener().getIsland(island.getUniqueId()).getEntityGroupLimits().entrySet().stream()
+                    .filter(e -> groupbyname.containsKey(e.getKey()))
+                    .forEach(e -> groupsLimits.put(groupbyname.get(e.getKey()), e.getValue()));
+        }
+
         // Now do the group limits
         for (Map.Entry<Settings.EntityGroup, Integer> group : groupsLimits.entrySet()) { //do not use lambda
             if (group.getValue() < 0)
