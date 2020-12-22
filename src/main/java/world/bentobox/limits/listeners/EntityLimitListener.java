@@ -145,7 +145,6 @@ public class EntityLimitListener implements Listener {
         }
         // Some checks can be done async, some not
         switch (e.getSpawnReason()) {
-        case BUILD_WITHER:
         case BUILD_SNOWMAN:
         case BUILD_IRONGOLEM:
             checkLimit(e, e.getEntity(), e.getSpawnReason(), bypass, true);
@@ -447,8 +446,8 @@ public class EntityLimitListener implements Listener {
         if (addon.getBlockLimitListener().getIsland(island.getUniqueId()) != null) {
             Map<String, EntityGroup> groupbyname = groupsLimits.keySet().stream().collect(Collectors.toMap(e -> e.getName(), e -> e));
             addon.getBlockLimitListener().getIsland(island.getUniqueId()).getEntityGroupLimits().entrySet().stream()
-                    .filter(e -> groupbyname.containsKey(e.getKey()))
-                    .forEach(e -> groupsLimits.put(groupbyname.get(e.getKey()), e.getValue()));
+            .filter(e -> groupbyname.containsKey(e.getKey()))
+            .forEach(e -> groupsLimits.put(groupbyname.get(e.getKey()), e.getValue()));
         }
 
         // Now do the group limits
