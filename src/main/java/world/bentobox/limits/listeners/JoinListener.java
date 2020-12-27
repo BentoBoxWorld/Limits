@@ -20,7 +20,7 @@ import org.bukkit.permissions.PermissionAttachmentInfo;
 
 import world.bentobox.bentobox.api.events.island.IslandEvent;
 import world.bentobox.bentobox.api.events.island.IslandEvent.Reason;
-import world.bentobox.bentobox.api.events.team.TeamEvent.TeamSetownerEvent;
+import world.bentobox.bentobox.api.events.team.TeamSetownerEvent;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.Settings.EntityGroup;

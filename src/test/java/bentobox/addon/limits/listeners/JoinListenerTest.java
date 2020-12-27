@@ -37,7 +37,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import world.bentobox.bentobox.api.addons.AddonDescription;
 import world.bentobox.bentobox.api.addons.GameModeAddon;
 import world.bentobox.bentobox.api.events.island.IslandEvent;
-import world.bentobox.bentobox.api.events.team.TeamEvent.TeamSetownerEvent;
+import world.bentobox.bentobox.api.events.team.TeamSetownerEvent;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.managers.IslandsManager;
 import world.bentobox.limits.Limits;

@@ -40,7 +40,7 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.eclipse.jdt.annotation.Nullable;
 
-import world.bentobox.bentobox.api.events.island.IslandEvent.IslandDeleteEvent;
+import world.bentobox.bentobox.api.events.island.IslandDeleteEvent;
 import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.Database;
@@ -280,7 +280,7 @@ public class BlockLimitsListener implements Listener {
     // Return equivalents. b can be Block/Material
     public Material fixMaterial(BlockData b) {
         Material mat = b.getMaterial();
-        
+
         if (mat == Material.REDSTONE_WALL_TORCH) {
             return Material.REDSTONE_TORCH;
         } else if (mat == Material.WALL_TORCH) {
@@ -304,8 +304,8 @@ public class BlockLimitsListener implements Listener {
             }
         }
         return mat;
-    }    
-    
+    }
+
     /**
      * Check if a block can be
      *
