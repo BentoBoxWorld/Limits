@@ -28,6 +28,8 @@ public class IslandBlockCount implements DataObject {
     @Expose
     private Map<Material, Integer> blockCount = new EnumMap<>(Material.class);
 
+    private boolean changed;
+    
     /**
      * Permission based limits
      */
@@ -44,6 +46,7 @@ public class IslandBlockCount implements DataObject {
     public IslandBlockCount(String uniqueId2, String gameMode2) {
         this.uniqueId = uniqueId2;
         this.gameMode = gameMode2;
+        setChanged();
     }
 
     /* (non-Javadoc)
@@ -60,6 +63,7 @@ public class IslandBlockCount implements DataObject {
     @Override
     public void setUniqueId(String uniqueId) {
         this.uniqueId = uniqueId;
+        setChanged();
     }
 
     /**
@@ -74,6 +78,7 @@ public class IslandBlockCount implements DataObject {
      */
     public void setBlockCount(Map<Material, Integer> blockCount) {
         this.blockCount = blockCount;
+        setChanged();
     }
 
     /**
@@ -82,6 +87,7 @@ public class IslandBlockCount implements DataObject {
      */
     public void add(Material material) {
         blockCount.merge(material, 1, Integer::sum);
+        setChanged();
     }
 
     /**
@@ -91,6 +97,7 @@ public class IslandBlockCount implements DataObject {
     public void remove(Material material) {
         blockCount.put(material, blockCount.getOrDefault(material, 0) - 1);
         blockCount.values().removeIf(v -> v <= 0);
+        setChanged();
     }
 
     /**
@@ -129,6 +136,7 @@ public class IslandBlockCount implements DataObject {
      */
     public void setBlockLimits(Map<Material, Integer> blockLimits) {
         this.blockLimits = blockLimits;
+        setChanged();
     }
 
     /**
@@ -147,6 +155,7 @@ public class IslandBlockCount implements DataObject {
      */
     public void setBlockLimit(Material m, int limit) {
         blockLimits.put(m, limit);
+        setChanged();
     }
 
     /**
@@ -165,6 +174,7 @@ public class IslandBlockCount implements DataObject {
      */
     public void setGameMode(String gameMode) {
         this.gameMode = gameMode;
+        setChanged();
     }
 
     /**
@@ -179,6 +189,7 @@ public class IslandBlockCount implements DataObject {
      */
     public void setEntityLimits(Map<EntityType, Integer> entityLimits) {
         this.entityLimits = entityLimits;
+        setChanged();
     }
 
     /**
@@ -188,6 +199,7 @@ public class IslandBlockCount implements DataObject {
      */
     public void setEntityLimit(EntityType t, int limit) {
         entityLimits.put(t, limit);
+        setChanged();
     }
 
     /**
@@ -204,6 +216,7 @@ public class IslandBlockCount implements DataObject {
      */
     public void clearEntityLimits() {
         entityLimits.clear();
+        setChanged();
     }
     
     /**
@@ -218,6 +231,7 @@ public class IslandBlockCount implements DataObject {
      */
     public void setEntityGroupLimits(Map<String, Integer> entityGroupLimits) {
         this.entityGroupLimits = entityGroupLimits;
+        setChanged();
     }
     
     /**
@@ -227,6 +241,7 @@ public class IslandBlockCount implements DataObject {
      */
     public void setEntityGroupLimit(String name, int limit) {
         entityGroupLimits.put(name, limit);
+        setChanged();
     }
     
     /**
@@ -243,5 +258,27 @@ public class IslandBlockCount implements DataObject {
      */
     public void clearEntityGroupLimits() {
         entityGroupLimits.clear();
+        setChanged();
+    }
+
+    /**
+     * @return the changed
+     */
+    public boolean isChanged() {
+        return changed;
+    }
+
+    /**
+     * @param changed the changed to set
+     */
+    public void setChanged(boolean changed) {
+        this.changed = changed;
+    }
+    
+    /**
+     * Mark changed
+     */
+    public void setChanged() {
+        this.changed = true;
     }
 }

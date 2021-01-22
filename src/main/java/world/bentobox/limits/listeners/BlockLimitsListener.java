@@ -148,7 +148,7 @@ public class BlockLimitsListener implements Listener {
      * Save the count database completely
      */
     public void save() {
-        islandCountMap.values().forEach(handler::saveObjectAsync);
+        islandCountMap.values().stream().filter(IslandBlockCount::isChanged).forEach(handler::saveObjectAsync);
     }
 
     // Player-related events
