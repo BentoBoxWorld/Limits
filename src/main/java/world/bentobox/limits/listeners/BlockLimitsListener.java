@@ -170,6 +170,9 @@ public class BlockLimitsListener implements Listener {
     }
 
     private void handleBreak(Event e, Block b) {
+        if (!addon.inGameModeWorld(b.getWorld())) {
+            return;
+        }
         Material mat = b.getType();
         // Check for stackable plants
         if (STACKABLE.contains(b.getType())) {

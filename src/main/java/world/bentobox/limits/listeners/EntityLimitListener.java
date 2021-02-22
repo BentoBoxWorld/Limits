@@ -71,7 +71,8 @@ public class EntityLimitListener implements Listener {
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onMinecart(VehicleCreateEvent e) {
         // Return if not in a known world
-        if (!addon.getPlugin().getIWM().inWorld(e.getVehicle().getWorld())) {
+
+        if (!addon.inGameModeWorld(e.getVehicle().getWorld())) {
             return;
         }
         if (justSpawned.contains(e.getVehicle().getUniqueId())) {
@@ -116,7 +117,7 @@ public class EntityLimitListener implements Listener {
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onCreatureSpawn(final CreatureSpawnEvent e) {
         // Return if not in a known world
-        if (!addon.getPlugin().getIWM().inWorld(e.getLocation())) {
+        if (!addon.inGameModeWorld(e.getLocation().getWorld())) {
             return;
         }
         if (justSpawned.contains(e.getEntity().getUniqueId())) {
@@ -176,6 +177,9 @@ public class EntityLimitListener implements Listener {
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlock(HangingPlaceEvent e) {
+        if (!addon.inGameModeWorld(e.getBlock().getWorld())) {
+            return;
+        }
         Player player = e.getPlayer();
         if (player == null) return;
         addon.getIslands().getIslandAt(e.getEntity().getLocation()).ifPresent(island -> {
