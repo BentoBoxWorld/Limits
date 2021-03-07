@@ -24,6 +24,7 @@ public class Limits extends Addon {
     private Settings settings;
     private List<GameModeAddon> gameModes;
     private BlockLimitsListener blockLimitListener;
+    private JoinListener joinListener;
 
     @Override
     public void onDisable(){
@@ -53,7 +54,8 @@ public class Limits extends Addon {
         // Register listener
         blockLimitListener = new BlockLimitsListener(this);
         registerListener(blockLimitListener);
-        registerListener(new JoinListener(this));
+        joinListener = new JoinListener(this);
+        registerListener(joinListener);
         registerListener(new EntityLimitListener(this));
         // Done
     }
@@ -114,6 +116,13 @@ public class Limits extends Addon {
      */
     public boolean isCoveredGameMode(String gameMode) {
         return gameModes.stream().anyMatch(gm -> gm.getDescription().getName().equals(gameMode));
+    }
+
+    /**
+     * @return the joinListener
+     */
+    public JoinListener getJoinListener() {
+        return joinListener;
     }
 
 }

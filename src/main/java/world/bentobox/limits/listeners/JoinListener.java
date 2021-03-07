@@ -17,6 +17,8 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.permissions.PermissionAttachmentInfo;
+import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.jdt.annotation.Nullable;
 
 import world.bentobox.bentobox.api.events.island.IslandEvent;
 import world.bentobox.bentobox.api.events.island.IslandEvent.Reason;
@@ -41,19 +43,15 @@ public class JoinListener implements Listener {
         this.addon = addon;
     }
 
-    private void checkPerms(Player player, String permissionPrefix, String islandId, String gameMode) {
+    /**
+     * Check and set the permissions of the player and how they affect the island limits
+     * @param player - player
+     * @param permissionPrefix - permission prefix for this game mode
+     * @param islandId - island string id
+     * @param gameMode - game mode string doing the checking
+     */
+    public void checkPerms(Player player, String permissionPrefix, String islandId, String gameMode) {
         IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(islandId);
-        // Fire event, so other addons can cancel this permissions change
-        LimitsJoinPermCheckEvent e = new LimitsJoinPermCheckEvent(player, gameMode, ibc);
-        Bukkit.getPluginManager().callEvent(e);
-        if (e.isCancelled()) return;
-        // Get ibc from event if it has changed
-        ibc = e.getIbc();
-        // If perms should be ignored, but the IBC given in the event used, then set it and return
-        if (e.isIgnorePerms() && ibc != null) {
-            addon.getBlockLimitListener().setIsland(islandId, ibc);
-            return;
-        }
         // Check permissions
         if (ibc != null) {
             // Clear permission limits
@@ -62,27 +60,18 @@ public class JoinListener implements Listener {
             ibc.getBlockLimits().clear();
         }
         for (PermissionAttachmentInfo perms : player.getEffectivePermissions()) {
-            if (!perms.getValue() || !perms.getPermission().startsWith(permissionPrefix)) continue;
-            // No wildcards
-            if (perms.getPermission().contains(permissionPrefix + "*")) {
-                logError(player.getName(), perms.getPermission(), "wildcards are not allowed.");
-                return;
+            if (!perms.getValue() 
+                    || !perms.getPermission().startsWith(permissionPrefix)
+                    || badSyntaxCheck(perms, player.getName(), permissionPrefix)) {
+                continue;
             }
             // Check formatting
             String[] split = perms.getPermission().split("\\.");
-            if (split.length != 5) {
-                logError(player.getName(), perms.getPermission(), "format must be '" + permissionPrefix + "MATERIAL.NUMBER', '" + permissionPrefix + "ENTITY-TYPE.NUMBER', or '" + permissionPrefix + "ENTITY-GROUP.NUMBER'");
-                return;
-            }
-            // Check value
-            if (!NumberUtils.isDigits(split[4])) {
-                logError(player.getName(), perms.getPermission(), "the last part MUST be a number!");
-                return;
-            }
             // Entities & materials
             EntityType et = Arrays.stream(EntityType.values()).filter(t -> t.name().equalsIgnoreCase(split[3])).findFirst().orElse(null);
             Material m = Arrays.stream(Material.values()).filter(t -> t.name().equalsIgnoreCase(split[3])).findFirst().orElse(null);
-            EntityGroup entgroup = addon.getSettings().getGroupLimitDefinitions().stream().filter(t -> t.getName().equalsIgnoreCase(split[3])).findFirst().orElse(null);
+            EntityGroup entgroup = addon.getSettings().getGroupLimitDefinitions().stream()
+                    .filter(t -> t.getName().equalsIgnoreCase(split[3])).findFirst().orElse(null);
 
             if (entgroup == null && et == null && m == null) {
                 logError(player.getName(), perms.getPermission(), split[3].toUpperCase(Locale.ENGLISH) + " is not a valid material or entity type/group.");
@@ -92,42 +81,71 @@ public class JoinListener implements Listener {
             if (ibc == null) {
                 ibc = new IslandBlockCount(islandId, gameMode);
             }
-
+            // Get the value
             int value = Integer.parseInt(split[4]);
             // Fire perm check event
-            LimitsPermCheckEvent l = new LimitsPermCheckEvent(player, gameMode, ibc, entgroup, et, m, value);
+            LimitsPermCheckEvent l = new LimitsPermCheckEvent(player, islandId, ibc, entgroup, et, m, value);
             Bukkit.getPluginManager().callEvent(l);
             if (l.isCancelled()) continue;
             // Use event values
             ibc = l.getIbc();
-            entgroup = l.getEntityGroup();
-            et = l.getEntityType();
-            m = l.getMaterial();
-            value = l.getValue();
-
-            if (entgroup != null) {
-                // Entity group limit
-                ibc.setEntityGroupLimit(entgroup.getName(), Math.max(ibc.getEntityGroupLimit(entgroup.getName()), value));
-            } else if (et != null && m == null) {
-                // Entity limit
-                ibc.setEntityLimit(et, Math.max(ibc.getEntityLimit(et), value));
-            } else if (m != null && et == null) {
-                // Material limit
-                ibc.setBlockLimit(m, Math.max(ibc.getBlockLimit(m), value));
-            } else {
-                if (m != null && m.isBlock()) {
-                    // Material limit
-                    ibc.setBlockLimit(m, Math.max(ibc.getBlockLimit(m), value));
-                } else if (et != null){
-                    // This is an entity setting
-                    ibc.setEntityLimit(et, Math.max(ibc.getEntityLimit(et), value));
-                }
-            }
+            // Run null checks and set ibc
+            runNullCheckAndSet(ibc, l);
         }
         // Check removed permissions
 
         // If any changes have been made then store it - don't make files unless they are needed
         if (ibc != null) addon.getBlockLimitListener().setIsland(islandId, ibc);
+    }
+
+    private boolean badSyntaxCheck(PermissionAttachmentInfo perms, String name, String permissionPrefix) {
+        // No wildcards
+        if (perms.getPermission().contains(permissionPrefix + "*")) {
+            logError(name, perms.getPermission(), "wildcards are not allowed.");
+            return true;
+        }
+        // Check formatting
+        String[] split = perms.getPermission().split("\\.");
+        if (split.length != 5) {
+            logError(name, perms.getPermission(), "format must be '" + permissionPrefix + "MATERIAL.NUMBER', '" + permissionPrefix + "ENTITY-TYPE.NUMBER', or '" + permissionPrefix + "ENTITY-GROUP.NUMBER'");
+            return true;
+        }
+        // Check value
+        if (!NumberUtils.isDigits(split[4])) {
+            logError(name, perms.getPermission(), "the last part MUST be a number!");
+            return true;
+        }
+
+        return false;
+    }
+
+    private void runNullCheckAndSet(@Nullable IslandBlockCount ibc,  @NonNull LimitsPermCheckEvent l) {
+        if (ibc == null) {
+            return;
+        }
+        EntityGroup entgroup = l.getEntityGroup();
+        EntityType et = l.getEntityType();
+        Material m = l.getMaterial();
+        int value = l.getValue();
+        if (entgroup != null) {
+            // Entity group limit
+            ibc.setEntityGroupLimit(entgroup.getName(), Math.max(ibc.getEntityGroupLimit(entgroup.getName()), value));
+        } else if (et != null && m == null) {
+            // Entity limit
+            ibc.setEntityLimit(et, Math.max(ibc.getEntityLimit(et), value));
+        } else if (m != null && et == null) {
+            // Material limit
+            ibc.setBlockLimit(m, Math.max(ibc.getBlockLimit(m), value));
+        } else {
+            if (m != null && m.isBlock()) {
+                // Material limit
+                ibc.setBlockLimit(m, Math.max(ibc.getBlockLimit(m), value));
+            } else if (et != null){
+                // This is an entity setting
+                ibc.setEntityLimit(et, Math.max(ibc.getEntityLimit(et), value));
+            }
+        }
+        
     }
 
     private void logError(String name, String perm, String error) {
@@ -161,9 +179,30 @@ public class JoinListener implements Listener {
         addon.getGameModes().forEach(gm -> {
             if (addon.getIslands().hasIsland(gm.getOverWorld(), e.getPlayer().getUniqueId())) {
                 String islandId = Objects.requireNonNull(addon.getIslands().getIsland(gm.getOverWorld(), e.getPlayer().getUniqueId())).getUniqueId();
+                IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(islandId);
+                if (joinEventCheck(e.getPlayer(), islandId, ibc)) {
+                    return;
+                }
                 checkPerms(e.getPlayer(), gm.getPermissionPrefix() + "island.limit.", islandId, gm.getDescription().getName());
             }
         });
+    }
+
+    private boolean joinEventCheck(Player player, String islandId, IslandBlockCount ibc) {
+        // Fire event, so other addons can cancel this permissions change
+        LimitsJoinPermCheckEvent e = new LimitsJoinPermCheckEvent(player, islandId, ibc);
+        Bukkit.getPluginManager().callEvent(e);
+        if (e.isCancelled()) {
+            return true;
+        }
+        // Get ibc from event if it has changed
+        ibc = e.getIbc();
+        // If perms should be ignored, but the IBC given in the event used, then set it and return
+        if (e.isIgnorePerms() && ibc != null) {
+            addon.getBlockLimitListener().setIsland(islandId, ibc);
+            return true;
+        }
+        return false;
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

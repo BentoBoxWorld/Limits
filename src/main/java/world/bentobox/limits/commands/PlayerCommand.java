@@ -2,6 +2,7 @@ package world.bentobox.limits.commands;
 
 import java.util.List;
 
+import world.bentobox.bentobox.api.addons.GameModeAddon;
 import world.bentobox.bentobox.api.commands.CompositeCommand;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.limits.Limits;
@@ -45,7 +46,7 @@ public class PlayerCommand extends CompositeCommand {
             showHelp(this, user);
             return false;
         } else {
-            new LimitPanel(addon).showLimits(getWorld(), user, user.getUniqueId());
+            new LimitPanel(addon).showLimits((GameModeAddon)getAddon(), user, user.getUniqueId());
             return true;
         }
     }

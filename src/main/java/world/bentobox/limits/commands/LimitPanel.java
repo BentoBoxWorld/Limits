@@ -3,9 +3,12 @@ package world.bentobox.limits.commands;
 import java.util.Map;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 
+import world.bentobox.bentobox.api.addons.GameModeAddon;
 import world.bentobox.bentobox.api.panels.builders.TabbedPanelBuilder;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
@@ -28,7 +31,15 @@ public class LimitPanel {
         this.addon = addon;
     }
 
-    public void showLimits(World world, User user, UUID target) {
+    /**
+     * Show the limits panel
+     * @param gm - game mode
+     * @param user - user asking
+     * @param target  - target uuid
+     */
+    public void showLimits(GameModeAddon gm, User user, UUID target) {
+        // Get world
+        World world = gm.getOverWorld();
         // Get the island for the target
         Island island = addon.getIslands().getIsland(world, target);
         if (island == null) {
@@ -38,6 +49,12 @@ public class LimitPanel {
                 user.sendMessage("general.errors.player-has-no-island");
             }
             return;
+        }
+        // See if the target is online
+        Player targetPlayer = Bukkit.getPlayer(target);
+        if (targetPlayer != null) {
+            // Update perms
+            addon.getJoinListener().checkPerms(targetPlayer, gm.getPermissionPrefix(), island.getUniqueId(), gm.getDescription().getName());
         }
         // Get the limits for this island
         IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(island.getUniqueId());

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import world.bentobox.bentobox.api.addons.GameModeAddon;
 import world.bentobox.bentobox.api.commands.CompositeCommand;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.util.Util;
@@ -53,7 +54,7 @@ public class AdminCommand extends CompositeCommand {
                 user.sendMessage("general.errors.unknown-player", args.get(0));
                 return true;
             } else {
-                new LimitPanel(addon).showLimits(getWorld(), user, playerUUID);
+                new LimitPanel(addon).showLimits((GameModeAddon)getAddon(), user, playerUUID);
             }
             return true;
         } else {

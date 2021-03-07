@@ -43,9 +43,14 @@ public class IslandBlockCount implements DataObject {
     // Required for YAML database
     public IslandBlockCount() {}
 
-    public IslandBlockCount(String uniqueId2, String gameMode2) {
-        this.uniqueId = uniqueId2;
-        this.gameMode = gameMode2;
+    /**
+     * Create an island block count object
+     * @param islandId - unique Island ID string
+     * @param gameMode - Game mode name from gm.getDescription().getName()
+     */
+    public IslandBlockCount(String islandId, String gameMode) {
+        this.uniqueId = islandId;
+        this.gameMode = gameMode;
         setChanged();
     }
 
