@@ -13,6 +13,9 @@ gamemodes:
 # Cooldown for player recount command in seconds
 cooldown: 120
 
+# Use async checks for snowmen and iron golums. Set to false if you see problems.
+async-golums: true
+
 # General block limiting
 # Use this section to limit how many blocks can be added to an island.
 # 0 means the item will be blocked from placement completely.

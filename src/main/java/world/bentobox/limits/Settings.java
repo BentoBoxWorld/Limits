@@ -19,6 +19,7 @@ public class Settings {
     private final Map<EntityType, Integer> limits = new EnumMap<>(EntityType.class);
     private final Map<EntityType, List<EntityGroup>> groupLimits = new EnumMap<>(EntityType.class);
     private final List<String> gameModes;
+    private final boolean asyncGolums;
     private static final List<EntityType> DISALLOWED = Arrays.asList(
             EntityType.PRIMED_TNT,
             EntityType.EVOKER_FANGS,
@@ -65,6 +66,9 @@ public class Settings {
                 }
             }
         }
+        // Async Golums
+        asyncGolums = addon.getConfig().getBoolean("async-golums", true);
+
         addon.log("Entity limits:");
         limits.entrySet().stream().map(e -> "Limit " + e.getKey().toString() + " to " + e.getValue()).forEach(addon::log);
 
@@ -192,5 +196,12 @@ public class Settings {
         {
             return "EntityGroup{" + "name=" + name + ", types=" + types + ", limit=" + limit + '}';
         }
+    }
+
+    /**
+     * @return the asyncGolums
+     */
+    public boolean isAsyncGolums() {
+        return asyncGolums;
     }
 }

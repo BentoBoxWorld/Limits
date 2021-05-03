@@ -148,7 +148,7 @@ public class EntityLimitListener implements Listener {
         switch (e.getSpawnReason()) {
         case BUILD_SNOWMAN:
         case BUILD_IRONGOLEM:
-            checkLimit(e, e.getEntity(), e.getSpawnReason(), bypass, true);
+            checkLimit(e, e.getEntity(), e.getSpawnReason(), bypass, addon.getSettings().isAsyncGolums());
         default:
             // Check limit sync
             checkLimit(e, e.getEntity(), e.getSpawnReason(), bypass, false);
