@@ -1,7 +1,7 @@
 name: Limits
 main: world.bentobox.limits.Limits
 version: ${version}${build.number}
-api-version: 1.15.4
+api-version: 1.17
 
 authors: tastybento
 
