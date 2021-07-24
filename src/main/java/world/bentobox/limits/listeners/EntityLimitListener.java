@@ -212,10 +212,8 @@ public class EntityLimitListener implements Listener {
         Location l = e.getLocation();
         if (async) {
             c.setCancelled(true);
-            Bukkit.getScheduler().runTaskAsynchronously(BentoBox.getInstance(), () -> processIsland(c, e, l, reason, bypass, async));
-        } else {
-            processIsland(c, e, l, reason, bypass, async);
         }
+        processIsland(c, e, l, reason, bypass, async);
     }
 
     private void processIsland(Cancellable c, LivingEntity e, Location l, SpawnReason reason, boolean bypass, boolean async) {
