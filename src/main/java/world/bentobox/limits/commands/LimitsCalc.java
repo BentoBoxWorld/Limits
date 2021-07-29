@@ -143,7 +143,7 @@ public class LimitsCalc {
         if (ibc == null) {
             ibc = new IslandBlockCount();
         }
-        ibc.setBlockCount(blockCount.entrySet().stream()
+        ibc.setBlockCounts(blockCount.entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         entry -> entry.getValue().get())));

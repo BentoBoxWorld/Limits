@@ -3,6 +3,7 @@ package world.bentobox.limits;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.bukkit.Material;
 import org.bukkit.World;
 
 import world.bentobox.bentobox.api.addons.Addon;
@@ -48,6 +49,7 @@ public class Limits extends Addon {
             // Register commands
             gm.getAdminCommand().ifPresent(a -> new AdminCommand(this, a));
             gm.getPlayerCommand().ifPresent(a -> new PlayerCommand(this, a));
+            registerPlaceholders(gm);
             log("Limits will apply to " + gm.getDescription().getName());
         }
                 );
@@ -123,6 +125,31 @@ public class Limits extends Addon {
      */
     public JoinListener getJoinListener() {
         return joinListener;
+    }
+
+    private void registerPlaceholders(GameModeAddon gm) {
+        if (getPlugin().getPlaceholdersManager() == null) return;
+
+        // Hopper count
+        getPlugin().getPlaceholdersManager().registerPlaceholder(this,
+                gm.getDescription().getName().toLowerCase() + "_island_hopper_count",
+                user -> String.valueOf(getBlockLimitListener().getIsland(gm.getIslands().
+                        getIsland(gm.getOverWorld(), user).getUniqueId()).getBlockCount(Material.HOPPER)));
+        // Hopper limit
+        getPlugin().getPlaceholdersManager().registerPlaceholder(this,
+                gm.getDescription().getName().toLowerCase() + "_island_hopper_limit",
+                user -> String.valueOf(getBlockLimitListener().getIsland(gm.getIslands().
+                        getIsland(gm.getOverWorld(), user).getUniqueId()).getBlockLimit(Material.HOPPER)));
+        // Chest count
+        getPlugin().getPlaceholdersManager().registerPlaceholder(this,
+                gm.getDescription().getName().toLowerCase() + "_island_chest_count",
+                user -> String.valueOf(getBlockLimitListener().getIsland(gm.getIslands().
+                        getIsland(gm.getOverWorld(), user).getUniqueId()).getBlockCount(Material.CHEST)));
+        // Chest limit
+        getPlugin().getPlaceholdersManager().registerPlaceholder(this,
+                gm.getDescription().getName().toLowerCase() + "_island_chest_limit",
+                user -> String.valueOf(getBlockLimitListener().getIsland(gm.getIslands().
+                        getIsland(gm.getOverWorld(), user).getUniqueId()).getBlockLimit(Material.CHEST)));
     }
 
 }
