@@ -89,10 +89,10 @@ public class IslandBlockCount implements DataObject {
     /**
      * Get the block count for this material for this island
      * @param m - material
-     * @return count or -1 for unlimited
+     * @return count
      */
     public Integer getBlockCount(Material m) {
-        return blockCounts.getOrDefault(m, -1);
+        return blockCounts.getOrDefault(m, 0);
     }
 
     /**
