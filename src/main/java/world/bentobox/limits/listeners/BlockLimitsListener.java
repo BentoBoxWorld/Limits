@@ -85,7 +85,7 @@ public class BlockLimitsListener implements Listener {
         handler.loadObjects().forEach(ibc -> {
             // Clean up
             if (addon.isCoveredGameMode(ibc.getGameMode())) {
-                ibc.getBlockCount().keySet().removeIf(DO_NOT_COUNT::contains);
+                ibc.getBlockCounts().keySet().removeIf(DO_NOT_COUNT::contains);
                 // Store
                 islandCountMap.put(ibc.getUniqueId(), ibc);
             } else {
