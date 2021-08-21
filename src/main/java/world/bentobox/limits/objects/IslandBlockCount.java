@@ -26,7 +26,7 @@ public class IslandBlockCount implements DataObject {
     private String gameMode = "";
 
     @Expose
-    private Map<Material, Integer> blockCount = new EnumMap<>(Material.class);
+    private Map<Material, Integer> blockCounts = new EnumMap<>(Material.class);
 
     private boolean changed;
     
@@ -74,16 +74,25 @@ public class IslandBlockCount implements DataObject {
     /**
      * @return the blockCount
      */
-    public Map<Material, Integer> getBlockCount() {
-        return blockCount;
+    public Map<Material, Integer> getBlockCounts() {
+        return blockCounts;
     }
 
     /**
-     * @param blockCount the blockCount to set
+     * @param blockCounts the blockCount to set
      */
-    public void setBlockCount(Map<Material, Integer> blockCount) {
-        this.blockCount = blockCount;
+    public void setBlockCounts(Map<Material, Integer> blockCounts) {
+        this.blockCounts = blockCounts;
         setChanged();
+    }
+
+    /**
+     * Get the block count for this material for this island
+     * @param m - material
+     * @return count
+     */
+    public Integer getBlockCount(Material m) {
+        return blockCounts.getOrDefault(m, 0);
     }
 
     /**
@@ -91,7 +100,7 @@ public class IslandBlockCount implements DataObject {
      * @param material - material
      */
     public void add(Material material) {
-        blockCount.merge(material, 1, Integer::sum);
+        blockCounts.merge(material, 1, Integer::sum);
         setChanged();
     }
 
@@ -100,8 +109,8 @@ public class IslandBlockCount implements DataObject {
      * @param material - material
      */
     public void remove(Material material) {
-        blockCount.put(material, blockCount.getOrDefault(material, 0) - 1);
-        blockCount.values().removeIf(v -> v <= 0);
+        blockCounts.put(material, blockCounts.getOrDefault(material, 0) - 1);
+        blockCounts.values().removeIf(v -> v <= 0);
         setChanged();
     }
 
@@ -112,7 +121,7 @@ public class IslandBlockCount implements DataObject {
      * @return true if count is >= limit
      */
     public boolean isAtLimit(Material material, int limit) {
-        return blockCount.getOrDefault(material, 0) >= limit;
+        return blockCounts.getOrDefault(material, 0) >= limit;
     }
 
     /**
@@ -122,7 +131,7 @@ public class IslandBlockCount implements DataObject {
      */
     public boolean isAtLimit(Material m) {
         // Check island limits first
-        return blockLimits.containsKey(m) && blockCount.getOrDefault(m, 0) >= blockLimits.get(m);
+        return blockLimits.containsKey(m) && blockCounts.getOrDefault(m, 0) >= blockLimits.get(m);
     }
 
     public boolean isBlockLimited(Material m) {
