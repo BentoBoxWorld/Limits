@@ -74,7 +74,7 @@ public class LimitTabTest {
         when(world.getEntities()).thenReturn(Collections.singletonList(entity));
         when(nether.getEntities()).thenReturn(Collections.singletonList(entity));
         when(end.getEntities()).thenReturn(Collections.singletonList(entity));
-        lp = new LimitTab(addon, new IslandBlockCount(), Collections.emptyMap(), island, world, null, LimitTab.SORT_BY.A2Z);
+        lp = new LimitTab(addon, new IslandBlockCount("", ""), Collections.emptyMap(), island, world, null, LimitTab.SORT_BY.A2Z);
     }
 
     @After

@@ -63,7 +63,7 @@ public class EntityLimitListenerTest {
         when(island.getUniqueId()).thenReturn(UUID.randomUUID().toString());
         when(island.inIslandSpace(any(Location.class))).thenReturn(true);
 
-        ibc = new IslandBlockCount();
+        ibc = new IslandBlockCount("","");
         when(bll.getIsland(anyString())).thenReturn(ibc);
         when(addon.getBlockLimitListener()).thenReturn(bll);
 
