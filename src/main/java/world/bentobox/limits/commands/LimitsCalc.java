@@ -76,7 +76,7 @@ public class LimitsCalc {
         });
 
     }
-    
+
 
 
     private void asyncScan(World world2, Pair<Integer, Integer> c) {
@@ -141,7 +141,7 @@ public class LimitsCalc {
 
     private void tidyUp() {
         if (ibc == null) {
-            ibc = new IslandBlockCount();
+            ibc = new IslandBlockCount(island.getUniqueId(), plugin.getIWM().getAddon(world).map(a -> a.getDescription().getName()).orElse("default"));
         }
         ibc.setBlockCounts(blockCount.entrySet().stream()
                 .collect(Collectors.toMap(

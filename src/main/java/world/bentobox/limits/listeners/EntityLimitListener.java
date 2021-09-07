@@ -220,7 +220,6 @@ public class EntityLimitListener implements Listener {
         addon.getIslands().getIslandAt(e.getLocation()).ifPresent(island -> {
             // Check if creature is allowed to spawn or not
             AtLimitResult res = atLimit(island, e);
-
             if (bypass || island.isSpawn() || !res.hit()) {
                 // Allowed
                 if (async) {
@@ -433,6 +432,7 @@ public class EntityLimitListener implements Listener {
             .forEach(group -> groupsLimits.put(group, group.getLimit()));
         }
         if (limitAmount < 0 && groupsLimits.isEmpty()) return new AtLimitResult();
+
         // We have to count the entities
         if (limitAmount >= 0)
         {
@@ -440,10 +440,10 @@ public class EntityLimitListener implements Listener {
                     .filter(e -> e.getType().equals(ent.getType()))
                     .filter(e -> island.inIslandSpace(e.getLocation()))
                     .count();
-            if (count >= limitAmount)
+            if (count >= limitAmount) {
                 return new AtLimitResult(ent.getType(), limitAmount);
+            }
         }
-
         // Merge in any permission-based limits
         if (addon.getBlockLimitListener().getIsland(island.getUniqueId()) != null) {
             Map<String, EntityGroup> groupbyname = groupsLimits.keySet().stream().collect(Collectors.toMap(e -> e.getName(), e -> e));
@@ -451,7 +451,6 @@ public class EntityLimitListener implements Listener {
             .filter(e -> groupbyname.containsKey(e.getKey()))
             .forEach(e -> groupsLimits.put(groupbyname.get(e.getKey()), e.getValue()));
         }
-
         // Now do the group limits
         for (Map.Entry<Settings.EntityGroup, Integer> group : groupsLimits.entrySet()) { //do not use lambda
             if (group.getValue() < 0)

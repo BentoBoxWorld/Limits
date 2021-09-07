@@ -110,7 +110,7 @@ public class Settings {
     }
 
     /**
-     * @return the limits
+     * @return the entity limits
      */
     public Map<EntityType, Integer> getLimits() {
         return Collections.unmodifiableMap(limits);
