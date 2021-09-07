@@ -105,8 +105,10 @@ public class LimitTab implements Tab {
         Map<String, EntityGroup> groupbyname = groupmap.keySet().stream().collect(Collectors.toMap(e -> e.getName(), e -> e));
         // Merge in any permission-based limits
         if (ibc != null) ibc.getEntityGroupLimits().entrySet().stream()
-                .filter(e -> groupbyname.containsKey(e.getKey()))
-                .forEach(e -> groupmap.put(groupbyname.get(e.getKey()), e.getValue()));
+        .filter(e -> groupbyname.containsKey(e.getKey()))
+        .forEach(e -> groupmap.put(groupbyname.get(e.getKey()), e.getValue()));
+        ibc.getEntityGroupLimitsOffset().entrySet().forEach(o ->
+        groupmap.put(groupbyname.get(o.getKey()), (groupmap.getOrDefault(o.getKey(), 0) + o.getValue())));
         groupmap.forEach((v, limit) -> {
             PanelItemBuilder pib = new PanelItemBuilder();
             EntityType k = v.getTypes().iterator().next();
@@ -142,7 +144,11 @@ public class LimitTab implements Tab {
         // Entity limits
         Map<EntityType, Integer> map = new HashMap<>(addon.getSettings().getLimits());
         // Merge in any permission-based limits
-        if (ibc != null) ibc.getEntityLimits().forEach(map::put);
+        if (ibc != null) {
+            ibc.getEntityLimits().forEach(map::put);
+            ibc.getEntityLimitsOffset().forEach((k,v) -> map.put(k, map.getOrDefault(k, 0) + v));
+        }
+
         map.forEach((k,v) -> {
             PanelItemBuilder pib = new PanelItemBuilder();
             pib.name(Util.prettifyText(k.toString()));
@@ -180,11 +186,12 @@ public class LimitTab implements Tab {
             pib.icon(B2M.getOrDefault(en.getKey(), en.getKey()));
 
             int count = ibc == null ? 0 : ibc.getBlockCounts().getOrDefault(en.getKey(), 0);
-            String color = count >= en.getValue() ? user.getTranslation("island.limits.max-color") : user.getTranslation("island.limits.regular-color");
+            int value = en.getValue() + ibc.getBlockLimitsOffset().getOrDefault(en.getKey(), 0);
+            String color = count >= value ? user.getTranslation("island.limits.max-color") : user.getTranslation("island.limits.regular-color");
             pib.description(color
                     + user.getTranslation("island.limits.block-limit-syntax",
                             TextVariables.NUMBER, String.valueOf(count),
-                            "[limit]", String.valueOf(en.getValue())));
+                            "[limit]", String.valueOf(value)));
             result.add(pib.build());
         }
     }
