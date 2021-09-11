@@ -78,6 +78,9 @@ public class IslandBlockCount implements DataObject {
      * @return the blockCount
      */
     public Map<Material, Integer> getBlockCounts() {
+        if (blockCounts == null) {
+            blockCounts = new EnumMap<>(Material.class);
+        }
         return blockCounts;
     }
 
