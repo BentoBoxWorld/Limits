@@ -329,6 +329,10 @@ public class BlockLimitsListener implements Listener {
                 // Invalid world
                 return -1;
             }
+            // Ignore the center block - usually bedrock, but for AOneBlock it's the magic block
+            if (addon.getConfig().getBoolean("ignore-center-block", true) && i.getCenter().equals(b.getLocation())) {
+                return -1;
+            }
             islandCountMap.putIfAbsent(id, new IslandBlockCount(id, gameMode));
             if (add) {
                 // Check limit
