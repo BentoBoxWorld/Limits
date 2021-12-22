@@ -52,7 +52,6 @@ public class EntityLimitListener implements Listener {
      */
     public EntityLimitListener(Limits addon) {
         this.addon = addon;
-        justSpawned.clear();
     }
 
     /**
@@ -178,9 +177,7 @@ public class EntityLimitListener implements Listener {
         if (island.isSpawn() || !res.hit()) {
             // Allowed
             if (async) {
-                Bukkit.getScheduler().runTask(BentoBox.getInstance(), () -> {
-                    l.getWorld().spawn(l, e.getClass(), entity -> preSpawn(entity, reason, l));
-                });
+                Bukkit.getScheduler().runTask(BentoBox.getInstance(), () -> l.getWorld().spawn(l, e.getClass(), entity -> preSpawn(entity, reason, l)));
             } // else do nothing
         } else {
             if (async) {
@@ -199,21 +196,15 @@ public class EntityLimitListener implements Listener {
         justSpawned.add(entity.getUniqueId());
         // Check for entities that need cleanup
         switch (reason) {
-        case BUILD_IRONGOLEM:
-            detectIronGolem(l);
-            break;
-        case BUILD_SNOWMAN:
-            detectSnowman(l);
-            break;
-        case BUILD_WITHER:
-            detectWither(l);
-            // Create explosion
-            l.getWorld().createExplosion(l, 7F, true, true, entity);
-            break;
-        default:
-            break;
-
-
+            case BUILD_IRONGOLEM -> detectIronGolem(l);
+            case BUILD_SNOWMAN -> detectSnowman(l);
+            case BUILD_WITHER -> {
+                detectWither(l);
+                // Create explosion
+                l.getWorld().createExplosion(l, 7F, true, true, entity);
+            }
+            default -> {
+            }
         }
     }
 
@@ -410,7 +401,7 @@ public class EntityLimitListener implements Listener {
         }
         // Merge in any permission-based limits
         if (addon.getBlockLimitListener().getIsland(island.getUniqueId()) != null) {
-            Map<String, EntityGroup> groupbyname = groupsLimits.keySet().stream().collect(Collectors.toMap(e -> e.getName(), e -> e));
+            Map<String, EntityGroup> groupbyname = groupsLimits.keySet().stream().collect(Collectors.toMap(EntityGroup::getName, e -> e));
             addon.getBlockLimitListener().getIsland(island.getUniqueId()).getEntityGroupLimits().entrySet().stream()
             .filter(e -> groupbyname.containsKey(e.getKey()))
             .forEach(e -> groupsLimits.put(groupbyname.get(e.getKey()), e.getValue()));
@@ -428,7 +419,7 @@ public class EntityLimitListener implements Listener {
         return new AtLimitResult();
     }
 
-    class AtLimitResult {
+    static class AtLimitResult {
         private Map.Entry<EntityType, Integer> typelimit;
         private Map.Entry<EntityGroup, Integer> grouplimit;
 

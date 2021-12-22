@@ -20,10 +20,10 @@ import world.bentobox.bentobox.database.objects.Table;
 public class IslandBlockCount implements DataObject {
 
     @Expose
-    private String uniqueId = "";
+    private String uniqueId;
 
     @Expose
-    private String gameMode = "";
+    private String gameMode;
 
     @Expose
     private Map<Material, Integer> blockCounts = new EnumMap<>(Material.class);

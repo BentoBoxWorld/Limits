@@ -110,7 +110,7 @@ public class LimitsJoinPermCheckEvent extends BentoBoxEvent implements Cancellab
 
     /**
      * Ignore player's perms. This differs to canceling the event in that the IslandBlockCount will be used if given via
-     * {@link setIbc(IslandBlockCount ibc)}
+     * {@link #setIbc(IslandBlockCount ibc)}
      * @param ignorePerms the ignorePerms to set
      */
     public void setIgnorePerms(boolean ignorePerms) {

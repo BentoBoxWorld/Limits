@@ -37,10 +37,9 @@ public class LimitsCalc {
     private IslandBlockCount ibc;
     private final Map<Material, AtomicInteger> blockCount;
     private final User sender;
-    private final Set<Pair<Integer, Integer>> chunksToScan;
     private int count;
-    private int chunksToScanCount;
-    private BentoBox plugin;
+    private final int chunksToScanCount;
+    private final BentoBox plugin;
 
 
     /**
@@ -56,13 +55,13 @@ public class LimitsCalc {
         this.addon = addon;
         this.island = instance.getIslands().getIsland(world, targetPlayer);
         this.bll = addon.getBlockLimitListener();
-        this.ibc = bll.getIsland(island.getUniqueId());
+        this.ibc = bll.getIsland(Objects.requireNonNull(island).getUniqueId());
         blockCount = new EnumMap<>(Material.class);
         this.sender = sender;
         this.world = world;
 
         // Get chunks to scan
-        chunksToScan = getChunksToScan(island);
+        Set<Pair<Integer, Integer>> chunksToScan = getChunksToScan(island);
         count = 0;
 
         boolean isNether = plugin.getIWM().isNetherGenerate(world) && plugin.getIWM().isNetherIslands(world);

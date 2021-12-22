@@ -80,10 +80,9 @@ public class EntityLimitsDO implements DataObject {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof EntityLimitsDO)) {
+        if (!(obj instanceof EntityLimitsDO other)) {
             return false;
         }
-        EntityLimitsDO other = (EntityLimitsDO) obj;
         if (uniqueId == null) {
             return other.uniqueId == null;
         } else return uniqueId.equals(other.uniqueId);

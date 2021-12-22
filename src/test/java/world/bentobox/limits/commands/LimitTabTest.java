@@ -55,7 +55,7 @@ public class LimitTabTest {
     private Settings settings;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         // Island
         when(island.getWorld()).thenReturn(world);
         // Addon
@@ -78,7 +78,7 @@ public class LimitTabTest {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
     }
 
     @Test

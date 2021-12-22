@@ -45,7 +45,6 @@ public class EntityLimitListenerTest {
     private LivingEntity ent;
     @Mock
     private BlockLimitsListener bll;
-    private Settings settings;
     @Mock
     private World world;
     private List<Entity> collection;
@@ -71,7 +70,7 @@ public class EntityLimitListenerTest {
         config.load("src/main/resources/config.yml");
         // Settings
         when(addon.getConfig()).thenReturn(config);
-        settings = new Settings(addon);
+        Settings settings = new Settings(addon);
         when(addon.getSettings()).thenReturn(settings);
 
         // World
@@ -87,7 +86,7 @@ public class EntityLimitListenerTest {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
     }
 
     /**
