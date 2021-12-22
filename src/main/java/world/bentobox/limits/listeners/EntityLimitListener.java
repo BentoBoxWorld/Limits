@@ -87,15 +87,14 @@ public class EntityLimitListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onBreed(final EntityBreedEvent e) {
-        if (e.getBreeder() != null && e.getBreeder() instanceof Player p &&
-                !(p.isOp() || p.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getEntity().getWorld()) + MOD_BYPASS))) {
-            if (!checkLimit(e, e.getEntity(), SpawnReason.BREEDING, false)) {
-                // Breeding not allowed so stop the love fest
-                if (e.getFather() instanceof Animals f && e.getMother() instanceof Animals m) {
-                    f.setLoveModeTicks(0);
-                    m.setLoveModeTicks(0);
-                }
-            }
+        if (addon.inGameModeWorld(e.getEntity().getWorld())
+                && e.getBreeder() != null
+                && e.getBreeder() instanceof Player p
+                && !(p.isOp() || p.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getEntity().getWorld()) + MOD_BYPASS))
+                && !checkLimit(e, e.getEntity(), SpawnReason.BREEDING, false)
+                && e.getFather() instanceof Animals f && e.getMother() instanceof Animals m) {
+            f.setLoveModeTicks(0);
+            m.setLoveModeTicks(0);
         }
     }
 
@@ -109,8 +108,9 @@ public class EntityLimitListener implements Listener {
             justSpawned.remove(e.getEntity().getUniqueId());
             return;
         }
-        if (e.getSpawnReason().equals(SpawnReason.SHOULDER_ENTITY)) {
+        if (e.getSpawnReason().equals(SpawnReason.SHOULDER_ENTITY) || e.getSpawnReason().equals(SpawnReason.BREEDING)) {
             // Special case - do nothing - jumping around spawns parrots as they drop off player's shoulder
+            // Ignore breeding because it's handled in the EntityBreedEvent listener
             return;
         }
         // Some checks can be done async, some not
