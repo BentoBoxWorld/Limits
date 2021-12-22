@@ -53,7 +53,6 @@ public class JoinListener implements Listener {
      */
     public void checkPerms(Player player, String permissionPrefix, String islandId, String gameMode) {
         IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(islandId);
-        BentoBox.getInstance().logDebug("Check perms ibc == null? " + ibc == null);
         // Check permissions
         if (ibc != null) {
             // Clear permission limits
@@ -81,8 +80,6 @@ public class JoinListener implements Listener {
             }
             // Make an ibc if required
             if (ibc == null) {
-
-                BentoBox.getInstance().logDebug("Making new IBC");
                 ibc = new IslandBlockCount(islandId, gameMode);
             }
             // Get the value

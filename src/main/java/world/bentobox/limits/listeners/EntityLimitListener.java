@@ -2,7 +2,6 @@ package world.bentobox.limits.listeners;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +16,7 @@ import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Animals;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -89,7 +89,13 @@ public class EntityLimitListener implements Listener {
     public void onBreed(final EntityBreedEvent e) {
         if (e.getBreeder() != null && e.getBreeder() instanceof Player p &&
                 !(p.isOp() || p.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getEntity().getWorld()) + MOD_BYPASS))) {
-            checkLimit(e, e.getEntity(), SpawnReason.BREEDING, false);
+            if (!checkLimit(e, e.getEntity(), SpawnReason.BREEDING, false)) {
+                // Breeding not allowed so stop the love fest
+                if (e.getFather() instanceof Animals f && e.getMother() instanceof Animals m) {
+                    f.setLoveModeTicks(0);
+                    m.setLoveModeTicks(0);
+                }
+            }
         }
     }
 
@@ -152,38 +158,41 @@ public class EntityLimitListener implements Listener {
      * Check if a creature is allowed to spawn or not
      * @param e - CreatureSpawnEvent
      * @param async - true if check can be done async, false if not
+     * @return true if allowed or asycn, false if not.
      */
-    private void checkLimit(Cancellable c, LivingEntity e, SpawnReason reason, boolean async) {
-        BentoBox.getInstance().logDebug("Event = " + c.toString() + " " + e + " " + reason + " ");
+    private boolean checkLimit(Cancellable c, LivingEntity e, SpawnReason reason, boolean async) {
         Location l = e.getLocation();
         if (async) {
             c.setCancelled(true);
         }
-        processIsland(c, e, l, reason, async);
+        return processIsland(c, e, l, reason, async);
     }
 
-    private void processIsland(Cancellable c, LivingEntity e, Location l, SpawnReason reason, boolean async) {
-        addon.getIslands().getIslandAt(e.getLocation()).ifPresent(island -> {
-            // Check if creature is allowed to spawn or not
-            AtLimitResult res = atLimit(island, e);
-            if (island.isSpawn() || !res.hit()) {
-                // Allowed
-                if (async) {
-                    Bukkit.getScheduler().runTask(BentoBox.getInstance(), () -> {
-                        l.getWorld().spawn(l, e.getClass(), entity -> preSpawn(entity, reason, l));
-                    });
-                } // else do nothing
+    private boolean processIsland(Cancellable c, LivingEntity e, Location l, SpawnReason reason, boolean async) {
+        if (addon.getIslands().getIslandAt(e.getLocation()).isEmpty()) {
+            return true;
+        }
+        Island island = addon.getIslands().getIslandAt(e.getLocation()).get();
+        // Check if creature is allowed to spawn or not
+        AtLimitResult res = atLimit(island, e);
+        if (island.isSpawn() || !res.hit()) {
+            // Allowed
+            if (async) {
+                Bukkit.getScheduler().runTask(BentoBox.getInstance(), () -> {
+                    l.getWorld().spawn(l, e.getClass(), entity -> preSpawn(entity, reason, l));
+                });
+            } // else do nothing
+        } else {
+            if (async) {
+                e.remove();
             } else {
-                if (async) {
-                    e.remove();
-                } else {
-                    c.setCancelled(true);
-                }
-                // If the reason is anything but because of a spawner then tell players within range
-                tellPlayers(l, e, reason, res);
+                c.setCancelled(true);
             }
-
-        });
+            // If the reason is anything but because of a spawner then tell players within range
+            tellPlayers(l, e, reason, res);
+            return false;
+        }
+        return true;
     }
 
     private void preSpawn(Entity entity, SpawnReason reason, Location l) {
