@@ -134,8 +134,8 @@ public class Limits extends Addon {
     private void registerPlaceholders(GameModeAddon gm) {
         if (getPlugin().getPlaceholdersManager() == null) return;
         Arrays.stream(Material.values())
-                .filter(m -> m.isBlock())
-                .forEach(m -> registerCountAndLimitPlaceholders(m, gm));
+        .filter(m -> m.isBlock())
+        .forEach(m -> registerCountAndLimitPlaceholders(m, gm));
     }
 
     /**
@@ -171,8 +171,7 @@ public class Limits extends Addon {
         if (is == null) {
             return 0;
         }
-        return getBlockLimitListener().getIsland(gm.getIslands().getIsland(gm.getOverWorld(), user).getUniqueId()).
-                getBlockCount(m);
+        return getBlockLimitListener().getIsland(gm.getIslands().getIsland(gm.getOverWorld(), user).getUniqueId()).getBlockCount(m);
     }
 
     /**

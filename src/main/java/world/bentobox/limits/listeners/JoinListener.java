@@ -20,6 +20,7 @@ import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
+import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.api.events.island.IslandEvent;
 import world.bentobox.bentobox.api.events.island.IslandEvent.Reason;
 import world.bentobox.bentobox.api.events.team.TeamSetownerEvent;
@@ -52,6 +53,7 @@ public class JoinListener implements Listener {
      */
     public void checkPerms(Player player, String permissionPrefix, String islandId, String gameMode) {
         IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(islandId);
+        BentoBox.getInstance().logDebug("Check perms ibc == null? " + ibc == null);
         // Check permissions
         if (ibc != null) {
             // Clear permission limits
@@ -60,7 +62,7 @@ public class JoinListener implements Listener {
             ibc.getBlockLimits().clear();
         }
         for (PermissionAttachmentInfo perms : player.getEffectivePermissions()) {
-            if (!perms.getValue() 
+            if (!perms.getValue()
                     || !perms.getPermission().startsWith(permissionPrefix)
                     || badSyntaxCheck(perms, player.getName(), permissionPrefix)) {
                 continue;
@@ -79,6 +81,8 @@ public class JoinListener implements Listener {
             }
             // Make an ibc if required
             if (ibc == null) {
+
+                BentoBox.getInstance().logDebug("Making new IBC");
                 ibc = new IslandBlockCount(islandId, gameMode);
             }
             // Get the value
@@ -93,7 +97,9 @@ public class JoinListener implements Listener {
             runNullCheckAndSet(ibc, l);
         }
         // Check removed permissions
-
+        if (ibc == null) {
+            BentoBox.getInstance().logDebug("IBC is still null");
+        }
         // If any changes have been made then store it - don't make files unless they are needed
         if (ibc != null) addon.getBlockLimitListener().setIsland(islandId, ibc);
     }
@@ -145,7 +151,7 @@ public class JoinListener implements Listener {
                 ibc.setEntityLimit(et, Math.max(ibc.getEntityLimit(et), value));
             }
         }
-        
+
     }
 
     private void logError(String name, String perm, String error) {
@@ -163,6 +169,7 @@ public class JoinListener implements Listener {
                 && !e.getReason().equals(Reason.REGISTERED)) {
             return;
         }
+        BentoBox.getInstance().logDebug("Island Event " + e.getReason());
         setOwnerPerms(e.getIsland(), e.getOwner());
     }
 

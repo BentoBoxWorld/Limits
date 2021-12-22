@@ -104,9 +104,13 @@ public class LimitTab implements Tab {
         Map<EntityGroup, Integer> groupmap = addon.getSettings().getGroupLimitDefinitions().stream().collect(Collectors.toMap(e -> e, e -> e.getLimit()));
         Map<String, EntityGroup> groupbyname = groupmap.keySet().stream().collect(Collectors.toMap(e -> e.getName(), e -> e));
         // Merge in any permission-based limits
-        if (ibc != null) ibc.getEntityGroupLimits().entrySet().stream()
+        if (ibc == null) {
+            return;
+        }
+        ibc.getEntityGroupLimits().entrySet().stream()
         .filter(e -> groupbyname.containsKey(e.getKey()))
         .forEach(e -> groupmap.put(groupbyname.get(e.getKey()), e.getValue()));
+
         ibc.getEntityGroupLimitsOffset().entrySet().forEach(o ->
         groupmap.put(groupbyname.get(o.getKey()), (groupmap.getOrDefault(o.getKey(), 0) + o.getValue())));
         groupmap.forEach((v, limit) -> {
@@ -186,7 +190,7 @@ public class LimitTab implements Tab {
             pib.icon(B2M.getOrDefault(en.getKey(), en.getKey()));
 
             int count = ibc == null ? 0 : ibc.getBlockCounts().getOrDefault(en.getKey(), 0);
-            int value = en.getValue() + ibc.getBlockLimitsOffset().getOrDefault(en.getKey(), 0);
+            int value = en.getValue() + (ibc == null ? 0 : ibc.getBlockLimitsOffset().getOrDefault(en.getKey(), 0));
             String color = count >= value ? user.getTranslation("island.limits.max-color") : user.getTranslation("island.limits.regular-color");
             pib.description(color
                     + user.getTranslation("island.limits.block-limit-syntax",
