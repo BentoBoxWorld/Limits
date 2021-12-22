@@ -166,7 +166,6 @@ public class JoinListener implements Listener {
                 && !e.getReason().equals(Reason.REGISTERED)) {
             return;
         }
-        BentoBox.getInstance().logDebug("Island Event " + e.getReason());
         setOwnerPerms(e.getIsland(), e.getOwner());
     }
 
