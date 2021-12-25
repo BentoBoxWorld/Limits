@@ -164,7 +164,7 @@ public class BlockLimitsListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onTurtleEggBreak(PlayerInteractEvent e) {
-        if (e.getAction().equals(Action.PHYSICAL) && e.getClickedBlock().getType().equals(Material.TURTLE_EGG)) {
+        if (e.getAction().equals(Action.PHYSICAL) && e.getClickedBlock() != null && e.getClickedBlock().getType().equals(Material.TURTLE_EGG)) {
             handleBreak(e, e.getClickedBlock());
         }
     }
@@ -296,8 +296,8 @@ public class BlockLimitsListener implements Listener {
             return Material.PLAYER_HEAD;
         } else if (mat == Material.DRAGON_WALL_HEAD) {
             return Material.DRAGON_HEAD;
-        } else if (mat != null && mat == Material.getMaterial("BAMBOO_SAPLING")) {
-            return Material.getMaterial("BAMBOO");
+        } else if (mat == Material.BAMBOO_SAPLING) {
+            return Material.BAMBOO;
         } else if (mat == Material.PISTON_HEAD || mat == Material.MOVING_PISTON) {
             TechnicalPiston tp = (TechnicalPiston) b;
             if (tp.getType() == TechnicalPiston.Type.NORMAL) {
@@ -314,7 +314,6 @@ public class BlockLimitsListener implements Listener {
      *
      * @param b - block
      * @param add - true to add a block, false to remove
-     * @param changeTo - material this block will become
      * @return limit amount if over limit, or -1 if no limitation
      */
     private int process(Block b, boolean add) {
@@ -327,6 +326,10 @@ public class BlockLimitsListener implements Listener {
             String gameMode = addon.getGameModeName(b.getWorld());
             if (gameMode.isEmpty()) {
                 // Invalid world
+                return -1;
+            }
+            // Ignore the center block - usually bedrock, but for AOneBlock it's the magic block
+            if (addon.getConfig().getBoolean("ignore-center-block", true) && i.getCenter().equals(b.getLocation())) {
                 return -1;
             }
             islandCountMap.putIfAbsent(id, new IslandBlockCount(id, gameMode));
@@ -411,14 +414,14 @@ public class BlockLimitsListener implements Listener {
         // Merge limits
         Map<Material, Integer> result = new EnumMap<>(Material.class);
         // Default
-        defaultLimitMap.forEach(result::put);
+        result.putAll(defaultLimitMap);
         // World
         if (worldLimitMap.containsKey(w)) {
-            worldLimitMap.get(w).forEach(result::put);
+            result.putAll(worldLimitMap.get(w));
         }
         // Island
         if (islandCountMap.containsKey(id)) {
-            islandCountMap.get(id).getBlockLimits().forEach(result::put);
+            result.putAll(islandCountMap.get(id).getBlockLimits());
         }
         return result;
     }

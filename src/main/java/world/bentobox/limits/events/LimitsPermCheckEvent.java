@@ -52,7 +52,7 @@ public class LimitsPermCheckEvent extends LimitsJoinPermCheckEvent {
     /**
      * @return the entityGroup
      */
-    public EntityGroup getEntityGroup() {
+    public @Nullable EntityGroup getEntityGroup() {
         return entityGroup;
     }
 
@@ -60,7 +60,7 @@ public class LimitsPermCheckEvent extends LimitsJoinPermCheckEvent {
     /**
      * @param entityGroup the entityGroup to set
      */
-    public void setEntityGroup(EntityGroup entityGroup) {
+    public void setEntityGroup(@Nullable EntityGroup entityGroup) {
         this.entityGroup = entityGroup;
     }
 
@@ -68,7 +68,7 @@ public class LimitsPermCheckEvent extends LimitsJoinPermCheckEvent {
     /**
      * @return the entityType
      */
-    public EntityType getEntityType() {
+    public @Nullable EntityType getEntityType() {
         return entityType;
     }
 
@@ -76,7 +76,7 @@ public class LimitsPermCheckEvent extends LimitsJoinPermCheckEvent {
     /**
      * @param entityType the entityType to set
      */
-    public void setEntityType(EntityType entityType) {
+    public void setEntityType(@Nullable EntityType entityType) {
         this.entityType = entityType;
     }
 
@@ -84,7 +84,7 @@ public class LimitsPermCheckEvent extends LimitsJoinPermCheckEvent {
     /**
      * @return the material
      */
-    public Material getMaterial() {
+    public @Nullable Material getMaterial() {
         return material;
     }
 
@@ -92,7 +92,7 @@ public class LimitsPermCheckEvent extends LimitsJoinPermCheckEvent {
     /**
      * @param material the material to set
      */
-    public void setMaterial(Material material) {
+    public void setMaterial(@Nullable Material material) {
         this.material = material;
     }
 

@@ -1,14 +1,6 @@
 package world.bentobox.limits;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.bukkit.configuration.ConfigurationSection;
@@ -89,7 +81,7 @@ public class Settings {
                         addon.logError("Unknown entity type: " + s + " - skipping...");
                     }
                     return null;
-                }).filter(e -> e != null).collect(Collectors.toCollection(LinkedHashSet::new));
+                }).filter(Objects::nonNull).collect(Collectors.toCollection(LinkedHashSet::new));
                 if (entities.isEmpty())
                     continue;
                 EntityGroup group = new EntityGroup(name, entities, limit);
@@ -102,7 +94,7 @@ public class Settings {
         }
 
         addon.log("Entity group limits:");
-        getGroupLimitDefinitions().stream().map(e -> "Limit " + e.getName() + " (" + e.getTypes().stream().map(x -> x.name()).collect(Collectors.joining(", ")) + ") to " + e.getLimit()).forEach(addon::log);
+        getGroupLimitDefinitions().stream().map(e -> "Limit " + e.getName() + " (" + e.getTypes().stream().map(Enum::name).collect(Collectors.joining(", ")) + ") to " + e.getLimit()).forEach(addon::log);
     }
 
     private EntityType getType(String key) {
@@ -110,7 +102,7 @@ public class Settings {
     }
 
     /**
-     * @return the limits
+     * @return the entity limits
      */
     public Map<EntityType, Integer> getLimits() {
         return Collections.unmodifiableMap(limits);
@@ -127,7 +119,7 @@ public class Settings {
      * @return the group limit definitions
      */
     public List<EntityGroup> getGroupLimitDefinitions() {
-        return groupLimits.values().stream().flatMap(e -> e.stream()).distinct().collect(Collectors.toList());
+        return groupLimits.values().stream().flatMap(Collection::stream).distinct().toList();
     }
 
     /**
@@ -186,9 +178,7 @@ public class Settings {
             if (getClass() != obj.getClass())
                 return false;
             final EntityGroup other = (EntityGroup) obj;
-            if (!Objects.equals(this.name, other.name))
-                return false;
-            return true;
+            return Objects.equals(this.name, other.name);
         }
 
         @Override

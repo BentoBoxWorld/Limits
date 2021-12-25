@@ -2,6 +2,7 @@ package world.bentobox.limits.events;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
+import org.bukkit.event.HandlerList;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -21,6 +22,16 @@ public class LimitsJoinPermCheckEvent extends BentoBoxEvent implements Cancellab
     private IslandBlockCount ibc;
     private boolean cancel;
     private boolean ignorePerms;
+    private static final HandlerList handlers = new HandlerList();
+
+    @Override
+    public @NonNull HandlerList getHandlers() {
+        return getHandlerList();
+    }
+
+    public static HandlerList getHandlerList() {
+        return handlers;
+    }
 
     /**
      * Fired when a player joins the server and before limit settings for their island are changed based
@@ -99,7 +110,7 @@ public class LimitsJoinPermCheckEvent extends BentoBoxEvent implements Cancellab
 
     /**
      * Ignore player's perms. This differs to canceling the event in that the IslandBlockCount will be used if given via
-     * {@link setIbc(IslandBlockCount ibc)}
+     * {@link #setIbc(IslandBlockCount ibc)}
      * @param ignorePerms the ignorePerms to set
      */
     public void setIgnorePerms(boolean ignorePerms) {

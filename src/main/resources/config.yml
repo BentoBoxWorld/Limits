@@ -4,6 +4,10 @@ gamemodes:
 - BSkyBlock
 - CaveBlock
 
+# Ignore this island's center block. For most worlds, this is bedrock, but for AOneBlock it is
+# the magic block, so ignoring it from limits makes sense.
+ignore-center-block: true
+
 # Permissions
 # Island owners can be given permissions that override all general settings
 # Format is GAME-MODE-NAME.island.limit.MATERIAL.LIMIT

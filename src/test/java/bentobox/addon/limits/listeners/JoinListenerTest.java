@@ -1,7 +1,7 @@
 package bentobox.addon.limits.listeners;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.*;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -10,12 +10,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -86,7 +80,7 @@ public class JoinListenerTest {
         when(addon.getGameModePermPrefix(any())).thenReturn("bskyblock.");
         when(addon.getSettings()).thenReturn(settings);
         // Settings
-        when(settings.getGroupLimitDefinitions()).thenReturn(new ArrayList<>(Arrays.asList(new Settings.EntityGroup("friendly", new HashSet<>(), -1))));
+        when(settings.getGroupLimitDefinitions()).thenReturn(new ArrayList<>(List.of(new Settings.EntityGroup("friendly", new HashSet<>(), -1))));
         // Island Manager
         when(im.hasIsland(any(), any(UUID.class))).thenReturn(true);
         when(island.getUniqueId()).thenReturn("unique_id");

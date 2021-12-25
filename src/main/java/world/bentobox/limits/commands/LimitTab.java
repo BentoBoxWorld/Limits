@@ -1,13 +1,7 @@
 package world.bentobox.limits.commands;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.bukkit.Material;
@@ -88,26 +82,30 @@ public class LimitTab implements Tab {
         addEntityLimits(ibc, island);
         addEntityGroupLimits(ibc, island);
         // Sort
-        switch (sortBy) {
-        default:
-            Collections.sort(result, (o1, o2) -> o1.getName().compareTo(o2.getName()));
-            break;
-        case Z2A:
-            Collections.sort(result, (o1, o2) -> o2.getName().compareTo(o1.getName()));
-            break;
+        if (sortBy == SORT_BY.Z2A) {
+            result.sort((o1, o2) -> o2.getName().compareTo(o1.getName()));
+        } else {
+            result.sort(Comparator.comparing(PanelItem::getName));
         }
 
     }
 
     private void addEntityGroupLimits(IslandBlockCount ibc, Island island) {
         // Entity group limits
-        Map<EntityGroup, Integer> groupmap = addon.getSettings().getGroupLimitDefinitions().stream().collect(Collectors.toMap(e -> e, e -> e.getLimit()));
-        Map<String, EntityGroup> groupbyname = groupmap.keySet().stream().collect(Collectors.toMap(e -> e.getName(), e -> e));
+        Map<EntityGroup, Integer> groupMap = addon.getSettings().getGroupLimitDefinitions().stream().collect(Collectors.toMap(e -> e, EntityGroup::getLimit));
+        // Group by same loop up map
+        Map<String, EntityGroup> groupByName = groupMap.keySet().stream().collect(Collectors.toMap(EntityGroup::getName, e -> e));
         // Merge in any permission-based limits
-        if (ibc != null) ibc.getEntityGroupLimits().entrySet().stream()
-                .filter(e -> groupbyname.containsKey(e.getKey()))
-                .forEach(e -> groupmap.put(groupbyname.get(e.getKey()), e.getValue()));
-        groupmap.forEach((v, limit) -> {
+        if (ibc == null) {
+            return;
+        }
+        ibc.getEntityGroupLimits().entrySet().stream()
+        .filter(e -> groupByName.containsKey(e.getKey()))
+        .forEach(e -> groupMap.put(groupByName.get(e.getKey()), e.getValue()));
+        // Update the group map for each group limit offset. If the value already exists add it
+        ibc.getEntityGroupLimitsOffset().forEach((key, value) ->
+        groupMap.put(groupByName.get(key), (groupMap.getOrDefault(groupByName.get(key), 0) + value)));
+        groupMap.forEach((v, limit) -> {
             PanelItemBuilder pib = new PanelItemBuilder();
             EntityType k = v.getTypes().iterator().next();
             pib.name(v.getName());
@@ -118,7 +116,7 @@ public class LimitTab implements Tab {
                 if (E2M.containsKey(k)) {
                     m = E2M.get(k);
                 } else if (k.isAlive()) {
-                    m = Material.valueOf(k.toString() + "_SPAWN_EGG");
+                    m = Material.valueOf(k + "_SPAWN_EGG");
                 } else {
                     // Regular material
                     m = Material.valueOf(k.toString());
@@ -142,7 +140,11 @@ public class LimitTab implements Tab {
         // Entity limits
         Map<EntityType, Integer> map = new HashMap<>(addon.getSettings().getLimits());
         // Merge in any permission-based limits
-        if (ibc != null) ibc.getEntityLimits().forEach(map::put);
+        if (ibc != null) {
+            map.putAll(ibc.getEntityLimits());
+            ibc.getEntityLimitsOffset().forEach((k,v) -> map.put(k, map.getOrDefault(k, 0) + v));
+        }
+
         map.forEach((k,v) -> {
             PanelItemBuilder pib = new PanelItemBuilder();
             pib.name(Util.prettifyText(k.toString()));
@@ -151,7 +153,7 @@ public class LimitTab implements Tab {
                 if (E2M.containsKey(k)) {
                     m = E2M.get(k);
                 } else if (k.isAlive()) {
-                    m = Material.valueOf(k.toString() + "_SPAWN_EGG");
+                    m = Material.valueOf(k + "_SPAWN_EGG");
                 } else {
                     // Regular material
                     m = Material.valueOf(k.toString());
@@ -180,11 +182,12 @@ public class LimitTab implements Tab {
             pib.icon(B2M.getOrDefault(en.getKey(), en.getKey()));
 
             int count = ibc == null ? 0 : ibc.getBlockCounts().getOrDefault(en.getKey(), 0);
-            String color = count >= en.getValue() ? user.getTranslation("island.limits.max-color") : user.getTranslation("island.limits.regular-color");
+            int value = en.getValue() + (ibc == null ? 0 : ibc.getBlockLimitsOffset().getOrDefault(en.getKey(), 0));
+            String color = count >= value ? user.getTranslation("island.limits.max-color") : user.getTranslation("island.limits.regular-color");
             pib.description(color
                     + user.getTranslation("island.limits.block-limit-syntax",
                             TextVariables.NUMBER, String.valueOf(count),
-                            "[limit]", String.valueOf(en.getValue())));
+                            "[limit]", String.valueOf(value)));
             result.add(pib.build());
         }
     }

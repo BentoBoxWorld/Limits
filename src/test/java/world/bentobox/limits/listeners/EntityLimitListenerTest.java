@@ -45,7 +45,6 @@ public class EntityLimitListenerTest {
     private LivingEntity ent;
     @Mock
     private BlockLimitsListener bll;
-    private Settings settings;
     @Mock
     private World world;
     private List<Entity> collection;
@@ -63,7 +62,7 @@ public class EntityLimitListenerTest {
         when(island.getUniqueId()).thenReturn(UUID.randomUUID().toString());
         when(island.inIslandSpace(any(Location.class))).thenReturn(true);
 
-        ibc = new IslandBlockCount();
+        ibc = new IslandBlockCount("","");
         when(bll.getIsland(anyString())).thenReturn(ibc);
         when(addon.getBlockLimitListener()).thenReturn(bll);
 
@@ -71,7 +70,7 @@ public class EntityLimitListenerTest {
         config.load("src/main/resources/config.yml");
         // Settings
         when(addon.getConfig()).thenReturn(config);
-        settings = new Settings(addon);
+        Settings settings = new Settings(addon);
         when(addon.getSettings()).thenReturn(settings);
 
         // World
@@ -87,7 +86,7 @@ public class EntityLimitListenerTest {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
     }
 
     /**

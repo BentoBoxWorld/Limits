@@ -17,6 +17,7 @@ import world.bentobox.limits.commands.PlayerCommand;
 import world.bentobox.limits.listeners.BlockLimitsListener;
 import world.bentobox.limits.listeners.EntityLimitListener;
 import world.bentobox.limits.listeners.JoinListener;
+import world.bentobox.limits.objects.IslandBlockCount;
 
 
 /**
@@ -26,6 +27,7 @@ import world.bentobox.limits.listeners.JoinListener;
  */
 public class Limits extends Addon {
 
+    private static final String LIMIT_NOT_SET = "Limit not set";
     private Settings settings;
     private List<GameModeAddon> gameModes;
     private BlockLimitsListener blockLimitListener;
@@ -134,8 +136,8 @@ public class Limits extends Addon {
     private void registerPlaceholders(GameModeAddon gm) {
         if (getPlugin().getPlaceholdersManager() == null) return;
         Arrays.stream(Material.values())
-                .filter(m -> m.isBlock())
-                .forEach(m -> registerCountAndLimitPlaceholders(m, gm));
+        .filter(Material::isBlock)
+        .forEach(m -> registerCountAndLimitPlaceholders(m, gm));
     }
 
     /**
@@ -148,8 +150,8 @@ public class Limits extends Addon {
      *      "Limits_bskyblock_island_hopper_count"
      *      "Limits_bskyblock_island_hopper_limit"
      *
-     * @param m
-     * @param gm
+     * @param m material
+     * @param gm game mode
      */
     private void registerCountAndLimitPlaceholders(Material m, GameModeAddon gm) {
         getPlugin().getPlaceholdersManager().registerPlaceholder(this,
@@ -163,7 +165,7 @@ public class Limits extends Addon {
     /**
      * @param user - Used to identify the island the user belongs to
      * @param m - The material we are trying to count on the island
-     * @param gm
+     * @param gm Game Mode Addon
      * @return Number of blocks of the specified material on the given user's island
      */
     private int getCount(@Nullable User user, Material m, GameModeAddon gm) {
@@ -171,24 +173,30 @@ public class Limits extends Addon {
         if (is == null) {
             return 0;
         }
-        return getBlockLimitListener().getIsland(gm.getIslands().getIsland(gm.getOverWorld(), user).getUniqueId()).
-                getBlockCount(m);
+        @Nullable IslandBlockCount ibc = getBlockLimitListener().getIsland(is.getUniqueId());
+        if (ibc == null) {
+            return 0;
+        }
+        return ibc.getBlockCount(m);
     }
 
     /**
      * @param user - Used to identify the island the user belongs to
      * @param m - The material whose limit we are querying
-     * @param gm
+     * @param gm Game Mode Addon
      * @return The limit of the specified material on the given user's island
      */
     private String getLimit(@Nullable User user, Material m, GameModeAddon gm) {
         Island is = gm.getIslands().getIsland(gm.getOverWorld(), user);
         if (is == null) {
-            return "Limit not set";
+            return LIMIT_NOT_SET;
         }
-        int limit = getBlockLimitListener().getIsland(gm.getIslands().getIsland(gm.getOverWorld(), user).getUniqueId()).
-                getBlockLimit(m);
-        return limit == -1 ? "Limit not set" : String.valueOf(limit);
+        @Nullable IslandBlockCount ibc = getBlockLimitListener().getIsland(is.getUniqueId());
+        if (ibc == null) {
+            return LIMIT_NOT_SET;
+        }
+        int limit = ibc.getBlockLimit(m);
+        return limit == -1 ? LIMIT_NOT_SET : String.valueOf(limit);
     }
 
 }
