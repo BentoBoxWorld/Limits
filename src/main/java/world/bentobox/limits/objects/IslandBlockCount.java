@@ -270,7 +270,7 @@ public class IslandBlockCount implements DataObject {
      * @return limit or -1 for unlimited
      */
     public int getEntityGroupLimit(String name) {
-        return entityGroupLimits.getOrDefault(name, -1) + getEntityLimitsOffset().getOrDefault(name, 0);
+        return entityGroupLimits.getOrDefault(name, -1) + getEntityGroupLimitsOffset().getOrDefault(name, 0);
     }
 
     /**

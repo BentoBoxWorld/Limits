@@ -119,7 +119,7 @@ public class Settings {
      * @return the group limit definitions
      */
     public List<EntityGroup> getGroupLimitDefinitions() {
-        return groupLimits.values().stream().flatMap(Collection::stream).distinct().collect(Collectors.toList());
+        return groupLimits.values().stream().flatMap(Collection::stream).distinct().toList();
     }
 
     /**

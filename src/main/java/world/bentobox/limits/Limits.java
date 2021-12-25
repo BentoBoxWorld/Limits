@@ -27,6 +27,7 @@ import world.bentobox.limits.objects.IslandBlockCount;
  */
 public class Limits extends Addon {
 
+    private static final String LIMIT_NOT_SET = "Limit not set";
     private Settings settings;
     private List<GameModeAddon> gameModes;
     private BlockLimitsListener blockLimitListener;
@@ -188,14 +189,14 @@ public class Limits extends Addon {
     private String getLimit(@Nullable User user, Material m, GameModeAddon gm) {
         Island is = gm.getIslands().getIsland(gm.getOverWorld(), user);
         if (is == null) {
-            return "Limit not set";
+            return LIMIT_NOT_SET;
         }
         @Nullable IslandBlockCount ibc = getBlockLimitListener().getIsland(is.getUniqueId());
         if (ibc == null) {
-            return "Limit not set";
+            return LIMIT_NOT_SET;
         }
         int limit = ibc.getBlockLimit(m);
-        return limit == -1 ? "Limit not set" : String.valueOf(limit);
+        return limit == -1 ? LIMIT_NOT_SET : String.valueOf(limit);
     }
 
 }

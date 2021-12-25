@@ -196,15 +196,16 @@ public class EntityLimitListener implements Listener {
         justSpawned.add(entity.getUniqueId());
         // Check for entities that need cleanup
         switch (reason) {
-            case BUILD_IRONGOLEM -> detectIronGolem(l);
-            case BUILD_SNOWMAN -> detectSnowman(l);
-            case BUILD_WITHER -> {
-                detectWither(l);
-                // Create explosion
-                l.getWorld().createExplosion(l, 7F, true, true, entity);
-            }
-            default -> {
-            }
+        case BUILD_IRONGOLEM -> detectIronGolem(l);
+        case BUILD_SNOWMAN -> detectSnowman(l);
+        case BUILD_WITHER -> {
+            detectWither(l);
+            // Create explosion
+            l.getWorld().createExplosion(l, 7F, true, true, entity);
+        }
+        default -> {
+            // Do nothing
+        }
         }
     }
 
