@@ -2,9 +2,13 @@ package world.bentobox.limits.commands;
 
 import java.util.List;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import world.bentobox.bentobox.api.commands.CompositeCommand;
 import world.bentobox.bentobox.api.user.User;
+import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.limits.Limits;
+import world.bentobox.limits.calculators.Pipeliner;
 
 /**
  *
@@ -13,6 +17,7 @@ import world.bentobox.limits.Limits;
 public class RecountCommand extends CompositeCommand {
 
     private final Limits addon;
+    private @Nullable Island island;
 
     /**
      * Player command to do a recount. Has a cooldown
@@ -44,7 +49,8 @@ public class RecountCommand extends CompositeCommand {
             showHelp(this, user);
             return false;
         }
-        if (addon.getIslands().getIsland(getWorld(), user) == null) {
+        island = addon.getIslands().getIsland(getWorld(), user);
+        if (island == null) {
             user.sendMessage("general.errors.no-island");
             return false;
         }
@@ -54,7 +60,17 @@ public class RecountCommand extends CompositeCommand {
     public boolean execute(User user, String label, List<String> args) {
         // Set cooldown
         setCooldown(user.getUniqueId(), addon.getConfig().getInt("cooldown", 120));
-        new LimitsCalc(getWorld(), getPlugin(), user.getUniqueId(), addon, user);
+        user.sendRawMessage("Now recounting. This could take a while, please wait...");
+        new Pipeliner(addon).addIsland(island).thenAccept(results -> {
+            if (results == null) {
+                user.sendRawMessage("Already counting...");
+            } else {
+                switch (results.getState()) {
+                case TIMEOUT -> user.sendRawMessage("Time out when recounting. Is the island really big?");
+                default -> user.sendMessage("admin.limits.calc.finished");
+                }
+            }
+        });
         return true;
     }
 
