@@ -1,8 +1,7 @@
 package world.bentobox.limits.calculators;
 
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.bukkit.Material;
+import org.bukkit.entity.EntityType;
 
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
@@ -23,8 +22,7 @@ public class Results {
         TIMEOUT
     }
     final Multiset<Material> mdCount = HashMultiset.create();
-    // AtomicLong and AtomicInteger must be used because they are changed by multiple concurrent threads
-    AtomicLong rawBlockCount = new AtomicLong(0);
+    final Multiset<EntityType> entityCount = HashMultiset.create();
 
     final Result state;
 
@@ -41,11 +39,19 @@ public class Results {
     public Multiset<Material> getMdCount() {
         return mdCount;
     }
+
     /**
      * @return the state
      */
     public Result getState() {
         return state;
+    }
+
+    /**
+     * @return the entityCount
+     */
+    public Multiset<EntityType> getEntityCount() {
+        return entityCount;
     }
 
 }

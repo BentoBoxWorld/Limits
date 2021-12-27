@@ -14,7 +14,7 @@ import world.bentobox.limits.calculators.Pipeliner;
 
 /**
  *
- * @author YellowZaki
+ * @author YellowZaki, tastybento
  */
 public class CalcCommand extends CompositeCommand {
 
@@ -59,13 +59,13 @@ public class CalcCommand extends CompositeCommand {
                 return false;
             } else {
                 //Calculate
-                user.sendRawMessage("Now recounting. This could take a while, please wait...");
+                user.sendMessage("island.limits.recount.now-recounting");
                 new Pipeliner(addon).addIsland(island).thenAccept(results -> {
                     if (results == null) {
-                        user.sendRawMessage("Already counting...");
+                        user.sendMessage("island.limits.recount.in-progress");
                     } else {
                         switch (results.getState()) {
-                        case TIMEOUT -> user.sendRawMessage("Time out when recounting. Is the island really big?");
+                        case TIMEOUT -> user.sendMessage("admin.limits.calc.timeout");
                         default -> user.sendMessage("admin.limits.calc.finished");
                         }
                     }

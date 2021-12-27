@@ -60,13 +60,13 @@ public class RecountCommand extends CompositeCommand {
     public boolean execute(User user, String label, List<String> args) {
         // Set cooldown
         setCooldown(user.getUniqueId(), addon.getConfig().getInt("cooldown", 120));
-        user.sendRawMessage("Now recounting. This could take a while, please wait...");
+        user.sendMessage("island.limits.recount.now-recounting");
         new Pipeliner(addon).addIsland(island).thenAccept(results -> {
             if (results == null) {
-                user.sendRawMessage("Already counting...");
+                user.sendMessage("island.limits.recount.in-progress");
             } else {
                 switch (results.getState()) {
-                case TIMEOUT -> user.sendRawMessage("Time out when recounting. Is the island really big?");
+                case TIMEOUT -> user.sendMessage("admin.limits.calc.timeout");
                 default -> user.sendMessage("admin.limits.calc.finished");
                 }
             }

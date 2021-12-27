@@ -19,7 +19,7 @@ admin:
       calc:
          parameters: "<player>"
          description: "recalculate the island limits for player"
-         finished: "&aIsland recalc finished successfully!"
+         finished: "&a Island recalc finished successfully!"
 
 island:
   limits:
@@ -30,4 +30,7 @@ island:
     no-limits: "&cNo limits set in this world"
     recount:
       description: "recounts limits for your island"
+      now-recounting: "&b Now recounting. This could take a while, please wait..."
+      in-progress: "&c Island recound is in progress. Please wait..."
+      time-out: "&c Time out when recounting. Is the island really big?"
 
