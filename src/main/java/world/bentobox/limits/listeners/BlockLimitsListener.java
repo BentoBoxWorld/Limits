@@ -277,10 +277,11 @@ public class BlockLimitsListener implements Listener {
         }
     }
 
-
-
-
-    // Return equivalents. b can be Block/Material
+    /**
+     * Return equivalents. Maps things like wall materials to their non-wall equivalents
+     * @param b block data
+     * @return material that matches the block data
+     */
     public Material fixMaterial(BlockData b) {
         Material mat = b.getMaterial();
 

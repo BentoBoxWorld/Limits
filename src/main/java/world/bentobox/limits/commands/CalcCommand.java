@@ -7,16 +7,19 @@ import java.util.UUID;
 
 import world.bentobox.bentobox.api.commands.CompositeCommand;
 import world.bentobox.bentobox.api.user.User;
+import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Util;
 import world.bentobox.limits.Limits;
+import world.bentobox.limits.calculators.Pipeliner;
 
 /**
  *
- * @author YellowZaki
+ * @author YellowZaki, tastybento
  */
 public class CalcCommand extends CompositeCommand {
 
     private final Limits addon;
+    private Island island;
 
     /**
      * Admin command
@@ -49,10 +52,26 @@ public class CalcCommand extends CompositeCommand {
             if (playerUUID == null) {
                 user.sendMessage("general.errors.unknown-player", args.get(0));
                 return true;
+            }
+            island = addon.getIslands().getIsland(getWorld(), playerUUID);
+            if (island == null) {
+                user.sendMessage("general.errors.player-has-no-island");
+                return false;
             } else {
                 //Calculate
-                calcLimits(playerUUID, user);
+                user.sendMessage("island.limits.recount.now-recounting");
+                new Pipeliner(addon).addIsland(island).thenAccept(results -> {
+                    if (results == null) {
+                        user.sendMessage("island.limits.recount.in-progress");
+                    } else {
+                        switch (results.getState()) {
+                        case TIMEOUT -> user.sendMessage("admin.limits.calc.timeout");
+                        default -> user.sendMessage("admin.limits.calc.finished");
+                        }
+                    }
+                });
             }
+
             return true;
         } else {
             showHelp(this, user);
@@ -60,13 +79,7 @@ public class CalcCommand extends CompositeCommand {
         }
     }
 
-    private void calcLimits(UUID targetPlayer, User sender) {
-        if (addon.getIslands().getIsland(getWorld(), targetPlayer) != null) {
-            new LimitsCalc(getWorld(), getPlugin(), targetPlayer, addon, sender);
-        } else {
-            sender.sendMessage("general.errors.player-has-no-island");
-        }
-    }
+
 
     @Override
     public Optional<List<String>> tabComplete(User user, String alias, List<String> args) {
