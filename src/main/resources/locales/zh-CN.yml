@@ -30,3 +30,6 @@ island:
     no-limits: "&c此世界中无限制"
     recount:
       description: "重新计数岛屿限制"
+      now-recounting: "&b 开始重新计算. 可能需要一定的时间, 请稍等......"
+      in-progress: "&c 重新计算岛屿限制中. 请稍等......"
+      time-out: "&c 重新计算超时. 岛屿太大了吗?"
