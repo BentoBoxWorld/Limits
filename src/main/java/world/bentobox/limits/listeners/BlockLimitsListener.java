@@ -38,12 +38,14 @@ import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import world.bentobox.bentobox.api.events.island.IslandDeleteEvent;
 import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.Database;
+import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Util;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.objects.IslandBlockCount;
@@ -461,6 +463,16 @@ public class BlockLimitsListener implements Listener {
     @Nullable
     public IslandBlockCount getIsland(String islandId) {
         return islandCountMap.get(islandId);
+    }
+
+    /**
+     * Get the island block count for island and make one if it does not exist
+     * @param island island
+     * @return island block count
+     */
+    @NonNull
+    public IslandBlockCount getIsland(Island island) {
+        return islandCountMap.computeIfAbsent(island.getUniqueId(), k -> new IslandBlockCount(k, island.getGameMode()));
     }
 
 }
