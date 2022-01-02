@@ -18,9 +18,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.jdt.annotation.Nullable;
 
-import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.api.events.island.IslandEvent;
 import world.bentobox.bentobox.api.events.island.IslandEvent.Reason;
 import world.bentobox.bentobox.api.events.team.TeamSetownerEvent;
@@ -84,19 +82,25 @@ public class JoinListener implements Listener {
             }
             // Get the value
             int value = Integer.parseInt(split[4]);
+            addon.log("Setting login limit via perm for " + player.getName() + "...");
+
             // Fire perm check event
             LimitsPermCheckEvent l = new LimitsPermCheckEvent(player, islandId, ibc, entgroup, et, m, value);
             Bukkit.getPluginManager().callEvent(l);
-            if (l.isCancelled()) continue;
+            if (l.isCancelled()) {
+                addon.log("Permissions not set because another addon/plugin canceled setting.");
+                continue;
+            }
             // Use event values
             ibc = l.getIbc();
+            // Make an ibc if required
+            if (ibc == null) {
+                ibc = new IslandBlockCount(islandId, gameMode);
+            }
             // Run null checks and set ibc
             runNullCheckAndSet(ibc, l);
         }
         // Check removed permissions
-        if (ibc == null) {
-            BentoBox.getInstance().logDebug("IBC is still null");
-        }
         // If any changes have been made then store it - don't make files unless they are needed
         if (ibc != null) addon.getBlockLimitListener().setIsland(islandId, ibc);
     }
@@ -122,30 +126,37 @@ public class JoinListener implements Listener {
         return false;
     }
 
-    private void runNullCheckAndSet(@Nullable IslandBlockCount ibc,  @NonNull LimitsPermCheckEvent l) {
-        if (ibc == null) {
-            return;
-        }
+    private void runNullCheckAndSet(@NonNull IslandBlockCount ibc,  @NonNull LimitsPermCheckEvent l) {
         EntityGroup entgroup = l.getEntityGroup();
         EntityType et = l.getEntityType();
         Material m = l.getMaterial();
         int value = l.getValue();
         if (entgroup != null) {
             // Entity group limit
-            ibc.setEntityGroupLimit(entgroup.getName(), Math.max(ibc.getEntityGroupLimit(entgroup.getName()), value));
+            int v = Math.max(ibc.getEntityGroupLimit(entgroup.getName()), value);
+            ibc.setEntityGroupLimit(entgroup.getName(), v);
+            addon.log("Setting group limit " + entgroup.getName() + " " + v);
         } else if (et != null && m == null) {
             // Entity limit
-            ibc.setEntityLimit(et, Math.max(ibc.getEntityLimit(et), value));
+            int v = Math.max(ibc.getEntityLimit(et), value);
+            ibc.setEntityLimit(et, v);
+            addon.log("Setting entity limit " + et + " " + v);
         } else if (m != null && et == null) {
-            // Material limit
-            ibc.setBlockLimit(m, Math.max(ibc.getBlockLimit(m), value));
+            // Block limit
+            int v = Math.max(ibc.getBlockLimit(m), value);
+            addon.log("Setting block limit " + m + " " + v);
+            ibc.setBlockLimit(m, v);
         } else {
             if (m != null && m.isBlock()) {
+                int v = Math.max(ibc.getBlockLimit(m), value);
+                addon.log("Setting block limit " + m + " " + v);
                 // Material limit
-                ibc.setBlockLimit(m, Math.max(ibc.getBlockLimit(m), value));
+                ibc.setBlockLimit(m, v);
             } else if (et != null){
+                int v = Math.max(ibc.getEntityLimit(et), value);
+                addon.log("Setting entity limit " + et + " " + v);
                 // This is an entity setting
-                ibc.setEntityLimit(et, Math.max(ibc.getEntityLimit(et), value));
+                ibc.setEntityLimit(et, v);
             }
         }
 
@@ -191,6 +202,13 @@ public class JoinListener implements Listener {
         });
     }
 
+    /**
+     * Fire event so other addons can cancel this permissions change
+     * @param player player
+     * @param islandId island id
+     * @param ibc island block count
+     * @return true if canceled
+     */
     private boolean joinEventCheck(Player player, String islandId, IslandBlockCount ibc) {
         // Fire event, so other addons can cancel this permissions change
         LimitsJoinPermCheckEvent e = new LimitsJoinPermCheckEvent(player, islandId, ibc);
