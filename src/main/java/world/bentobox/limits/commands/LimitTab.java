@@ -103,8 +103,11 @@ public class LimitTab implements Tab {
         .filter(e -> groupByName.containsKey(e.getKey()))
         .forEach(e -> groupMap.put(groupByName.get(e.getKey()), e.getValue()));
         // Update the group map for each group limit offset. If the value already exists add it
-        ibc.getEntityGroupLimitsOffset().forEach((key, value) ->
-        groupMap.put(groupByName.get(key), (groupMap.getOrDefault(groupByName.get(key), 0) + value)));
+        ibc.getEntityGroupLimitsOffset().forEach((key, value) -> {
+            if (groupByName.get(key) != null) {
+                groupMap.put(groupByName.get(key), (groupMap.getOrDefault(groupByName.get(key), 0) + value));
+            }
+        });
         groupMap.forEach((v, limit) -> {
             PanelItemBuilder pib = new PanelItemBuilder();
             EntityType k = v.getTypes().iterator().next();
