@@ -209,6 +209,13 @@ public class BlockLimitsListener implements Listener {
         notify(e, User.getInstance(e.getPlayer()), process(e.getBlock(), true), e.getBlock().getType());
     }
 
+    /**
+     * Cancel the event and notify the user of failure
+     * @param e event
+     * @param user user
+     * @param limit maximum limit allowed
+     * @param m material
+     */
     private void notify(Cancellable e, User user, int limit, Material m) {
         if (limit > -1) {
             user.notify("block-limits.hit-limit",
@@ -389,18 +396,18 @@ public class BlockLimitsListener implements Listener {
      */
     private int checkLimit(World w, Material m, String id) {
         // Check island limits
-        IslandBlockCount island = islandCountMap.get(id);
-        if (island.isBlockLimited(m)) {
-            return island.isAtLimit(m) ? island.getBlockLimit(m) : -1;
+        IslandBlockCount ibc = islandCountMap.get(id);
+        if (ibc.isBlockLimited(m)) {
+            return ibc.isAtLimit(m) ? ibc.getBlockLimit(m) + ibc.getBlockLimitOffset(m) : -1;
         }
         // Check specific world limits
         if (worldLimitMap.containsKey(w) && worldLimitMap.get(w).containsKey(m)) {
             // Material is overridden in world
-            return island.isAtLimit(m, worldLimitMap.get(w).get(m)) ? worldLimitMap.get(w).get(m) : -1;
+            return ibc.isAtLimit(m, worldLimitMap.get(w).get(m)) ? worldLimitMap.get(w).get(m) + ibc.getBlockLimitOffset(m) : -1;
         }
         // Check default limit map
-        if (defaultLimitMap.containsKey(m) && island.isAtLimit(m, defaultLimitMap.get(m))) {
-            return defaultLimitMap.get(m);
+        if (defaultLimitMap.containsKey(m) && ibc.isAtLimit(m, defaultLimitMap.get(m))) {
+            return defaultLimitMap.get(m) + ibc.getBlockLimitOffset(m);
         }
         // No limit
         return -1;

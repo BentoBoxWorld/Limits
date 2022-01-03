@@ -30,6 +30,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityBreedEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
+import org.eclipse.jdt.annotation.Nullable;
 
 import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.api.localization.TextVariables;
@@ -39,6 +40,7 @@ import world.bentobox.bentobox.util.Util;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.Settings;
 import world.bentobox.limits.Settings.EntityGroup;
+import world.bentobox.limits.objects.IslandBlockCount;
 
 public class EntityLimitListener implements Listener {
     private static final String MOD_BYPASS = "mod.bypass";
@@ -369,11 +371,16 @@ public class EntityLimitListener implements Listener {
         // Check island settings first
         int limitAmount = -1;
         Map<Settings.EntityGroup, Integer> groupsLimits = new HashMap<>();
-        if (addon.getBlockLimitListener().getIsland(island.getUniqueId()) != null) {
-            limitAmount = addon.getBlockLimitListener().getIsland(island.getUniqueId()).getEntityLimit(ent.getType());
+
+        @Nullable
+        IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(island.getUniqueId());
+        if (ibc != null) {
+            // Get the limit amount for this type
+            limitAmount = ibc.getEntityLimit(ent.getType());
+            // Handle entity groups
             List<Settings.EntityGroup> groupdefs = addon.getSettings().getGroupLimits().getOrDefault(ent.getType(), new ArrayList<>());
             groupdefs.forEach(def -> {
-                int limit = addon.getBlockLimitListener().getIsland(island.getUniqueId()).getEntityGroupLimit(def.getName());
+                int limit = ibc.getEntityGroupLimit(def.getName());
                 if (limit >= 0)
                     groupsLimits.put(def, limit);
             });
@@ -382,12 +389,15 @@ public class EntityLimitListener implements Listener {
         if (limitAmount < 0 && addon.getSettings().getLimits().containsKey(ent.getType())) {
             limitAmount = addon.getSettings().getLimits().get(ent.getType());
         }
+        // Group limits
         if (addon.getSettings().getGroupLimits().containsKey(ent.getType())) {
             addon.getSettings().getGroupLimits().getOrDefault(ent.getType(), new ArrayList<>()).stream()
             .filter(group -> !groupsLimits.containsKey(group) || groupsLimits.get(group) > group.getLimit())
             .forEach(group -> groupsLimits.put(group, group.getLimit()));
         }
-        if (limitAmount < 0 && groupsLimits.isEmpty()) return new AtLimitResult();
+        if (limitAmount < 0 && groupsLimits.isEmpty()) {
+            return new AtLimitResult();
+        }
 
         // We have to count the entities
         if (limitAmount >= 0)
@@ -396,14 +406,16 @@ public class EntityLimitListener implements Listener {
                     .filter(e -> e.getType().equals(ent.getType()))
                     .filter(e -> island.inIslandSpace(e.getLocation()))
                     .count();
-            if (count >= limitAmount) {
-                return new AtLimitResult(ent.getType(), limitAmount);
+            int max = limitAmount + ibc.getEntityLimitOffset(ent.getType());
+            if (count >= max) {
+                return new AtLimitResult(ent.getType(), max);
             }
         }
-        // Merge in any permission-based limits
-        if (addon.getBlockLimitListener().getIsland(island.getUniqueId()) != null) {
-            Map<String, EntityGroup> groupbyname = groupsLimits.keySet().stream().collect(Collectors.toMap(EntityGroup::getName, e -> e));
-            addon.getBlockLimitListener().getIsland(island.getUniqueId()).getEntityGroupLimits().entrySet().stream()
+        // Group limits
+        if (ibc != null) {
+            Map<String, EntityGroup> groupbyname = groupsLimits.keySet().stream()
+                    .collect(Collectors.toMap(EntityGroup::getName, e -> e));
+            ibc.getEntityGroupLimits().entrySet().stream()
             .filter(e -> groupbyname.containsKey(e.getKey()))
             .forEach(e -> groupsLimits.put(groupbyname.get(e.getKey()), e.getValue()));
         }
@@ -414,8 +426,10 @@ public class EntityLimitListener implements Listener {
             int count = (int) ent.getWorld().getEntities().stream()
                     .filter(e -> group.getKey().contains(e.getType()))
                     .filter(e -> island.inIslandSpace(e.getLocation())).count();
-            if (count >= group.getValue())
-                return new AtLimitResult(group.getKey(), group.getValue());
+            int max = group.getValue() + ibc.getEntityGroupLimitOffset(group.getKey().getName());
+            if (count >= max) {
+                return new AtLimitResult(group.getKey(), max);
+            }
         }
         return new AtLimitResult();
     }

@@ -127,7 +127,7 @@ public class IslandBlockCount implements DataObject {
      * @return true if count is >= limit
      */
     public boolean isAtLimit(Material material, int limit) {
-        return blockCounts.getOrDefault(material, 0) >= limit;
+        return blockCounts.getOrDefault(material, 0) >= limit + this.getBlockLimitOffset(material);
     }
 
     /**
@@ -137,7 +137,7 @@ public class IslandBlockCount implements DataObject {
      */
     public boolean isAtLimit(Material m) {
         // Check island limits first
-        return blockLimits.containsKey(m) && blockCounts.getOrDefault(m, 0) >= getBlockLimit(m);
+        return blockLimits.containsKey(m) && blockCounts.getOrDefault(m, 0) >= getBlockLimit(m) + this.getBlockLimitOffset(m);
     }
 
     public boolean isBlockLimited(Material m) {
@@ -164,8 +164,17 @@ public class IslandBlockCount implements DataObject {
      * @param m - material
      * @return limit or -1 for unlimited
      */
-    public Integer getBlockLimit(Material m) {
-        return blockLimits.getOrDefault(m, -1) + getBlockLimitsOffset().getOrDefault(m, 0);
+    public int getBlockLimit(Material m) {
+        return blockLimits.getOrDefault(m, -1);
+    }
+
+    /**
+     * Get the block offset for this material for this island
+     * @param m - material
+     * @return offset
+     */
+    public int getBlockLimitOffset(Material m) {
+        return  getBlockLimitsOffset().getOrDefault(m, 0);
     }
 
     /**
@@ -228,7 +237,16 @@ public class IslandBlockCount implements DataObject {
      * @return limit or -1 for unlimited
      */
     public int getEntityLimit(EntityType t) {
-        return entityLimits.getOrDefault(t, -1) + getEntityLimitsOffset().getOrDefault(t, 0);
+        return entityLimits.getOrDefault(t, -1);
+    }
+
+    /**
+     * Get the limit offset for an entity type
+     * @param t - entity type
+     * @return offset
+     */
+    public int getEntityLimitOffset(EntityType t) {
+        return getEntityLimitsOffset().getOrDefault(t, 0);
     }
 
     /**
@@ -270,7 +288,16 @@ public class IslandBlockCount implements DataObject {
      * @return limit or -1 for unlimited
      */
     public int getEntityGroupLimit(String name) {
-        return entityGroupLimits.getOrDefault(name, -1) + getEntityGroupLimitsOffset().getOrDefault(name, 0);
+        return entityGroupLimits.getOrDefault(name, -1);
+    }
+
+    /**
+     * Get the offset for an entity group
+     * @param name - entity group
+     * @return offset
+     */
+    public int getEntityGroupLimitOffset(String name) {
+        return getEntityGroupLimitsOffset().getOrDefault(name, 0);
     }
 
     /**
