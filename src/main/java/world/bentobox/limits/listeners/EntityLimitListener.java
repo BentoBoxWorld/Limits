@@ -406,7 +406,7 @@ public class EntityLimitListener implements Listener {
                     .filter(e -> e.getType().equals(ent.getType()))
                     .filter(e -> island.inIslandSpace(e.getLocation()))
                     .count();
-            int max = limitAmount + ibc.getEntityLimitOffset(ent.getType());
+            int max = limitAmount + (ibc == null ? 0 : ibc.getEntityLimitOffset(ent.getType()));
             if (count >= max) {
                 return new AtLimitResult(ent.getType(), max);
             }
@@ -426,7 +426,7 @@ public class EntityLimitListener implements Listener {
             int count = (int) ent.getWorld().getEntities().stream()
                     .filter(e -> group.getKey().contains(e.getType()))
                     .filter(e -> island.inIslandSpace(e.getLocation())).count();
-            int max = group.getValue() + ibc.getEntityGroupLimitOffset(group.getKey().getName());
+            int max = group.getValue() + + (ibc == null ? 0 : ibc.getEntityGroupLimitOffset(group.getKey().getName()));
             if (count >= max) {
                 return new AtLimitResult(group.getKey(), max);
             }
