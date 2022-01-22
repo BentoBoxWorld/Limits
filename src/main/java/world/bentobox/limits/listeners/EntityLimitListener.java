@@ -17,6 +17,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Animals;
+import org.bukkit.entity.Villager;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -109,7 +110,7 @@ public class EntityLimitListener implements Listener {
             justSpawned.remove(e.getEntity().getUniqueId());
             return;
         }
-        if (e.getSpawnReason().equals(SpawnReason.SHOULDER_ENTITY) || e.getSpawnReason().equals(SpawnReason.BREEDING)) {
+        if (e.getSpawnReason().equals(SpawnReason.SHOULDER_ENTITY) || (!(e.getEntity() instanceof Villager ) && e.getSpawnReason().equals(SpawnReason.BREEDING))) {
             // Special case - do nothing - jumping around spawns parrots as they drop off player's shoulder
             // Ignore breeding because it's handled in the EntityBreedEvent listener
             return;
