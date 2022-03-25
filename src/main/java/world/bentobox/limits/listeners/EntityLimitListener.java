@@ -91,7 +91,7 @@ public class EntityLimitListener implements Listener {
     public void onBreed(final EntityBreedEvent e) {
         if (addon.inGameModeWorld(e.getEntity().getWorld())
                 && e.getBreeder() != null
-                && e.getBreeder() instanceof Player p
+                && (e.getBreeder() instanceof Player p)
                 && !(p.isOp() || p.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getEntity().getWorld()) + MOD_BYPASS))
                 && !checkLimit(e, e.getEntity(), SpawnReason.BREEDING, false)
                 && e.getFather() instanceof Animals f && e.getMother() instanceof Animals m) {
