@@ -431,7 +431,12 @@ public class BlockLimitsListener implements Listener {
         }
         // Island
         if (islandCountMap.containsKey(id)) {
-            result.putAll(islandCountMap.get(id).getBlockLimits());
+            IslandBlockCount islandBlockCount = islandCountMap.get(id);
+            result.putAll(islandBlockCount.getBlockLimits());
+
+            // Add offsets to the every limit.
+            islandBlockCount.getBlockLimitsOffset().forEach((material, offset) ->
+                result.put(material, result.getOrDefault(material, 0) + offset));
         }
         return result;
     }
