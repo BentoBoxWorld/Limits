@@ -191,11 +191,11 @@ public class Limits extends Addon {
         if (is == null) {
             return LIMIT_NOT_SET;
         }
-        @Nullable IslandBlockCount ibc = getBlockLimitListener().getIsland(is.getUniqueId());
-        if (ibc == null) {
-            return LIMIT_NOT_SET;
-        }
-        int limit = ibc.getBlockLimit(m);
+
+        int limit = this.getBlockLimitListener().
+            getMaterialLimits(is.getWorld(), is.getUniqueId()).
+            getOrDefault(m, -1);
+
         return limit == -1 ? LIMIT_NOT_SET : String.valueOf(limit);
     }
 
