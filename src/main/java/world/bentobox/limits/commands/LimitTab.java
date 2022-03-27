@@ -185,7 +185,7 @@ public class LimitTab implements Tab {
             pib.icon(B2M.getOrDefault(en.getKey(), en.getKey()));
 
             int count = ibc == null ? 0 : ibc.getBlockCounts().getOrDefault(en.getKey(), 0);
-            int value = en.getValue() + (ibc == null ? 0 : ibc.getBlockLimitsOffset().getOrDefault(en.getKey(), 0));
+            int value = en.getValue();
             String color = count >= value ? user.getTranslation("island.limits.max-color") : user.getTranslation("island.limits.regular-color");
             pib.description(color
                     + user.getTranslation("island.limits.block-limit-syntax",
