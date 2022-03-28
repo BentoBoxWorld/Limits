@@ -1,4 +1,4 @@
-package world.bentobox.limits.commands;
+package world.bentobox.limits.commands.admin;
 
 import java.util.ArrayList;
 import java.util.List;

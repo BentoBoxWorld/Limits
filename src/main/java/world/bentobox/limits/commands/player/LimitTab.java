@@ -1,4 +1,4 @@
-package world.bentobox.limits.commands;
+package world.bentobox.limits.commands.player;
 
 import java.util.*;
 import java.util.Map.Entry;

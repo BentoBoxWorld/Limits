@@ -1,4 +1,4 @@
-package world.bentobox.limits.commands;
+package world.bentobox.limits.commands.player;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
