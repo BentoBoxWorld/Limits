@@ -20,7 +20,32 @@ admin:
          parameters: "<player>"
          description: "recalculate the island limits for player"
          finished: "&a Island recalc finished successfully!"
-
+      offset:
+        unknown: "&c Unknown material or entity [name]."
+        main:
+          parameters: ""
+          description: "allows to manage limits offsets for materials and entities"
+        set:
+          parameters: "<player> <material|entity> <number>"
+          description: "sets new offset for material or entity limit"
+          success: "&a Limit offset for [name] is set to [number]."
+          same: "&c Limit offset for [name] is already [number]."
+        add:
+          parameters: "<player> <material|entity> <number>"
+          description: "adds offset for material or entity limit"
+          success: "&a Limit offset for [name] is increased till [number]."
+        remove:
+          parameters: "<player> <material|entity> <number>"
+          description: "reduces offset for material or entity limit"
+          success: "&a Limit offset for [name] is reduced till [number]."
+        reset:
+          parameters: "<player> <material|entity>"
+          description: "removes offset for material or entity"
+          success: "&a Limit offset for [name] is set to 0."
+        view:
+          parameters: "<player> <material|entity>"
+          description: "displays offset for material or entity"
+          message: "&a [name] offset is set to [number]."
 island:
   limits:
     description: "show your island limits"
