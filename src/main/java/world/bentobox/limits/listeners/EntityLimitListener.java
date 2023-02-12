@@ -16,7 +16,7 @@ import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.entity.Animals;
+import org.bukkit.entity.Breedable;
 import org.bukkit.entity.Villager;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -94,9 +94,9 @@ public class EntityLimitListener implements Listener {
                 && (e.getBreeder() instanceof Player p)
                 && !(p.isOp() || p.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getEntity().getWorld()) + MOD_BYPASS))
                 && !checkLimit(e, e.getEntity(), SpawnReason.BREEDING, false)
-                && e.getFather() instanceof Animals f && e.getMother() instanceof Animals m) {
-            f.setLoveModeTicks(0);
-            m.setLoveModeTicks(0);
+                && e.getFather() instanceof Breedable f && e.getMother() instanceof Breedable m) {
+            f.setBreed(false);
+            m.setBreed(false);
         }
     }
 
