@@ -5,7 +5,7 @@ api-version: 1.16.5
 
 authors: tastybento
 
-softdepend: AcidIsland, BSkyBlock, CaveBlock
+softdepend: AcidIsland, BSkyBlock, CaveBlock, AOneBlock, SkyGrid
 
 permissions:    
   '[gamemode].limits.player.limits':
@@ -16,4 +16,7 @@ permissions:
     default: true
   '[gamemode].limits.admin.limits':
     description: Player can use admin limits command
+    default: op
+  '[gamemode].mod.bypass':
+    description: Player can bypass limits
     default: op
