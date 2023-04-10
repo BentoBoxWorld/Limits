@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import org.bukkit.Material;
 import org.bukkit.World;
 
+import org.bukkit.entity.EntityType;
 import org.eclipse.jdt.annotation.Nullable;
 import world.bentobox.bentobox.api.addons.Addon;
 import world.bentobox.bentobox.api.addons.GameModeAddon;
@@ -138,6 +139,9 @@ public class Limits extends Addon {
         Arrays.stream(Material.values())
         .filter(Material::isBlock)
         .forEach(m -> registerCountAndLimitPlaceholders(m, gm));
+
+        Arrays.stream(EntityType.values())
+                .forEach(e -> registerCountAndLimitPlaceholders(e, gm));
     }
 
     /**
@@ -149,6 +153,8 @@ public class Limits extends Addon {
      *  Placeholders:
      *      "Limits_bskyblock_island_hopper_count"
      *      "Limits_bskyblock_island_hopper_limit"
+     *      "Limits_bskyblock_island_hopper_base_limit"
+     *      "Limits_bskyblock_island_zombie_limit"
      *
      * @param m material
      * @param gm game mode
@@ -160,6 +166,18 @@ public class Limits extends Addon {
         getPlugin().getPlaceholdersManager().registerPlaceholder(this,
                 gm.getDescription().getName().toLowerCase() + "_island_" + m.toString().toLowerCase() + "_limit",
                 user -> getLimit(user, m, gm));
+        getPlugin().getPlaceholdersManager().registerPlaceholder(this,
+                gm.getDescription().getName().toLowerCase() + "_island_" + m.toString().toLowerCase() + "_base_limit",
+                user -> getBaseLimit(user, m, gm));
+    }
+
+    private void registerCountAndLimitPlaceholders(EntityType e, GameModeAddon gm) {
+        getPlugin().getPlaceholdersManager().registerPlaceholder(this,
+                gm.getDescription().getName().toLowerCase() + "_island_" + e.toString().toLowerCase() + "_limit",
+                user -> getLimit(user, e, gm));
+        getPlugin().getPlaceholdersManager().registerPlaceholder(this,
+                gm.getDescription().getName().toLowerCase() + "_island_" + e.toString().toLowerCase() + "_base_limit",
+                user -> getBaseLimit(user, e, gm));
     }
 
     /**
@@ -195,6 +213,48 @@ public class Limits extends Addon {
         int limit = this.getBlockLimitListener().
             getMaterialLimits(is.getWorld(), is.getUniqueId()).
             getOrDefault(m, -1);
+
+        return limit == -1 ? LIMIT_NOT_SET : String.valueOf(limit);
+    }
+
+    private String getBaseLimit(@Nullable User user, Material m, GameModeAddon gm) {
+        Island is = gm.getIslands().getIsland(gm.getOverWorld(), user);
+        if (is == null) {
+            return LIMIT_NOT_SET;
+        }
+
+        int limit = this.getBlockLimitListener().
+                getMaterialLimits(is.getWorld(), is.getUniqueId()).
+                getOrDefault(m, -1);
+
+        if (limit > 0) {
+            limit -= this.getBlockLimitListener().getIsland(is).getBlockLimitOffset(m);
+        }
+
+        return limit == -1 ? LIMIT_NOT_SET : String.valueOf(limit);
+    }
+
+    private String getLimit(@Nullable User user, EntityType e, GameModeAddon gm) {
+        Island is = gm.getIslands().getIsland(gm.getOverWorld(), user);
+        if (is == null) {
+            return LIMIT_NOT_SET;
+        }
+
+        int limit = this.getBlockLimitListener().getIsland(is).getEntityLimit(e);
+        if (limit < 0 && this.getSettings().getLimits().containsKey(e)) {
+            limit = this.getSettings().getLimits().get(e);
+        }
+
+        return limit == -1 ? LIMIT_NOT_SET : String.valueOf(limit);
+    }
+
+    private String getBaseLimit(@Nullable User user, EntityType e, GameModeAddon gm) {
+        Island is = gm.getIslands().getIsland(gm.getOverWorld(), user);
+        if (is == null || !this.getSettings().getLimits().containsKey(e)) {
+            return LIMIT_NOT_SET;
+        }
+
+        int limit = this.getSettings().getLimits().get(e);
 
         return limit == -1 ? LIMIT_NOT_SET : String.valueOf(limit);
     }
