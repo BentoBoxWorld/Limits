@@ -26,6 +26,13 @@ async-golums: true
 # These limits apply to every game mode world
 blocklimits:
   HOPPER: 10
+  
+# Custom block limits
+# Requires use of the ItemsAdder plugin. Custom blocks are currently only supported globally and not on a per-world basis.
+# Limits require the full namespace name of the custom block material
+customblocklimits:
+  # "iafestivities:christmas/christmas_tree/green_orb": 5
+  
 # This section is for world-specific limits and overrides the general limit
 # Specify each world you want to limit individually (including nether and end worlds)
 # If these worlds are not covered by the game modes above, nothing will happen

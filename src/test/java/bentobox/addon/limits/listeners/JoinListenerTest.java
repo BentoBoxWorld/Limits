@@ -400,7 +400,7 @@ public class JoinListenerTest {
     @Test
     public void testOnPlayerJoinWithPermLimitsMultiPermsSameMaterial() {
         // IBC - set the block limit for STONE to be 25 already
-        when(ibc.getBlockLimit(any())).thenReturn(25);
+        when(ibc.getBlockLimit(any(Material.class))).thenReturn(25);
         Set<PermissionAttachmentInfo> perms = new HashSet<>();
         PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
         when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.STONE.24");

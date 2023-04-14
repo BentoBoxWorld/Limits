@@ -3,12 +3,15 @@ package world.bentobox.limits.objects;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.entity.EntityType;
 
 import com.google.gson.annotations.Expose;
 
+import dev.lone.itemsadder.api.CustomBlock;
 import world.bentobox.bentobox.database.objects.DataObject;
 import world.bentobox.bentobox.database.objects.Table;
 
@@ -28,6 +31,9 @@ public class IslandBlockCount implements DataObject {
     @Expose
     private Map<Material, Integer> blockCounts = new EnumMap<>(Material.class);
 
+    @Expose
+    private Map<String, Integer> customBlockCounts = new HashMap<>();
+
     private boolean changed;
 
     /**
@@ -35,6 +41,8 @@ public class IslandBlockCount implements DataObject {
      */
     @Expose
     private Map<Material, Integer> blockLimits = new EnumMap<>(Material.class);
+    @Expose
+    private Map<String, Integer> customBlockLimits = new HashMap<>();
     @Expose
     private Map<EntityType, Integer> entityLimits = new EnumMap<>(EntityType.class);
     @Expose
@@ -121,6 +129,28 @@ public class IslandBlockCount implements DataObject {
     }
 
     /**
+     * Add a custom block to the count
+     * @param block - custom block
+     */
+    public void add(Block block) {
+        CustomBlock customBlock = CustomBlock.byAlreadyPlaced(block);
+        customBlockCounts.merge(Objects.requireNonNull(customBlock).getNamespacedID(), 1, Integer::sum);
+        setChanged();        
+    }
+    
+    /**
+     * Remove a custom block from the count
+     * @param block - block
+     */
+    public void remove(Block block) {
+        CustomBlock customBlock = CustomBlock.byAlreadyPlaced(block);
+        String id = Objects.requireNonNull(customBlock).getNamespacedID();
+        customBlockCounts.put(id, blockCounts.getOrDefault(id, 0) - 1);
+        blockCounts.values().removeIf(v -> v <= 0);
+        setChanged();
+    }
+
+    /**
      * Check if this material is at or over a limit
      * @param material - block material
      * @param limit - limit to check
@@ -128,6 +158,18 @@ public class IslandBlockCount implements DataObject {
      */
     public boolean isAtLimit(Material material, int limit) {
         return blockCounts.getOrDefault(material, 0) >= limit + this.getBlockLimitOffset(material);
+    }
+    
+    /**
+     * Check if this custom block is at or over a limit
+     * @param block - block
+     * @param limit - limit to check
+     * @return true if count is >= limit
+     */
+    public boolean isAtLimit(Block block, int limit) {
+        CustomBlock customBlock = CustomBlock.byAlreadyPlaced(block);
+        String id = Objects.requireNonNull(customBlock).getNamespacedID();
+        return customBlockCounts.getOrDefault(id, 0) >= limit; // TODO Add a permission offset
     }
 
     /**
@@ -139,9 +181,27 @@ public class IslandBlockCount implements DataObject {
         // Check island limits first
         return blockLimits.containsKey(m) && blockCounts.getOrDefault(m, 0) >= getBlockLimit(m) + this.getBlockLimitOffset(m);
     }
+    
+    /**
+     * Check if no more of this custom block can be added to this island
+     * @param block - block
+     * @return true if no more block can be added
+     */
+    public boolean isAtLimit(Block block) {
+        CustomBlock customBlock = CustomBlock.byAlreadyPlaced(block);
+        String id = Objects.requireNonNull(customBlock).getNamespacedID();
+        // Check island limits first
+        return customBlockLimits.containsKey(id) && customBlockCounts.getOrDefault(id, 0) >= getBlockLimit(block); // TODO add perm offset
+    }
 
     public boolean isBlockLimited(Material m) {
         return blockLimits.containsKey(m);
+    }
+    
+    public boolean isCustomBlockLimited(Block block) {
+        CustomBlock customBlock = CustomBlock.byAlreadyPlaced(block);
+        String id = Objects.requireNonNull(customBlock).getNamespacedID();
+        return customBlockLimits.containsKey(id);
     }
 
     /**
@@ -167,6 +227,17 @@ public class IslandBlockCount implements DataObject {
     public int getBlockLimit(Material m) {
         return blockLimits.getOrDefault(m, -1);
     }
+    
+    /**
+     * Get the custom block limit for this material for this island
+     * @param block - block
+     * @return limit or -1 for unlimited
+     */
+    public int getBlockLimit(Block block) {
+        CustomBlock customBlock = CustomBlock.byAlreadyPlaced(block);
+        String id = Objects.requireNonNull(customBlock).getNamespacedID();
+        return customBlockLimits.getOrDefault(id, -1);
+    }
 
     /**
      * Get the block offset for this material for this island
@@ -184,6 +255,16 @@ public class IslandBlockCount implements DataObject {
      */
     public void setBlockLimit(Material m, int limit) {
         blockLimits.put(m, limit);
+        setChanged();
+    }
+    
+    /**
+     * Set the custom block limit for this island
+     * @param id - namespaced id
+     * @param limit - maximum number allowed
+     */
+    public void setCustomBlockLimit(String id, int limit) {
+        customBlockLimits.put(id, limit);
         setChanged();
     }
 
@@ -384,5 +465,33 @@ public class IslandBlockCount implements DataObject {
      */
     public void setEntityGroupLimitsOffset(String name, Integer entityGroupLimitsOffset) {
         getEntityGroupLimitsOffset().put(name, entityGroupLimitsOffset);
+    }
+
+    /**
+     * @return the customBlockCounts
+     */
+    public Map<String, Integer> getCustomBlockCounts() {
+        return customBlockCounts;
+    }
+
+    /**
+     * @param customBlockCounts the customBlockCounts to set
+     */
+    public void setCustomBlockCounts(Map<String, Integer> customBlockCounts) {
+        this.customBlockCounts = customBlockCounts;
+    }
+
+    /**
+     * @return the customBlockLimits
+     */
+    public Map<String, Integer> getCustomBlockLimits() {
+        return customBlockLimits;
+    }
+
+    /**
+     * @param customBlockLimits the customBlockLimits to set
+     */
+    public void setCustomBlockLimits(Map<String, Integer> customBlockLimits) {
+        this.customBlockLimits = customBlockLimits;
     }
 }

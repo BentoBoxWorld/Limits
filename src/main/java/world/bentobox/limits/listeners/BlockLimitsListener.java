@@ -1,6 +1,14 @@
 package world.bentobox.limits.listeners;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -15,13 +23,27 @@ import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.*;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockBurnEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockFadeEvent;
+import org.bukkit.event.block.BlockFormEvent;
+import org.bukkit.event.block.BlockFromToEvent;
+import org.bukkit.event.block.BlockGrowEvent;
+import org.bukkit.event.block.BlockMultiPlaceEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.block.BlockSpreadEvent;
+import org.bukkit.event.block.EntityBlockFormEvent;
+import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.plugin.Plugin;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
+import dev.lone.itemsadder.api.CustomBlock;
 import world.bentobox.bentobox.api.events.island.IslandDeleteEvent;
 import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.user.User;
@@ -59,7 +81,10 @@ public class BlockLimitsListener implements Listener {
     private final Map<String, Integer> saveMap = new HashMap<>();
     private final Database<IslandBlockCount> handler;
     private final Map<World, Map<Material, Integer>> worldLimitMap = new HashMap<>();
+    //private final Map<World, Map<String, Integer>> customWorldLimitMap = new HashMap<>();
     private Map<Material, Integer> defaultLimitMap = new EnumMap<>(Material.class);
+    private Map<String, Integer> defaultCustomLimitMap = new HashMap<>();
+    private Plugin itemsAdder;
 
     public BlockLimitsListener(Limits addon) {
         this.addon = addon;
@@ -88,6 +113,11 @@ public class BlockLimitsListener implements Listener {
         if (addon.getConfig().isConfigurationSection("blocklimits")) {
             ConfigurationSection limitConfig = addon.getConfig().getConfigurationSection("blocklimits");
             defaultLimitMap = loadLimits(Objects.requireNonNull(limitConfig));
+        }
+        // Load custom blocks
+        if (addon.getConfig().isConfigurationSection("customblocklimits")) {
+            ConfigurationSection limitConfig = addon.getConfig().getConfigurationSection("customblocklimits");
+            defaultCustomLimitMap = loadCustomLimits(Objects.requireNonNull(limitConfig));
         }
 
         // Load specific worlds
@@ -126,6 +156,21 @@ public class BlockLimitsListener implements Listener {
         return mats;
     }
 
+    /**
+     * Loads custom limit map from configuration section
+     *
+     * @param cs - configuration section
+     * @return limit map
+     */
+    private Map<String, Integer> loadCustomLimits(ConfigurationSection cs) {
+        Map<String, Integer> mats = new HashMap<>();
+        for (String material : cs.getKeys(false)) {
+            mats.put(material, cs.getInt(material));
+            addon.log("Limit " + material + " to " + cs.getInt(material));
+        }
+        return mats;
+    }
+
 
     /**
      * Save the count database completely
@@ -137,7 +182,7 @@ public class BlockLimitsListener implements Listener {
     // Player-related events
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockPlaceEvent e) {
-        notify(e, User.getInstance(e.getPlayer()), process(e.getBlock(), true), e.getBlock().getType());
+        notify(e, User.getInstance(e.getPlayer()), process(e.getBlock(), true), e.getBlock());
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
@@ -187,7 +232,7 @@ public class BlockLimitsListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockMultiPlaceEvent e) {
-        notify(e, User.getInstance(e.getPlayer()), process(e.getBlock(), true), e.getBlock().getType());
+        notify(e, User.getInstance(e.getPlayer()), process(e.getBlock(), true), e.getBlock());
     }
 
     /**
@@ -197,10 +242,15 @@ public class BlockLimitsListener implements Listener {
      * @param limit maximum limit allowed
      * @param m material
      */
-    private void notify(Cancellable e, User user, int limit, Material m) {
+    private void notify(Cancellable e, User user, int limit, Block block) {
         if (limit > -1) {
+            String name = Util.prettifyText(block.getType().toString());
+            if (this.itemsAdder != null) {
+                CustomBlock customBlock = CustomBlock.byAlreadyPlaced(block);
+                name = customBlock.getDisplayName();
+            }
             user.notify("block-limits.hit-limit",
-                    "[material]", Util.prettifyText(m.toString()),
+                    "[material]", name,
                     TextVariables.NUMBER, String.valueOf(limit));
             e.setCancelled(true);
         }
@@ -318,6 +368,8 @@ public class BlockLimitsListener implements Listener {
      * @return limit amount if over limit, or -1 if no limitation
      */
     private int process(Block b, boolean add) {
+        // Check for custom block handlers
+        checkCustom();
         if (DO_NOT_COUNT.contains(fixMaterial(b.getBlockData())) || !addon.inGameModeWorld(b.getWorld())) {
             return -1;
         }
@@ -335,12 +387,27 @@ public class BlockLimitsListener implements Listener {
             }
             islandCountMap.putIfAbsent(id, new IslandBlockCount(id, gameMode));
             if (add) {
-                // Check limit
-                int limit = checkLimit(b.getWorld(), fixMaterial(b.getBlockData()), id);
-                if (limit > -1) {
-                    return limit;
+                // Check if custom block
+                if (itemsAdder != null ) {
+                    CustomBlock customBlock = CustomBlock.byAlreadyPlaced(b);
+                    if(customBlock != null) {
+                        // Custom block
+                        // Check limit
+                        int limit = checkCustomLimit(b.getWorld(), b, id);
+                        if (limit > -1) {
+                            return limit;
+                        }
+                        islandCountMap.get(id).add(b);
+                    }
+
+                } else {
+                    // Check limit
+                    int limit = checkLimit(b.getWorld(), fixMaterial(b.getBlockData()), id);
+                    if (limit > -1) {
+                        return limit;
+                    }
+                    islandCountMap.get(id).add(fixMaterial(b.getBlockData()));
                 }
-                islandCountMap.get(id).add(fixMaterial(b.getBlockData()));
             } else {
                 if (islandCountMap.containsKey(id)) {
                     islandCountMap.get(id).remove(fixMaterial(b.getBlockData()));
@@ -349,6 +416,11 @@ public class BlockLimitsListener implements Listener {
             updateSaveMap(id);
             return -1;
         }).orElse(-1);
+    }
+
+    private void checkCustom() {
+        itemsAdder = Bukkit.getPluginManager().getPlugin("ItemsAdder");
+
     }
 
     /**
@@ -364,10 +436,17 @@ public class BlockLimitsListener implements Listener {
                 // Invalid world
                 return;
             }
-            islandCountMap.computeIfAbsent(id, k -> new IslandBlockCount(id, gameMode)).remove(fixMaterial(b.getBlockData()));
-            updateSaveMap(id);
+            // Check for custom block
+            if (this.itemsAdder != null && CustomBlock.byAlreadyPlaced(b) != null) {
+                islandCountMap.computeIfAbsent(id, k -> new IslandBlockCount(id, gameMode)).remove(b);
+                updateSaveMap(id);
+            } else {
+                islandCountMap.computeIfAbsent(id, k -> new IslandBlockCount(id, gameMode)).remove(fixMaterial(b.getBlockData()));
+                updateSaveMap(id);
+            }
         });
     }
+
     private void updateSaveMap(String id) {
         saveMap.putIfAbsent(id, 0);
         if (saveMap.merge(id, 1, Integer::sum) > CHANGE_LIMIT) {
@@ -405,6 +484,37 @@ public class BlockLimitsListener implements Listener {
     }
 
     /**
+     * Check if this custom block is at its limit for world on this island
+     *
+     * @param w - world
+     * @param block - custom block
+     * @param id - island id
+     * @return limit amount if at limit or -1 if no limit
+     */
+    private int checkCustomLimit(World w, Block block, String islandId) {
+        // Check island limits
+        IslandBlockCount ibc = islandCountMap.get(islandId);
+        if (ibc.isCustomBlockLimited(block)) {
+            return ibc.isAtLimit(block) ? ibc.getBlockLimit(block) : -1;
+        }
+        CustomBlock customBlock = CustomBlock.byAlreadyPlaced(block);
+        String id = Objects.requireNonNull(customBlock).getNamespacedID();
+        /* NOT SUPPORTED YET
+        // Check specific world limits
+        if (customWorldLimitMap.containsKey(w) && customWorldLimitMap.get(w).containsKey(id)) {
+            // Material is overridden in world
+            return ibc.isAtLimit(block, worldLimitMap.get(w).get(id)) ? worldLimitMap.get(w).get(id) : -1; // TODO Add perm offset
+        }
+         */
+        // Check default limit map
+        if (defaultCustomLimitMap.containsKey(id) && ibc.isAtLimit(block, defaultCustomLimitMap.get(id))) {
+            return defaultCustomLimitMap.get(id);// TODO add perm offset
+        }
+        // No limit
+        return -1;
+    }
+
+    /**
      * Gets an aggregate map of the limits for this island
      *
      * @param w - world
@@ -427,7 +537,7 @@ public class BlockLimitsListener implements Listener {
 
             // Add offsets to the every limit.
             islandBlockCount.getBlockLimitsOffset().forEach((material, offset) ->
-                result.put(material, result.getOrDefault(material, 0) + offset));
+            result.put(material, result.getOrDefault(material, 0) + offset));
         }
         return result;
     }
