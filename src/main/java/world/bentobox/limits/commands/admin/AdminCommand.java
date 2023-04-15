@@ -1,4 +1,4 @@
-package world.bentobox.limits.commands;
+package world.bentobox.limits.commands.admin;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +10,8 @@ import world.bentobox.bentobox.api.commands.CompositeCommand;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.util.Util;
 import world.bentobox.limits.Limits;
+import world.bentobox.limits.commands.player.LimitPanel;
+
 
 /**
  * Admin command for limits
@@ -27,7 +29,9 @@ public class AdminCommand extends CompositeCommand {
     public AdminCommand(Limits addon, CompositeCommand parent) {
         super(parent, "limits");
         this.addon = addon;
-        new CalcCommand(addon, this); 
+
+        new CalcCommand(this.addon, this);
+        new OffsetCommand(this.addon, this);
     }
 
     /* (non-Javadoc)

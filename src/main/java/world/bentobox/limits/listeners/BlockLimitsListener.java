@@ -1,14 +1,6 @@
 package world.bentobox.limits.listeners;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -23,27 +15,18 @@ import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockBurnEvent;
-import org.bukkit.event.block.BlockExplodeEvent;
-import org.bukkit.event.block.BlockFadeEvent;
-import org.bukkit.event.block.BlockFormEvent;
-import org.bukkit.event.block.BlockFromToEvent;
-import org.bukkit.event.block.BlockMultiPlaceEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.block.BlockSpreadEvent;
-import org.bukkit.event.block.EntityBlockFormEvent;
-import org.bukkit.event.block.LeavesDecayEvent;
+import org.bukkit.event.block.*;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import world.bentobox.bentobox.api.events.island.IslandDeleteEvent;
 import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.Database;
+import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Util;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.objects.IslandBlockCount;
@@ -207,6 +190,13 @@ public class BlockLimitsListener implements Listener {
         notify(e, User.getInstance(e.getPlayer()), process(e.getBlock(), true), e.getBlock().getType());
     }
 
+    /**
+     * Cancel the event and notify the user of failure
+     * @param e event
+     * @param user user
+     * @param limit maximum limit allowed
+     * @param m material
+     */
     private void notify(Cancellable e, User user, int limit, Material m) {
         if (limit > -1) {
             user.notify("block-limits.hit-limit",
@@ -245,6 +235,16 @@ public class BlockLimitsListener implements Listener {
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(EntityBlockFormEvent e) {
         process(e.getBlock(), true);
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+    public void onBlock(BlockGrowEvent e) {
+        if (process(e.getNewState().getBlock(), true) > -1) {
+            e.setCancelled(true);
+            e.getBlock().getWorld().getBlockAt(e.getBlock().getLocation()).setBlockData(e.getBlock().getBlockData());
+        } else {
+            process(e.getBlock(), false);
+        }
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
@@ -387,18 +387,18 @@ public class BlockLimitsListener implements Listener {
      */
     private int checkLimit(World w, Material m, String id) {
         // Check island limits
-        IslandBlockCount island = islandCountMap.get(id);
-        if (island.isBlockLimited(m)) {
-            return island.isAtLimit(m) ? island.getBlockLimit(m) : -1;
+        IslandBlockCount ibc = islandCountMap.get(id);
+        if (ibc.isBlockLimited(m)) {
+            return ibc.isAtLimit(m) ? ibc.getBlockLimit(m) + ibc.getBlockLimitOffset(m) : -1;
         }
         // Check specific world limits
         if (worldLimitMap.containsKey(w) && worldLimitMap.get(w).containsKey(m)) {
             // Material is overridden in world
-            return island.isAtLimit(m, worldLimitMap.get(w).get(m)) ? worldLimitMap.get(w).get(m) : -1;
+            return ibc.isAtLimit(m, worldLimitMap.get(w).get(m)) ? worldLimitMap.get(w).get(m) + ibc.getBlockLimitOffset(m) : -1;
         }
         // Check default limit map
-        if (defaultLimitMap.containsKey(m) && island.isAtLimit(m, defaultLimitMap.get(m))) {
-            return defaultLimitMap.get(m);
+        if (defaultLimitMap.containsKey(m) && ibc.isAtLimit(m, defaultLimitMap.get(m))) {
+            return defaultLimitMap.get(m) + ibc.getBlockLimitOffset(m);
         }
         // No limit
         return -1;
@@ -422,7 +422,12 @@ public class BlockLimitsListener implements Listener {
         }
         // Island
         if (islandCountMap.containsKey(id)) {
-            result.putAll(islandCountMap.get(id).getBlockLimits());
+            IslandBlockCount islandBlockCount = islandCountMap.get(id);
+            result.putAll(islandBlockCount.getBlockLimits());
+
+            // Add offsets to the every limit.
+            islandBlockCount.getBlockLimitsOffset().forEach((material, offset) ->
+                result.put(material, result.getOrDefault(material, 0) + offset));
         }
         return result;
     }
@@ -461,6 +466,16 @@ public class BlockLimitsListener implements Listener {
     @Nullable
     public IslandBlockCount getIsland(String islandId) {
         return islandCountMap.get(islandId);
+    }
+
+    /**
+     * Get the island block count for island and make one if it does not exist
+     * @param island island
+     * @return island block count
+     */
+    @NonNull
+    public IslandBlockCount getIsland(Island island) {
+        return islandCountMap.computeIfAbsent(island.getUniqueId(), k -> new IslandBlockCount(k, island.getGameMode()));
     }
 
 }
