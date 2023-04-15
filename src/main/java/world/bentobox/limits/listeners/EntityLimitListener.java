@@ -403,10 +403,6 @@ public class EntityLimitListener implements Listener {
         // We have to count the entities
         if (limitAmount >= 0)
         {
-//            int count = (int) ent.getWorld().getEntities().stream()
-//                    .filter(e -> e.getType().equals(ent.getType()))
-//                    .filter(e -> island.inIslandSpace(e.getLocation()))
-//                    .count();
             int count = (int) ent.getWorld().getNearbyEntities(island.getBoundingBox()).stream()
                     .filter(e -> e.getType().equals(ent.getType()))
                     .count();
@@ -427,9 +423,9 @@ public class EntityLimitListener implements Listener {
         for (Map.Entry<Settings.EntityGroup, Integer> group : groupsLimits.entrySet()) { //do not use lambda
             if (group.getValue() < 0)
                 continue;
-//            int count = (int) ent.getWorld().getEntities().stream()
-//                    .filter(e -> group.getKey().contains(e.getType()))
-//                    .filter(e -> island.inIslandSpace(e.getLocation())).count();
+            //            int count = (int) ent.getWorld().getEntities().stream()
+            //                    .filter(e -> group.getKey().contains(e.getType()))
+            //                    .filter(e -> island.inIslandSpace(e.getLocation())).count();
             int count = (int) ent.getWorld().getNearbyEntities(island.getBoundingBox()).stream()
                     .filter(e -> group.getKey().contains(e.getType()))
                     .count();

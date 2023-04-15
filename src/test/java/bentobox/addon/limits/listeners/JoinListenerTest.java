@@ -298,7 +298,7 @@ public class JoinListenerTest {
         when(player.getEffectivePermissions()).thenReturn(perms);
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
         jl.onPlayerJoin(e);
-        verify(addon).logError("Player tastybento has permission: 'bskyblock.island.limit.STONE.abc' but the last part MUST be a number! Ignoring...");
+        verify(addon).logError("Player tastybento has permission: 'bskyblock.island.limit.STONE.abc' but the last part MUST be an integer! Ignoring...");
     }
 
     /**
