@@ -5,7 +5,6 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 
-import org.apache.commons.lang.math.NumberUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -118,11 +117,12 @@ public class JoinListener implements Listener {
             return true;
         }
         // Check value
-        if (!NumberUtils.isDigits(split[4])) {
-            logError(name, perms.getPermission(), "the last part MUST be a number!");
+        try {
+            Integer.parseInt(split[4]);
+        } catch(Exception e) {
+            logError(name, perms.getPermission(), "the last part MUST be an integer!");
             return true;
         }
-
         return false;
     }
 
