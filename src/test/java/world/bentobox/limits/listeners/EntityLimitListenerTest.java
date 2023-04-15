@@ -19,6 +19,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.util.BoundingBox;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -80,13 +81,9 @@ public class EntityLimitListenerTest {
         collection.add(ent);
         collection.add(ent);
         collection.add(ent);
-        when(world.getEntities()).thenReturn(collection);
+        when(world.getNearbyEntities(any())).thenReturn(collection);
 
         ell = new EntityLimitListener(addon);
-    }
-
-    @After
-    public void tearDown() {
     }
 
     /**
