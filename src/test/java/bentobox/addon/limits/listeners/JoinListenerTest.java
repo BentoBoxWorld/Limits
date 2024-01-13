@@ -388,7 +388,7 @@ public class JoinListenerTest {
 	when(permAtt.getValue()).thenReturn(true);
 	perms.add(permAtt);
 	PermissionAttachmentInfo permAtt2 = mock(PermissionAttachmentInfo.class);
-	when(permAtt2.getPermission()).thenReturn("bskyblock.island.limit.grass.14");
+    when(permAtt2.getPermission()).thenReturn("bskyblock.island.limit.short_grass.14");
 	when(permAtt2.getValue()).thenReturn(true);
 	perms.add(permAtt2);
 	PermissionAttachmentInfo permAtt3 = mock(PermissionAttachmentInfo.class);
@@ -413,7 +413,7 @@ public class JoinListenerTest {
 	jl.onPlayerJoin(e);
 	verify(addon, never()).logError(anyString());
 	verify(ibc).setBlockLimit(eq(Material.STONE), eq(24));
-	verify(ibc).setBlockLimit(eq(Material.GRASS), eq(14));
+    verify(ibc).setBlockLimit(eq(Material.SHORT_GRASS), eq(14));
 	verify(ibc).setBlockLimit(eq(Material.DIRT), eq(34));
 	verify(ibc).setEntityLimit(eq(EntityType.CHICKEN), eq(34));
 	verify(ibc).setEntityLimit(eq(EntityType.CAVE_SPIDER), eq(4));
