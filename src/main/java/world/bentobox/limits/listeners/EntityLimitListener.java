@@ -180,7 +180,7 @@ public class EntityLimitListener implements Listener {
         if (island.isSpawn() || !res.hit()) {
             // Allowed
             if (async) {
-                Bukkit.getScheduler().runTask(BentoBox.getInstance(), () -> l.getWorld().spawn(l, e.getClass(), entity -> preSpawn(entity, reason, l)));
+                Bukkit.getScheduler().runTask(BentoBox.getInstance(), () -> preSpawn(e.getType(), reason, l));
             } // else do nothing
         } else {
             if (async) {
@@ -195,20 +195,22 @@ public class EntityLimitListener implements Listener {
         return true;
     }
 
-    private void preSpawn(Entity entity, SpawnReason reason, Location l) {
-        justSpawned.add(entity.getUniqueId());
+    private void preSpawn(EntityType entityType, SpawnReason reason, Location l) {
+
         // Check for entities that need cleanup
         switch (reason) {
         case BUILD_IRONGOLEM -> detectIronGolem(l);
         case BUILD_SNOWMAN -> detectSnowman(l);
         case BUILD_WITHER -> {
             detectWither(l);
+        }
+        default -> throw new IllegalArgumentException("Unexpected value: " + reason);
+        }
+        Entity entity = l.getWorld().spawnEntity(l, entityType);
+        justSpawned.add(entity.getUniqueId());
+        if (reason == SpawnReason.BUILD_WITHER) {
             // Create explosion
             l.getWorld().createExplosion(l, 7F, true, true, entity);
-        }
-        default -> {
-            // Do nothing
-        }
         }
     }
 
@@ -246,7 +248,6 @@ public class EntityLimitListener implements Listener {
                 }
             }
         }
-
     }
 
     private void detectSnowman(Location l) {
