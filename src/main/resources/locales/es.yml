@@ -1,7 +1,8 @@
 ---
 block-limits:
   hit-limit: "&c[material] limitado a [number]!"
-entity-limits: {}
+entity-limits:
+  hit-limit: "¡Aparición de &c[entity] limitada a [number]!"
 limits: {}
 admin:
   limits:
@@ -9,13 +10,22 @@ admin:
     calc:
       finished: "&a ¡El recálculo de la Isla terminó con éxito!"
     offset:
+      unknown: "&c Material o entidad desconocida [name]."
       main: {}
-      set: {}
-      add: {}
-      remove: {}
-      reset: {}
-      view: {}
+      set:
+        success: "&a El desplazamiento límite para [name] está establecido en [number]."
+        same: "&c El límite de compensación para [name] ya es [number]."
+      add:
+        success: "&a El límite de compensación para [name] aumenta hasta [number]."
+      remove:
+        success: "&a La compensación límite para [name] se reduce hasta [number]."
+      reset:
+        success: "&a El desplazamiento límite para [number] está establecido en 0."
+      view:
+        message: "& desplazamiento de [name] se establece en [number]."
 island:
   limits:
+    max-color: "&c"
+    block-limit-syntax: "[number]/[limit]"
     recount:
       time-out: "&c Ha pasado demasiado tiempo contando. ¿La isla es realmente grande?"
