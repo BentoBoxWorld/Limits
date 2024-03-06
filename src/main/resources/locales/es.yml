@@ -3,11 +3,16 @@ block-limits:
   hit-limit: "&c[material] limitado a [number]!"
 entity-limits:
   hit-limit: "¡Aparición de &c[entity] limitada a [number]!"
-limits: {}
+limits:
+  panel-title: Límites de la isla
 admin:
   limits:
-    main: {}
+    main:
+      parameters: "<jugador>"
+      description: mostrar los límites de la isla para el jugador
     calc:
+      parameters: "<jugador>"
+      description: recalcular los límites de la isla para el jugador
       finished: "&a ¡El recálculo de la Isla terminó con éxito!"
     offset:
       unknown: "&c Material o entidad desconocida [name]."
@@ -25,7 +30,13 @@ admin:
         message: "& desplazamiento de [name] se establece en [number]."
 island:
   limits:
+    description: muestra los límites de tu isla
     max-color: "&c"
+    regular-color: "&a"
     block-limit-syntax: "[number]/[limit]"
+    no-limits: "&cNo hay limites establecidos en este mundo"
     recount:
+      description: cuenta los límites para tu isla
+      now-recounting: "&b Ahora contando. Esto podría tomar un tiempo, por favor espere..."
+      in-progress: "&c El recuento de la isla está en progreso. Espere por favor..."
       time-out: "&c Ha pasado demasiado tiempo contando. ¿La isla es realmente grande?"
