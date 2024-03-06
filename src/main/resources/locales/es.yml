@@ -1,0 +1,55 @@
+---
+block-limits:
+  hit-limit: "&c[material] limitado a [number]!"
+entity-limits:
+  hit-limit: "¡Aparición de &c[entity] limitada a [number]!"
+limits:
+  panel-title: Límites de la isla
+admin:
+  limits:
+    main:
+      parameters: "<jugador>"
+      description: mostrar los límites de la isla para el jugador
+    calc:
+      parameters: "<jugador>"
+      description: recalcular los límites de la isla para el jugador
+      finished: "&a ¡El recálculo de la Isla terminó con éxito!"
+    offset:
+      unknown: "&c Material o entidad desconocida [name]."
+      main:
+        description: permite gestionar compensaciones de límites para materiales y
+          entidades
+      set:
+        parameters: "<jugador> <material|entidad> <número>"
+        description: establece una nueva compensación para el límite de material o
+          entidad
+        success: "&a El desplazamiento límite para [name] está establecido en [number]."
+        same: "&c El límite de compensación para [name] ya es [number]."
+      add:
+        parameters: "<jugador> <material|entidad> <número>"
+        description: agrega compensación por límite de material o entidad
+        success: "&a El límite de compensación para [name] aumenta hasta [number]."
+      remove:
+        parameters: "<jugador> <material|entidad> <número>"
+        description: reduce la compensación por límite de material o entidad
+        success: "&a La compensación límite para [name] se reduce hasta [number]."
+      reset:
+        parameters: "<jugador> <material|entidad>"
+        description: elimina la compensación para material o entidad
+        success: "&a El desplazamiento límite para [number] está establecido en 0."
+      view:
+        parameters: "<jugador> <material|entidad>"
+        description: muestra el desplazamiento para material o entidad
+        message: "& desplazamiento de [name] se establece en [number]."
+island:
+  limits:
+    description: muestra los límites de tu isla
+    max-color: "&c"
+    regular-color: "&a"
+    block-limit-syntax: "[number]/[limit]"
+    no-limits: "&cNo hay limites establecidos en este mundo"
+    recount:
+      description: cuenta los límites para tu isla
+      now-recounting: "&b Ahora contando. Esto podría tomar un tiempo, por favor espere..."
+      in-progress: "&c El recuento de la isla está en progreso. Espere por favor..."
+      time-out: "&c Ha pasado demasiado tiempo contando. ¿La isla es realmente grande?"
