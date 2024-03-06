@@ -1,0 +1,21 @@
+---
+block-limits:
+  hit-limit: "&c[material] limitado a [number]!"
+entity-limits: {}
+limits: {}
+admin:
+  limits:
+    main: {}
+    calc:
+      finished: "&a ¡El recálculo de la Isla terminó con éxito!"
+    offset:
+      main: {}
+      set: {}
+      add: {}
+      remove: {}
+      reset: {}
+      view: {}
+island:
+  limits:
+    recount:
+      time-out: "&c Ha pasado demasiado tiempo contando. ¿La isla es realmente grande?"
