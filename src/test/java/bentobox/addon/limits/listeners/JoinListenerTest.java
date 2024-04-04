@@ -91,7 +91,7 @@ public class JoinListenerTest {
 	// Island Manager
 	when(island.getUniqueId()).thenReturn("unique_id");
 	when(im.getIsland(any(), any(UUID.class))).thenReturn(island);
-	when(im.getIslands(any(), any(UUID.class))).thenReturn(Set.of(island));
+    when(im.getIslands(any(), any(UUID.class))).thenReturn(List.of(island));
 	// Default is that player has island
 	when(addon.getIslands()).thenReturn(im);
 	// Player
