@@ -7,8 +7,13 @@ import world.bentobox.bentobox.api.addons.Pladdon;
 
 public class LimitsPladdon extends Pladdon {
     
+    private Addon addon;
+
     @Override
     public Addon getAddon() {
-        return new Limits();
+        if (addon == null) {
+            addon = new Limits();
+        }
+        return addon;
     }
 }
