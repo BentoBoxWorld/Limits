@@ -48,7 +48,7 @@ public class LimitTab implements Tab {
             .put(EntityType.COMMAND_BLOCK_MINECART, Material.COMMAND_BLOCK_MINECART)
             .put(EntityType.FURNACE_MINECART, Material.FURNACE_MINECART)
             .put(EntityType.HOPPER_MINECART, Material.HOPPER_MINECART)
-            .put(EntityType.SPAWNER_MINECART, Material.MINECART).put(EntityType.BOAT, Material.OAK_BOAT)
+            .put(EntityType.SPAWNER_MINECART, Material.MINECART)
             .put(EntityType.CHEST_BOAT, Material.OAK_CHEST_BOAT)
             .build();
     // This is a map of blocks to Items
