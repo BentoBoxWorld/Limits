@@ -262,7 +262,7 @@ public class EntityLimitListener implements Listener {
             if (body.getType().equals(Material.SNOW_BLOCK)) {
                 // Check for head
                 Block head = body.getRelative(bf);
-                if (head.getType().equals(Material.CARVED_PUMPKIN)) {
+                if (head.getType() == Material.CARVED_PUMPKIN || head.getType() == Material.JACK_O_LANTERN) {
                     // Erase
                     addon.getBlockLimitListener().removeBlock(body);
                     addon.getBlockLimitListener().removeBlock(head);
