@@ -35,8 +35,7 @@ public class LimitTab implements Tab {
     // This maps the entity types to the icon that should be shown in the panel
     // If the icon is null, then the entity type is not covered by the addon
     private static final Map<EntityType, Material> E2M = ImmutableMap.<EntityType, Material>builder()
-            .put(EntityType.MUSHROOM_COW, Material.MOOSHROOM_SPAWN_EGG)
-            .put(EntityType.SNOWMAN, Material.SNOW_BLOCK)
+            .put(EntityType.MOOSHROOM, Material.MOOSHROOM_SPAWN_EGG).put(EntityType.SNOW_GOLEM, Material.SNOW_BLOCK)
             .put(EntityType.IRON_GOLEM, Material.IRON_BLOCK)
             .put(EntityType.ILLUSIONER, Material.VILLAGER_SPAWN_EGG)
             .put(EntityType.WITHER, Material.WITHER_SKELETON_SKULL)
@@ -45,21 +44,22 @@ public class LimitTab implements Tab {
             .put(EntityType.ITEM_FRAME, Material.ITEM_FRAME)
             .put(EntityType.PAINTING, Material.PAINTING)
             // Minecarts
-            .put(EntityType.MINECART_TNT, Material.TNT_MINECART)
-            .put(EntityType.MINECART_CHEST, Material.CHEST_MINECART)
-            .put(EntityType.MINECART_COMMAND, Material.COMMAND_BLOCK_MINECART)
-            .put(EntityType.MINECART_FURNACE, Material.FURNACE_MINECART)
-            .put(EntityType.MINECART_HOPPER, Material.HOPPER_MINECART)
-            .put(EntityType.MINECART_MOB_SPAWNER, Material.MINECART)
+            .put(EntityType.TNT_MINECART, Material.TNT_MINECART).put(EntityType.CHEST_MINECART, Material.CHEST_MINECART)
+            .put(EntityType.COMMAND_BLOCK_MINECART, Material.COMMAND_BLOCK_MINECART)
+            .put(EntityType.FURNACE_MINECART, Material.FURNACE_MINECART)
+            .put(EntityType.HOPPER_MINECART, Material.HOPPER_MINECART)
+            .put(EntityType.SPAWNER_MINECART, Material.MINECART).put(EntityType.BOAT, Material.OAK_BOAT)
+            .put(EntityType.CHEST_BOAT, Material.OAK_CHEST_BOAT)
             .build();
-    // This is a map of blocks to Material
+    // This is a map of blocks to Items
     private static final Map<Material, Material> B2M;
     static {
         ImmutableMap.Builder<Material, Material> builder = ImmutableMap.<Material, Material>builder()
                 .put(Material.POTATOES, Material.POTATO)
                 .put(Material.CARROTS, Material.CARROT)
                 .put(Material.BEETROOTS, Material.BEETROOT)
-                .put(Material.REDSTONE_WIRE, Material.REDSTONE);
+                .put(Material.REDSTONE_WIRE, Material.REDSTONE).put(Material.MELON_STEM, Material.MELON)
+                .put(Material.PUMPKIN_STEM, Material.PUMPKIN);
         // Block to Material icons
         Optional.ofNullable(Material.getMaterial("SWEET_BERRY_BUSH")).ifPresent(material -> builder.put(material, Objects.requireNonNull(Material.getMaterial("SWEET_BERRIES"))));
         Optional.ofNullable(Material.getMaterial("BAMBOO_SAPLING")).ifPresent(material -> builder.put(material, Objects.requireNonNull(Material.getMaterial("BAMBOO"))));
