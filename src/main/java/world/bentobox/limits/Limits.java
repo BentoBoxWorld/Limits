@@ -1,14 +1,15 @@
 package world.bentobox.limits;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.bukkit.Material;
 import org.bukkit.World;
-
 import org.bukkit.entity.EntityType;
 import org.eclipse.jdt.annotation.Nullable;
+
 import world.bentobox.bentobox.api.addons.Addon;
 import world.bentobox.bentobox.api.addons.GameModeAddon;
 import world.bentobox.bentobox.api.user.User;
@@ -30,7 +31,7 @@ public class Limits extends Addon {
 
     private static final String LIMIT_NOT_SET = "Limit not set";
     private Settings settings;
-    private List<GameModeAddon> gameModes;
+    private List<GameModeAddon> gameModes = new ArrayList<>();
     private BlockLimitsListener blockLimitListener;
     private JoinListener joinListener;
 
@@ -109,9 +110,9 @@ public class Limits extends Addon {
     }
 
     /**
-     * Get the name of the game mode for this world
+     * Get the permission prefix for this world
      * @param world - world
-     * @return game mode name or empty string if none
+     * @return permisdsion prefix or empty string if none
      */
     public String getGameModePermPrefix(World world) {
         return gameModes.stream().filter(gm -> gm.inWorld(world)).findFirst().map(GameModeAddon::getPermissionPrefix).orElse("");

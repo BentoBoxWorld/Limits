@@ -172,6 +172,7 @@ public class EntityLimitListener implements Listener {
 
     private boolean processIsland(Cancellable c, LivingEntity e, Location l, SpawnReason reason, boolean async) {
         if (addon.getIslands().getIslandAt(e.getLocation()).isEmpty()) {
+            c.setCancelled(false);
             return true;
         }
         Island island = addon.getIslands().getIslandAt(e.getLocation()).get();
@@ -225,7 +226,7 @@ public class EntityLimitListener implements Listener {
             if (body.getType().equals(Material.IRON_BLOCK)) {
                 // Check for head
                 Block head = body.getRelative(bf);
-                if (head.getType().equals(Material.CARVED_PUMPKIN)) {
+                if (head.getType() == Material.CARVED_PUMPKIN || head.getType() == Material.JACK_O_LANTERN) {
                     // Check for arms the rule is that they must be opposite and have nothing "beneath" them
                     for (BlockFace bf2 : CARDINALS) {
                         Block arm1 = body.getRelative(bf2);
