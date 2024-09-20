@@ -210,13 +210,13 @@ public class Limits extends Addon {
         if (is == null) {
             return LIMIT_NOT_SET;
         }
-        // Check the permissions of the user and update
-        this.getJoinListener().checkPerms(user.getPlayer(), gm.getPermissionPrefix() + "island.limit.",
-                is.getUniqueId(), gm.getDescription().getName());
-
+        if (user != null) {
+            // Check the permissions of the user and update
+            this.getJoinListener().checkPerms(user.getPlayer(), gm.getPermissionPrefix() + "island.limit.",
+                    is.getUniqueId(), gm.getDescription().getName());
+        }
         int limit = this.getBlockLimitListener().
-            getMaterialLimits(is.getWorld(), is.getUniqueId()).
-            getOrDefault(m, -1);
+                getMaterialLimits(is.getWorld(), is.getUniqueId()).getOrDefault(m, -1);
 
         return limit == -1 ? LIMIT_NOT_SET : String.valueOf(limit);
     }
