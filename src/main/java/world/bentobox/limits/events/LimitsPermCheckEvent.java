@@ -6,7 +6,7 @@ import org.bukkit.entity.Player;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
-import world.bentobox.limits.Settings.EntityGroup;
+import world.bentobox.limits.EntityGroup;
 import world.bentobox.limits.objects.IslandBlockCount;
 
 /**
