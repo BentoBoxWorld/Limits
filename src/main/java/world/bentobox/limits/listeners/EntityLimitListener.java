@@ -17,11 +17,11 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Breedable;
-import org.bukkit.entity.Villager;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Villager;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -38,9 +38,9 @@ import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Util;
+import world.bentobox.limits.EntityGroup;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.Settings;
-import world.bentobox.limits.Settings.EntityGroup;
 import world.bentobox.limits.objects.IslandBlockCount;
 
 public class EntityLimitListener implements Listener {
@@ -373,7 +373,7 @@ public class EntityLimitListener implements Listener {
     AtLimitResult atLimit(Island island, Entity ent) {
         // Check island settings first
         int limitAmount = -1;
-        Map<Settings.EntityGroup, Integer> groupsLimits = new HashMap<>();
+        Map<EntityGroup, Integer> groupsLimits = new HashMap<>();
 
         @Nullable
         IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(island.getUniqueId());
@@ -381,7 +381,8 @@ public class EntityLimitListener implements Listener {
             // Get the limit amount for this type
             limitAmount = ibc.getEntityLimit(ent.getType());
             // Handle entity groups
-            List<Settings.EntityGroup> groupdefs = addon.getSettings().getGroupLimits().getOrDefault(ent.getType(), new ArrayList<>());
+            List<EntityGroup> groupdefs = addon.getSettings().getGroupLimits().getOrDefault(ent.getType(),
+                    new ArrayList<>());
             groupdefs.forEach(def -> {
                 int limit = ibc.getEntityGroupLimit(def.getName());
                 if (limit >= 0)
@@ -422,7 +423,7 @@ public class EntityLimitListener implements Listener {
             .forEach(e -> groupsLimits.put(groupbyname.get(e.getKey()), e.getValue()));
         }
         // Now do the group limits
-        for (Map.Entry<Settings.EntityGroup, Integer> group : groupsLimits.entrySet()) { //do not use lambda
+        for (Map.Entry<EntityGroup, Integer> group : groupsLimits.entrySet()) { //do not use lambda
             if (group.getValue() < 0)
                 continue;
             //            int count = (int) ent.getWorld().getEntities().stream()

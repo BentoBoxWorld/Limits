@@ -1,7 +1,13 @@
 package world.bentobox.limits.commands.player;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.bukkit.Material;
@@ -18,8 +24,8 @@ import world.bentobox.bentobox.api.panels.builders.PanelItemBuilder;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Util;
+import world.bentobox.limits.EntityGroup;
 import world.bentobox.limits.Limits;
-import world.bentobox.limits.Settings.EntityGroup;
 import world.bentobox.limits.objects.IslandBlockCount;
 
 /**
@@ -32,8 +38,11 @@ public class LimitTab implements Tab {
         A2Z,
         Z2A
     }
-    // This maps the entity types to the icon that should be shown in the panel
-    // If the icon is null, then the entity type is not covered by the addon
+
+    /**
+     * This maps the entity types to the icon that should be shown in the panel
+     * If the icon is null, then the entity type is not covered by the addon
+     */
     private static final Map<EntityType, Material> E2M = ImmutableMap.<EntityType, Material>builder()
             .put(EntityType.MOOSHROOM, Material.MOOSHROOM_SPAWN_EGG).put(EntityType.SNOW_GOLEM, Material.SNOW_BLOCK)
             .put(EntityType.IRON_GOLEM, Material.IRON_BLOCK)
@@ -110,24 +119,10 @@ public class LimitTab implements Tab {
         });
         groupMap.forEach((v, limit) -> {
             PanelItemBuilder pib = new PanelItemBuilder();
-            EntityType k = v.getTypes().iterator().next();
             pib.name(v.getName());
             String description = "";
             description += "(" + prettyNames(v) + ")\n";
-            Material m;
-            try {
-                if (E2M.containsKey(k)) {
-                    m = E2M.get(k);
-                } else if (k.isAlive()) {
-                    m = Material.valueOf(k + "_SPAWN_EGG");
-                } else {
-                    // Regular material
-                    m = Material.valueOf(k.toString());
-                }
-            } catch (Exception e) {
-                m = Material.BARRIER;
-            }
-            pib.icon(m);
+            pib.icon(v.getIcon());
             long count = getCount(island, v);
             String color = count >= limit ? user.getTranslation("island.limits.max-color") : user.getTranslation("island.limits.regular-color");
             description += color

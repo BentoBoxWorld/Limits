@@ -40,4 +40,91 @@ worlds:
 entitylimits:
   ENDERMAN: 5
   CHICKEN: 10
+
+# Entity Groups
+# Name the group anything you like
+# Select an icon, which is a Bukkit Material
+# Select the limit for the total group
+# List the entities in the group using Bukkit EntityTypes
+entitygrouplimits:
+  Monsters:
+    icon: ROTTEN_FLESH
+    limit: 250
+    entities:
+    - SKELETON
+    - SILVERFISH
+    - STRAY
+    - ZOMBIE_VILLAGER
+    - WITHER
+    - WARDEN
+    - BLAZE
+    - DROWNED
+    - BREEZE
+    - ZOMBIFIED_PIGLIN
+    - EVOKER
+    - PILLAGER
+    - HUSK
+    - CREEPER
+    - VINDICATOR
+    - ZOMBIE
+    - ENDERMAN
+    - ELDER_GUARDIAN
+    - WITHER_SKELETON
+    - CAVE_SPIDER
+    - GUARDIAN
+    - RAVAGER
+    - PIGLIN
+    - BOGGED
+    - WITCH
+    - ENDERMITE
+    - ZOGLIN
+    - PIGLIN_BRUTE
+    - ILLUSIONER
+    - SPIDER
+    - VEX
+  Animals:
+    icon: SADDLE
+    limit: 200
+    entities:
+    - SHEEP
+    - AXOLOTL
+    - DONKEY
+    - MOOSHROOM
+    - TRADER_LLAMA
+    - BEE
+    - HORSE
+    - ZOMBIE_HORSE
+    - PIG
+    - PARROT
+    - CHICKEN
+    - RABBIT
+    - SNIFFER
+    - FROG
+    - GOAT
+    - PANDA
+    - CAMEL
+    - STRIDER
+    - TURTLE
+    - CAT
+    - SKELETON_HORSE
+    - COW
+    - LLAMA
+    - ARMADILLO
+    - HOGLIN
+    - POLAR_BEAR
+    - WOLF
+    - MULE
+    - OCELOT
+    - FOX
+    - DOLPHIN
+    - COD
+    - PUFFERFISH
+    - TADPOLE
+    - SQUID
+    - SALMON
+    - TROPICAL_FISH
+    - GLOW_SQUID
+
+    
+
   
