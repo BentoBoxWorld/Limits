@@ -1,0 +1,63 @@
+---
+block-limits:
+  hit-limit: "&c[material] ograničen na [number]!"
+entity-limits:
+  hit-limit: "&c[entity] stvaranje ograničeno na [number]!"
+limits:
+  panel-title: Granice otoka
+admin:
+  limits:
+    main:
+      parameters: "<igrač>"
+      description: pokazati ograničenja otoka za igrača
+    calc:
+      parameters: "<igrač>"
+      description: ponovno izračunati ograničenja otoka za igrača
+      finished: "&a Recalc otoka uspješno završen!"
+    offset:
+      unknown: "&c Nepoznati materijal ili entitet [name]."
+      main:
+        description: omogućuje upravljanje pomacima ograničenja za materijale i entitete
+      set:
+        parameters: "<igrač> <materijal|entitet> <broj>"
+        description: postavlja novi pomak za ograničenje materijala ili entiteta
+        success: "&a Ograničenje pomaka za [name] postavljeno je na [number]."
+        same: "&c Ograničenje pomaka za [name] već je [number]."
+      add:
+        parameters: "<igrač> <materijal|entitet> <broj>"
+        description: dodaje pomak za ograničenje materijala ili entiteta
+        success: "&a Ograničenje pomaka za [name] povećava se do [number]."
+      remove:
+        parameters: "<igrač> <materijal|entitet> <broj>"
+        description: smanjuje pomak za ograničenje materijala ili entiteta
+        success: "&a Ograničenje pomaka za [name] smanjeno je do [number]."
+      reset:
+        parameters: "<igrač> <materijal|entitet>"
+        description: uklanja pomak za materijal ili entitet
+        success: "&a Ograničenje pomaka za [name] postavljeno je na 0."
+      view:
+        parameters: "<igrač> <materijal|entitet>"
+        description: prikazuje pomak za materijal ili entitet
+        message: "&pomak [name] postavljen je na [number]."
+island:
+  limits:
+    description: pokazati granice vašeg otoka
+    max-color: i c
+    regular-color: "&a"
+    block-limit-syntax: "[number]/[limit]"
+    no-limits: "&c U ovom svijetu nema ograničenja"
+    panel:
+      title-syntax: "[title] [sort]"
+      entity-group-name-syntax: "[name]"
+      entity-name-syntax: "[name]"
+      block-name-syntax: "[name]"
+      A2Z: a > z
+      Z2A: z > a
+    errors:
+      no-owner: "&c Taj otok nema vlasnika"
+      not-on-island: "&c Ova lokacija nema postavljena ograničenja."
+    recount:
+      description: preračunava ograničenja za vaš otok
+      now-recounting: "&b Sada prepričavam. Ovo bi moglo potrajati, pričekajte..."
+      in-progress: "&c Otok je u tijeku. Molimo pričekajte..."
+      time-out: "&c Time out kod prepričavanja. Je li otok stvarno velik?"
