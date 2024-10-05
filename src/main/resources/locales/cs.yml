@@ -15,17 +15,22 @@ admin:
       description: přepočítat omezení ostrova hráče
       finished: "&aPřepočítání ostrova úspěšně dokončeno!"
     offset:
+      unknown: "&c Neznámý materiál nebo entita [name]."
       main:
         description: umožňuje spravovat limity offsetů pro materiály a entity
       set:
         parameters: "<hráč> <materiál|entita> <číslo>"
         description: nastaví nový offset pro limit materiálu nebo entity
+        success: "&a Mezní posun pro [name] je nastaven na [number]."
+        same: "&c Mezní posun pro [name] je již [number]."
       add:
         parameters: "<hráč> <materiál|entita> <číslo>"
         description: přidá offset pro limit materiálu nebo entity
+        success: "&a Posun limitu pro [name] se zvýší na [number]."
       remove:
         parameters: "<hráč> <materiál|entita> <číslo>"
         description: snižuje offset pro limit materiálu nebo entity
+        success: "&a Posun limitu pro [name] se sníží na [number]."
       reset:
         parameters: "<hráč> <materiál|entita>"
         description: odstraní offset pro materiál nebo entitu
@@ -33,6 +38,7 @@ admin:
       view:
         parameters: "<hráč> <materiál|entita>"
         description: zobrazuje posun pro materiál nebo entitu
+        message: "&odsazení [name] je nastaveno na [number]."
 island:
   limits:
     description: ukázat omezení tvého ostrova
@@ -41,6 +47,10 @@ island:
     block-limit-syntax: "[number]/[limit]"
     no-limits: "&c V tomto světě nejsou stanovena žádná omezení"
     panel:
+      title-syntax: "[title] [sort]"
+      entity-group-name-syntax: "[name]"
+      entity-name-syntax: "[name]"
+      block-name-syntax: "[name]"
       A2Z: a > z
       Z2A: z > a
     errors:
