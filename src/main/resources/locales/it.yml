@@ -3,28 +3,49 @@ block-limits:
   hit-limit: "&c[material] limitato a [number]!"
 entity-limits:
   hit-limit: "&c[entity] la generazione è limitata a [number]!"
-limits: {}
+limits:
+  panel-title: Limiti dell'isola
 admin:
   limits:
-    main: {}
-    calc: {}
+    main:
+      parameters: "<giocatore>"
+      description: mostra i limiti dell'isola per il giocatore
+    calc:
+      parameters: "<giocatore>"
+      description: ricalcola i limiti dell'isola per il giocatore
+      finished: "&a Il ricalcolo dell'isola è stato completato con successo!"
     offset:
       unknown: "&c Materiale o entità sconosciuta [name]."
-      main: {}
+      main:
+        description: consente di gestire gli offset dei limiti per materiali ed entità
       set:
+        parameters: "<giocatore> <materiale|entità> <numero>"
+        description: imposta un nuovo offset per il limite di materiale o entità
         success: "&a Il limite di offset per [name] è impostato su [number]."
         same: "&c Il limite di offset per [name] è già [number]."
       add:
+        parameters: "<giocatore> <materiale|entità> <numero>"
+        description: aggiunge offset per limite di materiale o entità
         success: "&a Il limite di offset per [name] è aumentato fino a [number]."
       remove:
+        parameters: "<giocatore> <materiale|entità> <numero>"
+        description: riduce l'offset per il limite di materiale o entità
         success: "&a Il limite di offset per [name] è ridotto fino a [number]."
       reset:
+        parameters: "<giocatore> <materiale|entità>"
+        description: rimuove l'offset per materiale o entità
         success: "&a Il limite di offset per [name] è impostato su 0."
       view:
+        parameters: "<giocatore> <materiale|entità>"
+        description: visualizza l'offset per materiale o entità
         message: "&a [name] offset è impostato su [number]."
 island:
   limits:
+    description: mostra i limiti della tua isola
+    max-color: "&C"
+    regular-color: "&UN"
     block-limit-syntax: "[number]/[limit]"
+    no-limits: "&c Non ci sono limiti in questo mondo"
     panel:
       title-syntax: "[title] [sort]"
       entity-group-name-syntax: "[name]"
@@ -32,5 +53,11 @@ island:
       block-name-syntax: "[name]"
       A2Z: a > z
       Z2A: z > a
-    errors: {}
-    recount: {}
+    errors:
+      no-owner: "&c Quell'isola non ha proprietario"
+      not-on-island: "&c Questa posizione non ha limiti impostati."
+    recount:
+      description: racconta i limiti per la tua isola
+      now-recounting: "&b Ora sto raccontando. Potrebbe volerci un po', attendi..."
+      in-progress: "&c Il conteggio dell'isola è in corso. Attendi..."
+      time-out: "&c Time out quando si racconta. L'isola è davvero grande?"
