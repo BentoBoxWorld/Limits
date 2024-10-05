@@ -59,3 +59,7 @@ island:
       not-on-island: "&c Lokasi ini tidak memiliki batasan yang ditetapkan."
     recount:
       description: menghitung ulang batasan untuk pulau kamu
+      now-recounting: "&b Menghitung ulang. Membutuhkan waktu beberapa saat, silahkan
+        tunggu..."
+      in-progress: "&c Perhitungan pulau sedang diproses. Silahkan tunggu..."
+      time-out: "&c Gagal menghitung ulang. Apakah pulau terlalu besar?"
