@@ -1,0 +1,34 @@
+---
+block-limits:
+  hit-limit: "&c[material] ograničen na [number]!"
+entity-limits:
+  hit-limit: "&c[entity] stvaranje ograničeno na [number]!"
+limits: {}
+admin:
+  limits:
+    main: {}
+    calc: {}
+    offset:
+      unknown: "&c Nepoznati materijal ili entitet [name]."
+      main: {}
+      set:
+        success: "&a Ograničenje pomaka za [name] postavljeno je na [number]."
+        same: "&c Ograničenje pomaka za [name] već je [number]."
+      add:
+        success: "&a Ograničenje pomaka za [name] povećava se do [number]."
+      remove:
+        success: "&a Ograničenje pomaka za [name] smanjeno je do [number]."
+      reset:
+        success: "&a Ograničenje pomaka za [name] postavljeno je na 0."
+      view:
+        message: "&pomak [name] postavljen je na [number]."
+island:
+  limits:
+    block-limit-syntax: "[number]/[limit]"
+    panel:
+      title-syntax: "[title] [sort]"
+      entity-group-name-syntax: "[name]"
+      entity-name-syntax: "[name]"
+      block-name-syntax: "[name]"
+    errors: {}
+    recount: {}
