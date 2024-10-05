@@ -25,6 +25,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.plugin.PluginManager;
+import org.eclipse.jdt.annotation.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -77,6 +78,7 @@ public class JoinListenerTest {
     private Island island;
     @Mock
     private PluginManager pim;
+    private @Nullable UUID uuid = UUID.randomUUID();
 
     @Before
     public void setUp() {
@@ -91,12 +93,13 @@ public class JoinListenerTest {
             .thenReturn(new ArrayList<>(List.of(new EntityGroup("friendly", new HashSet<>(), -1, null))));
 	// Island Manager
 	when(island.getUniqueId()).thenReturn("unique_id");
+    when(island.getOwner()).thenReturn(uuid);
 	when(im.getIsland(any(), any(UUID.class))).thenReturn(island);
     when(im.getIslands(any(), any(UUID.class))).thenReturn(List.of(island));
 	// Default is that player has island
 	when(addon.getIslands()).thenReturn(im);
 	// Player
-	when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+    when(player.getUniqueId()).thenReturn(uuid);
 	when(player.getName()).thenReturn("tastybento");
 	// No permissions by default
 	when(player.getEffectivePermissions()).thenReturn(Collections.emptySet());
@@ -117,8 +120,6 @@ public class JoinListenerTest {
 	when(Bukkit.getOfflinePlayer(any(UUID.class))).thenReturn(owner);
 	when(Bukkit.getPluginManager()).thenReturn(pim);
 
-	// Island
-	when(island.getOwner()).thenReturn(UUID.randomUUID());
     }
 
     /**
