@@ -1,33 +1,52 @@
-###########################################################################################
-# This is a YML file. Be careful when editing. Check your edits in a YAML checker like    #
-# the one at http://yaml-online-parser.appspot.com                                        #
-###########################################################################################
-
+---
 block-limits:
   hit-limit: "&c[material] limitálva ennyire [number]!"
 entity-limits:
   hit-limit: "&c[entity] idézés limitálva ennyire [number]!"
 limits:
-  panel-title: "Sziget limitek"
-
-
+  panel-title: Sziget limitek
 admin:
   limits:
+    main:
+      parameters: "<player>"
+      description: Egy játékos sziget limitjének megtekintése
+    calc:
+      parameters: "<player>"
+      description: Egy játékos sziget limitjének újraszámolása
+      finished: "&aA Sziget újraszámolás sikeresen befejeződött!"
+    offset:
       main:
-        parameters: "<player>"
-        description: "Egy játékos sziget limitjének megtekintése"
-      calc:
-         parameters: "<player>"
-         description: "Egy játékos sziget limitjének újraszámolása"
-         finished: "&aA Sziget újraszámolás sikeresen befejeződött!"
-
+        description: lehetővé teszi az anyagok és entitások limiteltolásainak kezelését
+      set:
+        parameters: "<lejátszó> <anyag|entitás> <szám>"
+        description: új eltolást állít be az anyag- vagy entitáskorláthoz
+      add:
+        parameters: "<lejátszó> <anyag|entitás> <szám>"
+        description: eltolást ad hozzá az anyag- vagy entitáskorláthoz
+      remove:
+        parameters: "<lejátszó> <anyag|entitás> <szám>"
+        description: csökkenti az anyag- vagy entitáskorlát ellentételezését
+      reset:
+        parameters: "<lejátszó> <anyag|entitás>"
+        description: eltávolítja az anyag vagy entitás eltolását
+      view:
+        parameters: "<lejátszó> <anyag|entitás>"
+        description: anyag vagy entitás eltolását jeleníti meg
 island:
   limits:
-    description: "Sziget limitek megtekintése"
+    description: Sziget limitek megtekintése
     max-color: "&c"
     regular-color: "&a"
     block-limit-syntax: "[number]/[limit]"
-    no-limits: "&cNincsenek limitek ebben a világban"
+    no-limits: "&c Nincsenek korlátok ezen a világon"
+    panel:
+      A2Z: a > z
+      Z2A: z > a
+    errors:
+      no-owner: "&c Annak a szigetnek nincs gazdája"
+      not-on-island: "&c Ennek a helynek nincs korlátja beállítva."
     recount:
-      description: "Limitek újraszámolása a szigeteden"
-
+      description: Limitek újraszámolása a szigeteden
+      now-recounting: "&b Most mesélünk. Ez eltarthat egy ideig, kérem, várjon..."
+      in-progress: "&c Sziget visszaállítása folyamatban van. Kérem, várjon..."
+      time-out: "&c Időtúllépés az újraszámláláskor. Tényleg nagy a sziget?"
