@@ -59,3 +59,6 @@ island:
       not-on-island: "&c Für diesen Standort sind keine Beschränkungen festgelegt."
     recount:
       description: Zählt die Limitierungen für deine Insel auf
+      now-recounting: "&b Ich erzähle jetzt. Dies kann eine Weile dauern, bitte warten..."
+      in-progress: "&c Inselrückmeldung läuft. Warten Sie mal..."
+      time-out: "&c Zeitüberschreitung beim Erzählen. Ist die Insel wirklich so groß?"
