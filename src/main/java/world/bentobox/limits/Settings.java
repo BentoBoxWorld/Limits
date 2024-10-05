@@ -1,8 +1,19 @@
 package world.bentobox.limits;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.EntityType;
 
@@ -79,6 +90,14 @@ public class Settings {
         if (el != null) {
             for (String name : el.getKeys(false)) {
                 int limit = el.getInt(name + ".limit");
+                String iconName = el.getString(name + ".icon", "BARRIER");
+                Material icon = Material.BARRIER;
+                try {
+                    icon = Material.valueOf(iconName.toUpperCase(Locale.ENGLISH));
+                } catch (Exception e) {
+                    addon.logError("Invalid group icon name: " + iconName + ". Use a Bukkit Material.");
+                    icon = Material.BARRIER;
+                }
                 Set<EntityType> entities = el.getStringList(name + ".entities").stream().map(s -> {
                     EntityType type = getType(s);
                     if (type != null) {
@@ -94,7 +113,7 @@ public class Settings {
                 }).filter(Objects::nonNull).collect(Collectors.toCollection(LinkedHashSet::new));
                 if (entities.isEmpty())
                     continue;
-                EntityGroup group = new EntityGroup(name, entities, limit);
+                EntityGroup group = new EntityGroup(name, entities, limit, icon);
                 entities.forEach(e -> {
                     List<EntityGroup> groups = groupLimits.getOrDefault(e, new ArrayList<>());
                     groups.add(group);
@@ -137,65 +156,6 @@ public class Settings {
      */
     public List<String> getGameModes() {
         return gameModes;
-    }
-
-    /**
-     * A named class representing a group of entities and their limits
-     *
-     */
-    public static class EntityGroup {
-        private final String name;
-        private final Set<EntityType> types;
-        private final int limit;
-
-        public EntityGroup(String name, Set<EntityType> types, int limit) {
-            this.name = name;
-            this.types = types;
-            this.limit = limit;
-        }
-
-        public boolean contains(EntityType type) {
-            return types.contains(type);
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public Set<EntityType> getTypes() {
-            return types;
-        }
-
-        public int getLimit() {
-            return limit;
-        }
-
-        @Override
-        public int hashCode()
-        {
-            int hash = 7;
-            hash = 83 * hash + Objects.hashCode(this.name);
-            return hash;
-        }
-
-        @Override
-        public boolean equals(Object obj)
-        {
-            if (this == obj)
-                return true;
-            if (obj == null)
-                return false;
-            if (getClass() != obj.getClass())
-                return false;
-            final EntityGroup other = (EntityGroup) obj;
-            return Objects.equals(this.name, other.name);
-        }
-
-        @Override
-        public String toString()
-        {
-            return "EntityGroup{" + "name=" + name + ", types=" + types + ", limit=" + limit + '}';
-        }
     }
 
     /**

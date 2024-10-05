@@ -41,6 +41,7 @@ import world.bentobox.bentobox.api.events.island.IslandEvent;
 import world.bentobox.bentobox.api.events.team.TeamSetownerEvent;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.managers.IslandsManager;
+import world.bentobox.limits.EntityGroup;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.Settings;
 import world.bentobox.limits.listeners.BlockLimitsListener;
@@ -89,7 +90,7 @@ public class JoinListenerTest {
 	when(addon.getSettings()).thenReturn(settings);
 	// Settings
 	when(settings.getGroupLimitDefinitions())
-		.thenReturn(new ArrayList<>(List.of(new Settings.EntityGroup("friendly", new HashSet<>(), -1))));
+            .thenReturn(new ArrayList<>(List.of(new EntityGroup("friendly", new HashSet<>(), -1, null))));
 	// Island Manager
 	when(island.getUniqueId()).thenReturn("unique_id");
     when(island.getOwner()).thenReturn(uuid);
