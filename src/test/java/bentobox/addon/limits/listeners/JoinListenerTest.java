@@ -120,8 +120,6 @@ public class JoinListenerTest {
 	when(Bukkit.getOfflinePlayer(any(UUID.class))).thenReturn(owner);
 	when(Bukkit.getPluginManager()).thenReturn(pim);
 
-	// Island
-	when(island.getOwner()).thenReturn(UUID.randomUUID());
     }
 
     /**
