@@ -3,6 +3,8 @@ block-limits:
   hit-limit: "＆c[material]は[number]に制限されています！"
 entity-limits:
   hit-limit: "＆c[entity]の生成は[number]に制限されています！"
+limits:
+  panel-title: 島の制限
 admin:
   limits:
     main:
@@ -10,14 +12,40 @@ admin:
       description: プレイヤーの島の制限を表示する
     calc:
       parameters: "<プレイヤー>"
-      finished: "＆a島の再計算が正常に完了しました！"
       description: プレイヤーの島の制限を再計算します
+      finished: "&a 島の再計算が正常に完了しました!"
+    offset:
+      main:
+        description: 材料とエンティティの制限オフセットを管理できます
+      set:
+        parameters: "<プレイヤー> <マテリアル|エンティティ> <番号>"
+        description: 材料またはエンティティの制限の新しいオフセットを設定します
+      add:
+        parameters: "<プレイヤー> <マテリアル|エンティティ> <番号>"
+        description: 材料またはエンティティの制限のオフセットを追加します
+      remove:
+        parameters: "<プレイヤー> <マテリアル|エンティティ> <番号>"
+        description: 材料またはエンティティの制限のオフセットを削減します
+      reset:
+        parameters: "<プレイヤー> <マテリアル|エンティティ>"
+        description: マテリアルまたはエンティティのオフセットを削除します
+      view:
+        parameters: "<プレイヤー> <マテリアル|エンティティ>"
+        description: 材料またはエンティティのオフセットを表示します
 island:
   limits:
-    block-limit-syntax: "[number]/[limit]"
     description: 島の限界を示す
     max-color: "＆c"
     regular-color: "＆a"
-    no-limits: "＆cこの世界には制限がありません"
-limits:
-  panel-title: 島の制限
+    block-limit-syntax: "[number]/[limit]"
+    no-limits: この世に限界はない
+    panel:
+      Z2A: z > a
+    errors:
+      no-owner: その島には所有者がいない
+      not-on-island: "&c この場所には制限が設定されていません。"
+    recount:
+      description: あなたの島の限界を語る
+      now-recounting: "&b 今、話を戻します。これにはしばらく時間がかかるかもしれませんので、お待ちください..."
+      in-progress: "&c 島の回復作業が進行中です。お待ちください..."
+      time-out: "＆c もう一度話すとタイムアウトになります。島は本当に大きいですか？"
