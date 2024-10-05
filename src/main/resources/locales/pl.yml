@@ -45,7 +45,13 @@ island:
     max-color: "&c"
     regular-color: "&a"
     block-limit-syntax: "[number]/[limit]"
-    no-limits: "&cBrak ustawionych limitów."
+    no-limits: "&c Na tym świecie nie ma żadnych ograniczeń"
+    panel:
+      A2Z: a > z
+      Z2A: z > a
+    errors:
+      no-owner: "&c Ta wyspa nie ma właściciela"
+      not-on-island: "&c Ta lokalizacja nie ma ustalonych ograniczeń."
     recount:
       description: określa limity dla twojej wyspy
       now-recounting: "&b Teraz przeliczam. To może chwilę potrwać, proszę czekać..."
