@@ -16,28 +16,46 @@ admin:
       finished: "&a岛屿重计算已完成!"
     offset:
       unknown: "&c 未知物质或实体 [name]。"
-      main: {}
+      main:
+        description: 允许管理材料和实体的限制偏移
       set:
+        parameters: "<玩家> <材质|实体> <数字>"
+        description: 为材料或实体限制设置新的偏移
+        success: "&a 将 [name] 的限制偏移量设置为 [number]。"
         same: "&c [name] 的限制偏移量已经为 [number]。"
-      add: {}
+      add:
+        parameters: "<玩家> <材质|实体> <数字>"
+        description: 添加材料或实体限制的偏移
+        success: "&a [name] 的限制偏移量增加至 [number]。"
       remove:
+        parameters: "<玩家> <材质|实体> <数字>"
+        description: 减少材料或实体限制的偏移量
         success: "&a [name] 的限制偏移量减少至 [number]。"
       reset:
+        parameters: "<玩家> <材质|实体>"
+        description: 删除材料或实体的偏移
         success: "&a [name] 的限制偏移量设置为 0。"
-      view: {}
+      view:
+        parameters: "<玩家> <材质|实体>"
+        description: 显示材料或实体的偏移
+        message: "&a [name] offset 设置为 [number]。"
 island:
   limits:
     description: 显示您的岛屿限制
     max-color: "&c"
     regular-color: "&a"
     block-limit-syntax: "[number]/[limit]"
+    no-limits: "&c 这世上没有限制"
     panel:
       title-syntax: "[title] [sort]"
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
+      A2Z: a > z
       Z2A: z > a
-    errors: {}
+    errors:
+      no-owner: "&c 那个岛没有主人"
+      not-on-island: "&c 此位置未设置限制。"
     recount:
       description: 重新计数岛屿限制
       now-recounting: "&b 开始重新计算. 可能需要一定的时间, 请稍等......"
