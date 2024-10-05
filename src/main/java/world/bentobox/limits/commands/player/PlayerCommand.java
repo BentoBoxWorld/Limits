@@ -1,10 +1,12 @@
 package world.bentobox.limits.commands.player;
 
 import java.util.List;
+import java.util.Optional;
 
 import world.bentobox.bentobox.api.addons.GameModeAddon;
 import world.bentobox.bentobox.api.commands.CompositeCommand;
 import world.bentobox.bentobox.api.user.User;
+import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.limits.Limits;
 
 /**
@@ -46,7 +48,22 @@ public class PlayerCommand extends CompositeCommand {
             showHelp(this, user);
             return false;
         } else {
-            new LimitPanel(addon).showLimits((GameModeAddon)getAddon(), user, user.getUniqueId());
+            // Report the limit for the island, which is governed by the owner of the island
+            Optional<Island> opIsland = getIslands().getIslandAt(user.getLocation());
+            if (opIsland.isEmpty()) {
+                user.sendMessage("general.errors.no-island");
+                return false;
+            }
+            Island island = opIsland.get();
+            if (!island.getWorld().equals(getWorld())) {
+                user.sendMessage("general.errors.wrong-world");
+                return false;
+            }
+            if (island.getOwner() == null) {
+                user.sendMessage("general.errors.no-owner");
+                return false;
+            }
+            new LimitPanel(addon).showLimits((GameModeAddon) getAddon(), user, island.getOwner());
             return true;
         }
     }
