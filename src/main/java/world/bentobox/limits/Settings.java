@@ -8,6 +8,11 @@ import org.bukkit.entity.EntityType;
 
 public class Settings {
 
+    enum GeneralGroup {
+        ANIMALS, MOBS
+    }
+
+    private final Map<GeneralGroup, Integer> general = new EnumMap<>(GeneralGroup.class);
     private final Map<EntityType, Integer> limits = new EnumMap<>(EntityType.class);
     private final Map<EntityType, List<EntityGroup>> groupLimits = new EnumMap<>(EntityType.class);
     private final List<String> gameModes;
@@ -45,15 +50,21 @@ public class Settings {
         ConfigurationSection el = addon.getConfig().getConfigurationSection("entitylimits");
         if (el != null) {
             for (String key : el.getKeys(false)) {
-                EntityType type = getType(key);
-                if (type != null) {
-                    if (DISALLOWED.contains(type)) {
-                        addon.logError("Entity type: " + key + " is not supported - skipping...");
-                    } else {
-                        limits.put(type, el.getInt(key, 0));
-                    }
+                if (key.equalsIgnoreCase("ANIMALS")) {
+                    general.put(GeneralGroup.ANIMALS, el.getInt(key, 0));
+                } else if (key.equalsIgnoreCase("MOBS")) {
+                    general.put(GeneralGroup.MOBS, el.getInt(key, 0));
                 } else {
-                    addon.logError("Unknown entity type: " + key + " - skipping...");
+                    EntityType type = getType(key);
+                    if (type != null) {
+                        if (DISALLOWED.contains(type)) {
+                            addon.logError("Entity type: " + key + " is not supported - skipping...");
+                        } else {
+                            limits.put(type, el.getInt(key, 0));
+                        }
+                    } else {
+                        addon.logError("Unknown entity type: " + key + " - skipping...");
+                    }
                 }
             }
         }
@@ -192,5 +203,12 @@ public class Settings {
      */
     public boolean isAsyncGolums() {
         return asyncGolums;
+    }
+
+    /**
+     * @return the general coverage map
+     */
+    public Map<GeneralGroup, Integer> getGeneral() {
+        return general;
     }
 }
