@@ -1,0 +1,36 @@
+---
+block-limits:
+  hit-limit: "&c[material]僅限[number]！"
+entity-limits:
+  hit-limit: "&c[entity] 產生僅限於 [number]！"
+limits: {}
+admin:
+  limits:
+    main: {}
+    calc: {}
+    offset:
+      unknown: "&c 未知材料或實體[name]。"
+      main: {}
+      set:
+        success: "&a [name] 的限制偏移量設定為 [number]。"
+        same: "&c [name] 的限制偏移量已經是 [number]。"
+      add:
+        success: "&a [name] 的限制偏移量增加到 [number]。"
+      remove:
+        success: "&a [name] 的限制偏移量減少到 [number]。"
+      reset: {}
+      view:
+        message: "&a [name] 偏移量設定為 [number]。"
+island:
+  limits:
+    max-color: "&c"
+    regular-color: "&a"
+    block-limit-syntax: "[number]/[limit]"
+    panel:
+      title-syntax: "[title] [sort]"
+      entity-group-name-syntax: "[name]"
+      entity-name-syntax: "[name]"
+      block-name-syntax: "[name]"
+      A2Z: a > z
+    errors: {}
+    recount: {}
