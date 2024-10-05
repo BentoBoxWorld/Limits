@@ -1,0 +1,36 @@
+---
+block-limits:
+  hit-limit: "&c[material] dibatasi sampai [number]!"
+entity-limits:
+  hit-limit: "&c[entity] spawning dibatasi  sampai [number]!"
+limits: {}
+admin:
+  limits:
+    main: {}
+    calc: {}
+    offset:
+      unknown: "&c Material atau entitas tidak dikenal [name]."
+      main: {}
+      set:
+        success: "&a Batas offset untuk [name] ditetapkan ke [number]."
+        same: "&a Batas offset untuk [name] ditetapkan ke [number]."
+      add:
+        success: "&a Batas offset untuk [name] ditingkatkan hingga [number]."
+      remove:
+        success: "&a Batas offset untuk [name] dikurangi hingga [number]."
+      reset:
+        success: "&a Batas offset untuk [name] ditetapkan ke 0."
+      view:
+        message: "&a [name] offset diatur ke [number]."
+island:
+  limits:
+    block-limit-syntax: "[number]/[limit]"
+    panel:
+      title-syntax: "[title] [sort]"
+      entity-group-name-syntax: "[name]"
+      entity-name-syntax: "[name]"
+      block-name-syntax: "[name]"
+      A2Z: a > z
+      Z2A: z > a
+    errors: {}
+    recount: {}
