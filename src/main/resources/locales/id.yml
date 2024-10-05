@@ -3,11 +3,17 @@ block-limits:
   hit-limit: "&c[material] dibatasi sampai [number]!"
 entity-limits:
   hit-limit: "&c[entity] spawning dibatasi  sampai [number]!"
-limits: {}
+limits:
+  panel-title: Batasan Pulau
 admin:
   limits:
-    main: {}
-    calc: {}
+    main:
+      parameters: "<pemain>"
+      description: menampilkan batasan pulau untuk pemain
+    calc:
+      parameters: "<pemain>"
+      description: menghitung ulang batasan pulau untuk pemain
+      finished: "&aPenghitungan ulang pulau selesai tanpa masalah!"
     offset:
       unknown: "&c Material atau entitas tidak dikenal [name]."
       main: {}
@@ -24,6 +30,9 @@ admin:
         message: "&a [name] offset diatur ke [number]."
 island:
   limits:
+    description: menampilkan batasan pulau kamu
+    max-color: "&c"
+    regular-color: "&a"
     block-limit-syntax: "[number]/[limit]"
     panel:
       title-syntax: "[title] [sort]"
@@ -33,4 +42,5 @@ island:
       A2Z: a > z
       Z2A: z > a
     errors: {}
-    recount: {}
+    recount:
+      description: menghitung ulang batasan untuk pulau kamu
