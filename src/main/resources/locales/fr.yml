@@ -1,30 +1,54 @@
+---
 block-limits:
   hit-limit: "&c[material] limité à [number]!"
 entity-limits:
   hit-limit: "&c[entity] spawning limited to [number]!"
 limits:
-  panel-title: "Limites de l'île"
-
-
+  panel-title: Limites de l'île
 admin:
   limits:
     main:
       parameters: "<player>"
-      description: "affiche les limites de l'île pour le joueur"
+      description: affiche les limites de l'île pour le joueur
     calc:
       parameters: "<player>"
-      description: "recalcule les limites de l'île pour le joueur"
+      description: recalcule les limites de l'île pour le joueur
       finished: "&a Recomptage terminé avec succès!"
-
+    offset:
+      main:
+        description: permet de gérer les décalages de limites pour les matériaux et
+          les entités
+      set:
+        parameters: "<joueur> <matériel|entité> <numéro>"
+        description: définit un nouveau décalage pour la limite de matériau ou d'entité
+      add:
+        parameters: "<joueur> <matériel|entité> <numéro>"
+        description: ajoute un décalage pour la limite de matériau ou d'entité
+      remove:
+        parameters: "<joueur> <matériel|entité> <numéro>"
+        description: réduit le décalage pour la limite de matériau ou d'entité
+      reset:
+        parameters: "<joueur> <matériel|entité>"
+        description: supprime le décalage pour le matériau ou l'entité
+      view:
+        parameters: "<joueur> <matériel|entité>"
+        description: affiche le décalage pour le matériau ou l'entité
 island:
   limits:
-    description: "affichez les limites de votre île"
+    description: affichez les limites de votre île
     max-color: "&c"
     regular-color: "&a"
     block-limit-syntax: "[number]/[limit]"
-    no-limits: "&cas de limites définies dans ce monde"
+    no-limits: "&c Aucune limite n'est fixée dans ce monde"
+    panel:
+      A2Z: a > z
+    errors:
+      no-owner: "&c Cette île n'a pas de propriétaire"
+      not-on-island: "&c Cet emplacement n'a pas de limites définies."
     recount:
-      description: "recompte les limites de votre île"
-      now-recounting: "&b Recomptage en cours. Cela peut prendre un certain temps, veuillez patienter..."
-      in-progress: "&c Le recomptage de l'île est en cours. Veuillez patienter s'il vous plaît..."
+      description: recompte les limites de votre île
+      now-recounting: "&b Recomptage en cours. Cela peut prendre un certain temps,
+        veuillez patienter..."
+      in-progress: "&c Le recomptage de l'île est en cours. Veuillez patienter s'il
+        vous plaît..."
       time-out: "&c Time out lors du recomptage. L'île est-elle vraiment grande?"
