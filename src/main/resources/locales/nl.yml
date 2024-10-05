@@ -1,0 +1,38 @@
+---
+block-limits:
+  hit-limit: "&c[material] beperkt tot [number]!"
+entity-limits:
+  hit-limit: "&c[entity] spawning beperkt tot [number]!"
+limits: {}
+admin:
+  limits:
+    main: {}
+    calc: {}
+    offset:
+      unknown: "&c Onbekend materiaal of entiteit [name]."
+      main: {}
+      set:
+        success: "&a Limietoffset voor [name] is ingesteld op [number]."
+        same: "&c Limietoffset voor [name] is al [number]."
+      add:
+        success: "&a Limietoffset voor [name] is verhoogd tot [number]."
+      remove:
+        success: "&a Limietoffset voor [name] is verlaagd tot [number]."
+      reset:
+        success: "&a Limietoffset voor [name] is ingesteld op 0."
+      view:
+        message: "&a [name] offset is ingesteld op [number]."
+island:
+  limits:
+    max-color: "&c"
+    regular-color: "&a"
+    block-limit-syntax: "[number]/[limit]"
+    panel:
+      title-syntax: "[title] [sort]"
+      entity-group-name-syntax: "[name]"
+      entity-name-syntax: "[name]"
+      block-name-syntax: "[name]"
+      A2Z: a > z
+      Z2A: z > a
+    errors: {}
+    recount: {}
