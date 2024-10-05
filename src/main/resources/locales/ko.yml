@@ -1,0 +1,63 @@
+---
+block-limits:
+  hit-limit: "&c[material]는 [number]개로 제한됩니다!"
+entity-limits:
+  hit-limit: "&c[entity]는 [number]개로 제한됩니다!"
+limits:
+  panel-title: 섬의 경계
+admin:
+  limits:
+    main:
+      parameters: "<플레이어>"
+      description: 플레이어에게 섬의 한계를 보여주세요
+    calc:
+      parameters: "<플레이어>"
+      description: 플레이어의 섬 한계를 다시 계산합니다
+      finished: "&a 섬 재계산이 성공적으로 완료되었습니다!"
+    offset:
+      unknown: "&c 알 수 없는 자료 또는 엔터티 [name]."
+      main:
+        description: 재료 및 엔티티에 대한 제한 오프셋을 관리할 수 있습니다.
+      set:
+        parameters: "<플레이어> <소재|엔티티> <숫자>"
+        description: 재료 또는 엔티티 제한에 대한 새로운 오프셋을 설정합니다.
+        success: "&a [name]에 대한 제한 오프셋이 [number]로 설정되었습니다."
+        same: "&c [name]에 대한 제한 오프셋은 이미 [number]입니다."
+      add:
+        parameters: "<플레이어> <소재|엔티티> <숫자>"
+        description: 재료 또는 엔티티 제한에 대한 오프셋을 추가합니다.
+        success: "&a [name]에 대한 오프셋 제한이 [number]까지 증가합니다."
+      remove:
+        parameters: "<플레이어> <소재|엔티티> <숫자>"
+        description: 재료 또는 엔티티 제한에 대한 오프셋을 줄입니다.
+        success: "&a [name]에 대한 오프셋 제한은 [number]까지 감소합니다."
+      reset:
+        parameters: "<플레이어> <소재|엔티티>"
+        description: 재료 또는 엔티티에 대한 오프셋을 제거합니다.
+        success: "&a [name]에 대한 제한 오프셋이 0으로 설정되었습니다."
+      view:
+        parameters: "<플레이어> <소재|엔티티>"
+        description: 재료 또는 엔티티에 대한 오프셋을 표시합니다.
+        message: "&a [name] 오프셋이 [number]로 설정되었습니다."
+island:
+  limits:
+    description: 섬의 경계를 보여주세요
+    max-color: "&c"
+    regular-color: "&a"
+    block-limit-syntax: "[number]/[limit]"
+    no-limits: "&c 이 세상에는 제한이 없습니다"
+    panel:
+      title-syntax: "[title] [sort]"
+      entity-group-name-syntax: "[name]"
+      entity-name-syntax: "[name]"
+      block-name-syntax: "[name]"
+      A2Z: 가 > 지
+      Z2A: 지 > 아
+    errors:
+      no-owner: "&c 그 섬에는 주인이 없다"
+      not-on-island: "&c 이 위치에는 제한이 설정되어 있지 않습니다."
+    recount:
+      description: 당신의 섬에 대한 한계를 다시 계산합니다
+      now-recounting: "&b 지금 다시 계산 중입니다. 시간이 좀 걸릴 수 있으니 기다려 주세요..."
+      in-progress: "&c 섬 복구가 진행 중입니다. 잠시만 기다려 주세요..."
+      time-out: "&c 계산할 때 시간 초과. 섬이 정말 큰가요?"
