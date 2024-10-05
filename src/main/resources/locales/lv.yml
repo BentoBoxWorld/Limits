@@ -1,25 +1,63 @@
 ---
-admin:
-  limits:
-    calc:
-      description: pārrēķinā salas ierobežojumus priekš spēlētāja
-      parameters: "<spēlētājs>"
-      finished: "&aSalas ierobežojumu pārrēķināšana pabeigta!"
-    main:
-      description: rāda salas ierobežojumus priekš spēlētāja
-      parameters: "<spēlētājs>"
 block-limits:
   hit-limit: "&c[material] ierobežots līdz [number]!"
 entity-limits:
   hit-limit: "&c[entity] rašanās ierobežots līdz [number]!"
-island:
-  limits:
-    block-limit-syntax: "[number]/[limit]"
-    description: rāda tavas salas ierobežojumus
-    max-color: "&c"
-    no-limits: "&cŠai pasaulei nav uzstādīti ierobežojumi"
-    recount:
-      description: pārrēķina ierobežojumus tavai salai
-    regular-color: "&a"
 limits:
   panel-title: Salas ierobežojumi
+admin:
+  limits:
+    main:
+      parameters: "<spēlētājs>"
+      description: rāda salas ierobežojumus priekš spēlētāja
+    calc:
+      parameters: "<spēlētājs>"
+      description: pārrēķinā salas ierobežojumus priekš spēlētāja
+      finished: "&aSalas ierobežojumu pārrēķināšana pabeigta!"
+    offset:
+      unknown: un c Nezināms materiāls vai vienība [name].
+      main:
+        description: ļauj pārvaldīt limitu kompensācijas materiāliem un entītijām
+      set:
+        parameters: "<spēlētājs> <materiāls|vienība> <skaitlis>"
+        description: nosaka jaunu nobīdi materiāla vai entītijas ierobežojumam
+        success: "&a Ierobežojuma nobīde [name] ir iestatīta uz [number]."
+        same: "&c [name] limita nobīde jau ir [number]."
+      add:
+        parameters: "<spēlētājs> <materiāls|vienība> <skaitlis>"
+        description: pievieno nobīdi materiāla vai entītijas ierobežojumam
+        success: "&a Ierobežojuma nobīde [name] tiek palielināta līdz [number]."
+      remove:
+        parameters: "<spēlētājs> <materiāls|vienība> <skaitlis>"
+        description: samazina materiāla vai entītijas limita kompensāciju
+        success: "&a Ierobežojuma nobīde [name] tiek samazināta līdz [number]."
+      reset:
+        parameters: "<spēlētājs> <materiāls|vienība>"
+        description: noņem materiāla vai entītijas nobīdi
+        success: "&a Ierobežojuma nobīde [name] ir iestatīta uz 0."
+      view:
+        parameters: "<spēlētājs> <materiāls|vienība>"
+        description: parāda nobīdi materiālam vai vienībai
+        message: "&a [name] nobīde ir iestatīta uz [number]."
+island:
+  limits:
+    description: rāda tavas salas ierobežojumus
+    max-color: "&c"
+    regular-color: "&a"
+    block-limit-syntax: "[number]/[limit]"
+    no-limits: "&c Šajā pasaulē nav noteikti ierobežojumi"
+    panel:
+      title-syntax: "[title] [sort]"
+      entity-group-name-syntax: "[name]"
+      entity-name-syntax: "[name]"
+      block-name-syntax: "[name]"
+      A2Z: a > z
+      Z2A: z > a
+    errors:
+      no-owner: "&c Tai salai nav saimnieka"
+      not-on-island: "&c Šai vietai nav noteikti ierobežojumi."
+    recount:
+      description: pārrēķina ierobežojumus tavai salai
+      now-recounting: "&b Tagad atstāsta. Tas var aizņemt kādu laiku, lūdzu, uzgaidiet..."
+      in-progress: "&c Notiek salas atjaunošana. Lūdzu, uzgaidiet..."
+      time-out: "&c Noildze, pārskaitot. Vai tiešām sala ir liela?"

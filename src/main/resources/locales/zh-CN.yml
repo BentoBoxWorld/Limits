@@ -1,35 +1,63 @@
-###########################################################################################
-# This is a YML file. Be careful when editing. Check your edits in a YAML checker like    #
-# the one at http://yaml-online-parser.appspot.com                                        #
-###########################################################################################
-
+---
 block-limits:
   hit-limit: "&c[material] 已限制到 [number]!"
 entity-limits:
   hit-limit: "&c[entity] 生成已限制到 [number]!"
 limits:
-  panel-title: "岛屿限制"
-
-
+  panel-title: 岛屿限制
 admin:
   limits:
+    main:
+      parameters: "<玩家>"
+      description: 显示玩家的限制
+    calc:
+      parameters: "<玩家>"
+      description: 重新计算玩家的岛屿限制
+      finished: "&a岛屿重计算已完成!"
+    offset:
+      unknown: "&c 未知物质或实体 [name]。"
       main:
-        parameters: "<player>"
-        description: "显示玩家的限制"
-      calc:
-         parameters: "<player>"
-         description: "重新计算玩家的岛屿限制"
-         finished: "&a岛屿重计算已完成!"
-
+        description: 允许管理材料和实体的限制偏移
+      set:
+        parameters: "<玩家> <材质|实体> <数字>"
+        description: 为材料或实体限制设置新的偏移
+        success: "&a 将 [name] 的限制偏移量设置为 [number]。"
+        same: "&c [name] 的限制偏移量已经为 [number]。"
+      add:
+        parameters: "<玩家> <材质|实体> <数字>"
+        description: 添加材料或实体限制的偏移
+        success: "&a [name] 的限制偏移量增加至 [number]。"
+      remove:
+        parameters: "<玩家> <材质|实体> <数字>"
+        description: 减少材料或实体限制的偏移量
+        success: "&a [name] 的限制偏移量减少至 [number]。"
+      reset:
+        parameters: "<玩家> <材质|实体>"
+        description: 删除材料或实体的偏移
+        success: "&a [name] 的限制偏移量设置为 0。"
+      view:
+        parameters: "<玩家> <材质|实体>"
+        description: 显示材料或实体的偏移
+        message: "&a [name] offset 设置为 [number]。"
 island:
   limits:
-    description: "显示您的岛屿限制"
+    description: 显示您的岛屿限制
     max-color: "&c"
     regular-color: "&a"
     block-limit-syntax: "[number]/[limit]"
-    no-limits: "&c此世界中无限制"
+    no-limits: "&c 这世上没有限制"
+    panel:
+      title-syntax: "[title] [sort]"
+      entity-group-name-syntax: "[name]"
+      entity-name-syntax: "[name]"
+      block-name-syntax: "[name]"
+      A2Z: a > z
+      Z2A: z > a
+    errors:
+      no-owner: "&c 那个岛没有主人"
+      not-on-island: "&c 此位置未设置限制。"
     recount:
-      description: "重新计数岛屿限制"
+      description: 重新计数岛屿限制
       now-recounting: "&b 开始重新计算. 可能需要一定的时间, 请稍等......"
       in-progress: "&c 重新计算岛屿限制中. 请稍等......"
       time-out: "&c 重新计算超时. 岛屿太大了吗?"

@@ -1,0 +1,63 @@
+---
+block-limits:
+  hit-limit: "&c[material] limitado a [number]!"
+entity-limits:
+  hit-limit: "&c[entity] gerando limitado a [number]!"
+limits:
+  panel-title: Limites da ilha
+admin:
+  limits:
+    main:
+      parameters: "<jogador>"
+      description: mostrar os limites da ilha para o jogador
+    calc:
+      parameters: "<jogador>"
+      description: recalcular os limites da ilha para o jogador
+      finished: "&a O recálculo da ilha foi concluído com sucesso!"
+    offset:
+      unknown: "&c Material ou entidade desconhecida [name]."
+      main:
+        description: permite gerenciar limites de deslocamento para materiais e entidades
+      set:
+        parameters: "<jogador> <material|entidade> <número>"
+        description: define novo deslocamento para limite de material ou entidade
+        success: "&a O deslocamento de limite para [name] é definido como [number]."
+        same: "&c O deslocamento limite para [name] já é [number]."
+      add:
+        parameters: "<jogador> <material|entidade> <número>"
+        description: adiciona deslocamento para limite de material ou entidade
+        success: "&a O deslocamento de limite para [name] é aumentado até [number]."
+      remove:
+        parameters: "<jogador> <material|entidade> <número>"
+        description: reduz o deslocamento para o limite de material ou entidade
+        success: "&a O deslocamento de limite para [name] é reduzido até [number]."
+      reset:
+        parameters: "<jogador> <material|entidade>"
+        description: remove deslocamento para material ou entidade
+        success: "&a O deslocamento de limite para [name] é definido como 0."
+      view:
+        parameters: "<jogador> <material|entidade>"
+        description: exibe deslocamento para material ou entidade
+        message: "&a [name] deslocamento é definido como [number]."
+island:
+  limits:
+    description: mostre os limites da sua ilha
+    max-color: "&c"
+    regular-color: "&a"
+    block-limit-syntax: "[number]/[limit]"
+    no-limits: "&c Não há limites neste mundo"
+    panel:
+      title-syntax: "[title] [sort]"
+      entity-group-name-syntax: "[name]"
+      entity-name-syntax: "[name]"
+      block-name-syntax: "[name]"
+      A2Z: a > z
+      Z2A: z > a
+    errors:
+      no-owner: "&c Aquela ilha não tem dono"
+      not-on-island: "&c Este local não possui limites definidos."
+    recount:
+      description: reconta limites para sua ilha
+      now-recounting: "&b Agora recontando. Isso pode demorar um pouco, aguarde..."
+      in-progress: "&c A recontagem da ilha está em andamento. Aguarde..."
+      time-out: "&c Tempo limite ao recontar. A ilha é realmente grande?"

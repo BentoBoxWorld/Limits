@@ -1,25 +1,65 @@
 ---
-admin:
-  limits:
-    calc:
-      description: Oyuncu için ada limitlerini tekrar hesapla.
-      parameters: "<player>"
-      finished: "&aAda hesaplaması başarıyla yapıldı."
-    main:
-      description: Oyuncu için ada limitlerini göster.
-      parameters: "<player>"
-island:
-  limits:
-    block-limit-syntax: "&5[number]&7/&e[limit]"
-    description: Ada limitlerini gör.
-    max-color: "&c"
-    regular-color: "&9"
-    no-limits: "&4Bu dünyada limitler ayarlı değil!"
-    recount:
-      description: Ada limitlerini tekrardan hesaplar.
 block-limits:
   hit-limit: "&e[material] &4eşyasından &5[number] &4koyabilirsin!"
 entity-limits:
   hit-limit: "&e[entity] &4varlığından &5[number] &4tane koyabilirsin!"
 limits:
   panel-title: "&eAda limiti"
+admin:
+  limits:
+    main:
+      parameters: "<player>"
+      description: Oyuncu için ada limitlerini göster.
+    calc:
+      parameters: "<player>"
+      description: Oyuncu için ada limitlerini tekrar hesapla.
+      finished: "&aAda hesaplaması başarıyla yapıldı."
+    offset:
+      unknown: "&c Bilinmeyen malzeme veya varlık [name]."
+      main:
+        description: malzemeler ve varlıklar için limit ofsetlerini yönetmeye olanak
+          tanır
+      set:
+        parameters: "<oyuncu> <malzeme|varlık> <sayı>"
+        description: malzeme veya varlık sınırı için yeni ofset ayarlar
+        success: "&[name] için Limit ofseti [number] olarak ayarlandı."
+        same: "&c [name] için sınır ofseti zaten [number]'dır."
+      add:
+        parameters: "<oyuncu> <malzeme|varlık> <sayı>"
+        description: malzeme veya varlık sınırı için ofset ekler
+        success: "&[name] için Limit ofseti [number]'ya kadar artırıldı."
+      remove:
+        parameters: "<oyuncu> <malzeme|varlık> <sayı>"
+        description: malzeme veya varlık sınırı için ofseti azaltır
+        success: "&[name] için limit ofseti [number]'ya kadar azaltıldı."
+      reset:
+        parameters: "<oyuncu> <malzeme|varlık>"
+        description: malzeme veya varlık için ofseti kaldırır
+        success: "&[name] için Limit ofseti 0 olarak ayarlandı."
+      view:
+        parameters: "<oyuncu> <malzeme|varlık>"
+        description: malzeme veya varlık için ofseti görüntüler
+        message: "&a [name] ofseti [number] olarak ayarlandı."
+island:
+  limits:
+    description: Ada limitlerini gör.
+    max-color: "&c"
+    regular-color: "&9"
+    block-limit-syntax: "&5[number]&7/&e[limit]"
+    no-limits: "&c Bu dünyada hiçbir sınır belirlenmedi"
+    panel:
+      title-syntax: "[title] [sort]"
+      entity-group-name-syntax: "[name]"
+      entity-name-syntax: "[name]"
+      block-name-syntax: "[name]"
+      A2Z: a > z
+      Z2A: z > a
+    errors:
+      no-owner: "&c O adanın bir sahibi yok"
+      not-on-island: "&c Bu lokasyonun belirlenmiş bir sınırı yok."
+    recount:
+      description: Ada limitlerini tekrardan hesaplar.
+      now-recounting: "&b Şimdi anlatmaya başlıyorum. Biraz zaman alabilir, lütfen
+        bekleyin..."
+      in-progress: "&c Ada geri kazanımı devam ediyor. Lütfen bekleyin..."
+      time-out: "&c Anlatırken zaman aşımı. Ada gerçekten büyük mü?"

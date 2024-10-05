@@ -10,7 +10,6 @@ entity-limits:
 limits:
   panel-title: "Island limits"
 
-
 admin:
   limits:
       main:
@@ -52,7 +51,17 @@ island:
     max-color: "&c"
     regular-color: "&a"
     block-limit-syntax: "[number]/[limit]"
-    no-limits: "&cNo limits set in this world"
+    no-limits: "&c No limits set in this world"
+    panel:
+        title-syntax: '[title] [sort]'
+        entity-group-name-syntax: '[name]' 
+        entity-name-syntax: '[name]'
+        block-name-syntax: '[name]'
+        A2Z: "a > z"
+        Z2A: "z > a"
+    errors:
+        no-owner: "&c That island has no owner"
+        not-on-island: "&c This location does not have limits set."
     recount:
       description: "recounts limits for your island"
       now-recounting: "&b Now recounting. This could take a while, please wait..."
