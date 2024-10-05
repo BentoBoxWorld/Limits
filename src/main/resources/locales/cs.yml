@@ -1,35 +1,53 @@
-###########################################################################################
-# This is a YML file. Be careful when editing. Check your edits in a YAML checker like    #
-# the one at http://yaml-online-parser.appspot.com                                        #
-#                                                                                         #
-# Translation by: CZghost                                                                 #
-###########################################################################################
-
+---
 block-limits:
   hit-limit: "&c[material] omezen na [number]!"
 entity-limits:
   hit-limit: "&cSpawnování [entity] omezeno na [number]!"
 limits:
-  panel-title: "Omezení ostrovů"
-
-
+  panel-title: Omezení ostrovů
 admin:
   limits:
+    main:
+      parameters: "<player>"
+      description: ukázat omezení ostrova hráče
+    calc:
+      parameters: "<player>"
+      description: přepočítat omezení ostrova hráče
+      finished: "&aPřepočítání ostrova úspěšně dokončeno!"
+    offset:
       main:
-        parameters: "<player>"
-        description: "ukázat omezení ostrova hráče"
-      calc:
-         parameters: "<player>"
-         description: "přepočítat omezení ostrova hráče"
-         finished: "&aPřepočítání ostrova úspěšně dokončeno!"
-
+        description: umožňuje spravovat limity offsetů pro materiály a entity
+      set:
+        parameters: "<hráč> <materiál|entita> <číslo>"
+        description: nastaví nový offset pro limit materiálu nebo entity
+      add:
+        parameters: "<hráč> <materiál|entita> <číslo>"
+        description: přidá offset pro limit materiálu nebo entity
+      remove:
+        parameters: "<hráč> <materiál|entita> <číslo>"
+        description: snižuje offset pro limit materiálu nebo entity
+      reset:
+        parameters: "<hráč> <materiál|entita>"
+        description: odstraní offset pro materiál nebo entitu
+        success: "&a Mezní posun pro [jméno] je nastaven na 0."
+      view:
+        parameters: "<hráč> <materiál|entita>"
+        description: zobrazuje posun pro materiál nebo entitu
 island:
   limits:
-    description: "ukázat omezení tvého ostrova"
+    description: ukázat omezení tvého ostrova
     max-color: "&c"
     regular-color: "&a"
     block-limit-syntax: "[number]/[limit]"
-    no-limits: "&cTento svět nemá žádné omezení"
+    no-limits: "&c V tomto světě nejsou stanovena žádná omezení"
+    panel:
+      A2Z: a > z
+      Z2A: z > a
+    errors:
+      no-owner: "&c Tento ostrov nemá vlastníka"
+      not-on-island: "&c Toto umístění nemá nastavena omezení."
     recount:
-      description: "přepočítá omezení tvého ostrova"
-
+      description: přepočítá omezení tvého ostrova
+      now-recounting: "&b Nyní vyprávění. Může to chvíli trvat, čekejte prosím..."
+      in-progress: "&c Probíhá obnovení ostrova. Čekejte prosím..."
+      time-out: "&c Časový limit při přepočítávání. Je ostrov opravdu velký?"
