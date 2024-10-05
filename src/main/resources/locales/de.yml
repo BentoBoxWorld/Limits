@@ -14,12 +14,51 @@ admin:
       parameters: "<player>"
       description: Berechne die Insel Limitierungen für den Spieler neu
       finished: "&aInselberechnung erfolgreich abgeschlossen!"
+    offset:
+      unknown: "&c Unbekanntes Material oder Entität [name]."
+      main:
+        description: ermöglicht die Verwaltung von Grenzwertverschiebungen für Materialien
+          und Entitäten
+      set:
+        parameters: "<Spieler> <Material|Entität> <Nummer>"
+        description: legt einen neuen Offset für Material- oder Entity-Grenzwert fest
+        success: "&a Der Grenzoffset für [name] ist auf [number] eingestellt."
+        same: "&c Der Grenzoffset für [name] ist bereits [number]."
+      add:
+        parameters: "<Spieler> <Material|Entität> <Nummer>"
+        description: fügt einen Offset für Material- oder Entitätslimit hinzu
+        success: "&a Der Limit-Offset für [name] wird bis [number] erhöht."
+      remove:
+        parameters: "<Spieler> <Material|Entität> <Nummer>"
+        description: reduziert den Offset für Material- oder Entitätslimit
+        success: "&a Der Grenzoffset für [name] wird auf [number] reduziert."
+      reset:
+        parameters: "<Spieler> <Material|Entität>"
+        description: Entfernt den Offset für Material oder Entität
+        success: "&a Der Grenzoffset für [name] wird auf 0 gesetzt."
+      view:
+        parameters: "<Spieler> <Material|Entität>"
+        description: zeigt den Offset für Material oder Entität an
+        message: "&a [name]-Offset ist auf [number] gesetzt."
 island:
   limits:
     description: Zeige deine Insel Limitierungen
     max-color: "&c"
     regular-color: "&a"
     block-limit-syntax: "[number]/[limit]"
-    no-limits: "&cDiese Welt hat keine Limitierungen"
+    no-limits: "&c Es gibt keine Grenzen in dieser Welt"
+    panel:
+      title-syntax: "[title] [sort]"
+      entity-group-name-syntax: "[name]"
+      entity-name-syntax: "[name]"
+      block-name-syntax: "[name]"
+      A2Z: a > z
+      Z2A: z > a
+    errors:
+      no-owner: "&c Diese Insel hat keinen Besitzer"
+      not-on-island: "&c Für diesen Standort sind keine Beschränkungen festgelegt."
     recount:
       description: Zählt die Limitierungen für deine Insel auf
+      now-recounting: "&b Ich erzähle jetzt. Dies kann eine Weile dauern, bitte warten..."
+      in-progress: "&c Inselrückmeldung läuft. Warten Sie mal..."
+      time-out: "&c Zeitüberschreitung beim Erzählen. Ist die Insel wirklich so groß?"
