@@ -1,63 +1,62 @@
----
 block-limits:
-  hit-limit: "＆c[material]は[number]に制限されています！"
+  hit-limit: '&c[material]は[number]に制限されています！'
 entity-limits:
-  hit-limit: "＆c[entity]の生成は[number]に制限されています！"
+  hit-limit: '&c[entity]の生成は[number]に制限されています！'
 limits:
   panel-title: 島の制限
 admin:
   limits:
     main:
-      parameters: "<プレイヤー>"
+      parameters: <プレイヤー>
       description: プレイヤーの島の制限を表示する
     calc:
-      parameters: "<プレイヤー>"
+      parameters: <プレイヤー>
       description: プレイヤーの島の制限を再計算します
-      finished: "&a 島の再計算が正常に完了しました!"
+      finished: '&a 島の再計算が正常に完了しました!'
     offset:
-      unknown: "&c 不明な素材または実体 [name]。"
+      unknown: '&c 不明な素材または実体 [name]。'
       main:
         description: 材料とエンティティの制限オフセットを管理できます
       set:
-        parameters: "<プレイヤー> <マテリアル|エンティティ> <番号>"
+        parameters: <プレイヤー> <マテリアル|エンティティ> <番号>
         description: 材料またはエンティティの制限の新しいオフセットを設定します
-        success: "&a [name] の制限オフセットが [number] に設定されています。"
-        same: "&c [name] の制限オフセットはすでに [number] です。"
+        success: '&a [name] の制限オフセットが [number] に設定されています。'
+        same: '&c [name] の制限オフセットはすでに [number] です。'
       add:
-        parameters: "<プレイヤー> <マテリアル|エンティティ> <番号>"
+        parameters: <プレイヤー> <マテリアル|エンティティ> <番号>
         description: 材料またはエンティティの制限のオフセットを追加します
-        success: "&a [name] の制限オフセットが [number] まで増加されます。"
+        success: '&a [name] の制限オフセットが [number] まで増加されます。'
       remove:
-        parameters: "<プレイヤー> <マテリアル|エンティティ> <番号>"
+        parameters: <プレイヤー> <マテリアル|エンティティ> <番号>
         description: 材料またはエンティティの制限のオフセットを削減します
-        success: "&a [name] の制限オフセットが [number] まで削減されます。"
+        success: '&a [name] の制限オフセットが [number] まで削減されます。'
       reset:
-        parameters: "<プレイヤー> <マテリアル|エンティティ>"
+        parameters: <プレイヤー> <マテリアル|エンティティ>
         description: マテリアルまたはエンティティのオフセットを削除します
-        success: "&a [name] の制限オフセットが 0 に設定されています。"
+        success: '&a [name] の制限オフセットが 0 に設定されています。'
       view:
-        parameters: "<プレイヤー> <マテリアル|エンティティ>"
+        parameters: <プレイヤー> <マテリアル|エンティティ>
         description: 材料またはエンティティのオフセットを表示します
-        message: "&a [name] オフセットが [number] に設定されています。"
+        message: '&a [name] オフセットが [number] に設定されています。'
 island:
   limits:
     description: 島の限界を示す
-    max-color: "＆c"
-    regular-color: "＆a"
-    block-limit-syntax: "[number]/[limit]"
+    block-limit-syntax: '[number]/[limit]'
     no-limits: この世に限界はない
     panel:
-      title-syntax: "[title] [sort]"
-      entity-group-name-syntax: "[name]"
-      entity-name-syntax: "[name]"
-      block-name-syntax: "[name]"
+      title-syntax: '[title] [sort]'
+      entity-group-name-syntax: '[name]'
+      entity-name-syntax: '[name]'
+      block-name-syntax: '[name]'
       A2Z: a > z
       Z2A: z > a
     errors:
       no-owner: その島には所有者がいない
-      not-on-island: "&c この場所には制限が設定されていません。"
+      not-on-island: '&c この場所には制限が設定されていません。'
     recount:
       description: あなたの島の限界を語る
-      now-recounting: "&b 今、話を戻します。これにはしばらく時間がかかるかもしれませんので、お待ちください..."
-      in-progress: "&c 島の回復作業が進行中です。お待ちください..."
-      time-out: "＆c もう一度話すとタイムアウトになります。島は本当に大きいですか？"
+      now-recounting: '&b 今、話を戻します。これにはしばらく時間がかかるかもしれませんので、お待ちください...'
+      in-progress: '&c 島の回復作業が進行中です。お待ちください...'
+      time-out: '&c もう一度話すとタイムアウトになります。島は本当に大きいですか？'
+    max-color: '&c'
+    regular-color: '&a'
