@@ -51,7 +51,7 @@ public class PlayerCommand extends CompositeCommand {
             // Report the limit for the island, which is governed by the owner of the island
             Optional<Island> opIsland = getIslands().getIslandAt(user.getLocation());
             if (opIsland.isEmpty()) {
-                user.sendMessage("general.errors.no-island");
+                user.sendMessage("island.limits.errors.not-on-island");
                 return false;
             }
             Island island = opIsland.get();
@@ -60,7 +60,7 @@ public class PlayerCommand extends CompositeCommand {
                 return false;
             }
             if (island.getOwner() == null) {
-                user.sendMessage("general.errors.no-owner");
+                user.sendMessage("island.limits.errors.no-owner");
                 return false;
             }
             new LimitPanel(addon).showLimits((GameModeAddon) getAddon(), user, island.getOwner());

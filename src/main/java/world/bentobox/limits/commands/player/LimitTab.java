@@ -119,7 +119,8 @@ public class LimitTab implements Tab {
         });
         groupMap.forEach((v, limit) -> {
             PanelItemBuilder pib = new PanelItemBuilder();
-            pib.name(v.getName());
+            pib.name(user.getTranslation("island.limits.panel.entity-group-name-syntax", TextVariables.NAME,
+                    v.getName()));
             String description = "";
             description += "(" + prettyNames(v) + ")\n";
             pib.icon(v.getIcon());
@@ -145,7 +146,8 @@ public class LimitTab implements Tab {
 
         map.forEach((k,v) -> {
             PanelItemBuilder pib = new PanelItemBuilder();
-            pib.name(Util.prettifyText(k.toString()));
+            pib.name(user.getTranslation("island.limits.panel.entity-name-syntax", TextVariables.NAME,
+                    Util.prettifyText(k.toString())));
             Material m;
             try {
                 if (E2M.containsKey(k)) {
@@ -175,7 +177,8 @@ public class LimitTab implements Tab {
         // Material limits
         for (Entry<Material, Integer> en : matLimits.entrySet()) {
             PanelItemBuilder pib = new PanelItemBuilder();
-            pib.name(Util.prettifyText(en.getKey().toString()));
+            pib.name(user.getTranslation("island.limits.panel.block-name-syntax", TextVariables.NAME,
+                    Util.prettifyText(en.getKey().toString())));
             // Adjust icon
             pib.icon(B2M.getOrDefault(en.getKey(), en.getKey()));
 
@@ -197,7 +200,9 @@ public class LimitTab implements Tab {
 
     @Override
     public String getName() {
-        return user.getTranslation(world, "limits.panel-title") + " " + sortBy.name();
+        String sort = user.getTranslation(world, "island.limits.panel." + sortBy);
+        return user.getTranslation(world, "island.limits.panel.title-syntax", "[title]",
+                user.getTranslation(world, "limits.panel-title"), "[sort]", sort);
     }
 
     @Override
