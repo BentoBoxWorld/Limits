@@ -16,17 +16,29 @@ admin:
       finished: "&aPenghitungan ulang pulau selesai tanpa masalah!"
     offset:
       unknown: "&c Material atau entitas tidak dikenal [name]."
-      main: {}
+      main:
+        description: memungkinkan untuk mengelola batas offset untuk material dan
+          entitas
       set:
+        parameters: "<pemain> <material|entitas> <angka>"
+        description: menetapkan offset baru untuk batasan material atau entitas
         success: "&a Batas offset untuk [name] ditetapkan ke [number]."
         same: "&a Batas offset untuk [name] ditetapkan ke [number]."
       add:
+        parameters: "<pemain> <material|entitas> <angka>"
+        description: menambahkan offset untuk batasan material atau entitas
         success: "&a Batas offset untuk [name] ditingkatkan hingga [number]."
       remove:
+        parameters: "<pemain> <material|entitas> <angka>"
+        description: mengurangi offset untuk batas material atau entitas
         success: "&a Batas offset untuk [name] dikurangi hingga [number]."
       reset:
+        parameters: "<pemain> <material|entitas>"
+        description: menghapus offset untuk material atau entitas
         success: "&a Batas offset untuk [name] ditetapkan ke 0."
       view:
+        parameters: "<pemain> <material|entitas>"
+        description: menampilkan offset untuk material atau entitas
         message: "&a [name] offset diatur ke [number]."
 island:
   limits:
@@ -34,6 +46,7 @@ island:
     max-color: "&c"
     regular-color: "&a"
     block-limit-syntax: "[number]/[limit]"
+    no-limits: "&c Tidak ada batasan yang ditetapkan di dunia ini"
     panel:
       title-syntax: "[title] [sort]"
       entity-group-name-syntax: "[name]"
@@ -41,6 +54,8 @@ island:
       block-name-syntax: "[name]"
       A2Z: a > z
       Z2A: z > a
-    errors: {}
+    errors:
+      no-owner: "&c Pulau itu tidak memiliki pemilik"
+      not-on-island: "&c Lokasi ini tidak memiliki batasan yang ditetapkan."
     recount:
       description: menghitung ulang batasan untuk pulau kamu
