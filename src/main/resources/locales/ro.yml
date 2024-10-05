@@ -14,12 +14,41 @@ admin:
       parameters: "<jucator>"
       description: recalculeaza limitele insulei pentru jocator
       finished: "&aRecalcularea insulei terminata cu succes!"
+    offset:
+      main:
+        description: permite gestionarea decalajelor de limite pentru materiale și
+          entități
+      set:
+        parameters: "<player> <material|entity> <number>"
+        description: stabilește o nouă compensare pentru limita de material sau entitate
+      add:
+        parameters: "<player> <material|entity> <number>"
+        description: adaugă compensare pentru limita de material sau entitate
+      remove:
+        parameters: "<player> <material|entity> <number>"
+        description: reduce compensarea pentru limita de material sau entitate
+      reset:
+        parameters: "<player> <material|entity>"
+        description: elimină decalajul pentru material sau entitate
+      view:
+        parameters: "<player> <material|entity>"
+        description: afișează offset pentru material sau entitate
 island:
   limits:
     description: iti arata limitele insulei
     max-color: "&c"
     regular-color: "&a"
     block-limit-syntax: "[number]/[limit]"
-    no-limits: "&cNici o limita setata in aceasta lume"
+    no-limits: "&c Nu există limite stabilite în această lume"
+    panel:
+      A2Z: a > z
+      Z2A: z > a
+    errors:
+      no-owner: "&c Insula aceea nu are proprietar"
+      not-on-island: "&c Această locație nu are limite setate."
     recount:
       description: renumara limitele insulei tale
+      now-recounting: "&b Acum povestind. Acest lucru ar putea dura ceva timp, vă
+        rugăm să așteptați..."
+      in-progress: "&c Recuperarea insulei este în curs. Va rugam asteptati..."
+      time-out: "&c Timpul expirat când relatați. Este insula cu adevărat mare?"
