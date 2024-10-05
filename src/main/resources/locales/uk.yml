@@ -1,0 +1,35 @@
+---
+block-limits:
+  hit-limit: "&c[material] обмежено [number]!"
+entity-limits:
+  hit-limit: "&c[entity] породження обмежено до [number]!"
+limits: {}
+admin:
+  limits:
+    main: {}
+    calc: {}
+    offset:
+      unknown: "&c Невідомий матеріал або сутність [name]."
+      main: {}
+      set:
+        success: "&a Лімітне зміщення для [name] встановлено на [number]."
+        same: "&c Обмежене зміщення для [name] вже [number]."
+      add:
+        success: "&a Лімітне зміщення для [name] збільшується до [number]."
+      remove:
+        success: "&a Лімітне зміщення для [name] зменшується до [number]."
+      reset:
+        success: "&a Лімітне зміщення для [name] встановлено на 0."
+      view:
+        message: "&зміщення [name] встановлено на [number]."
+island:
+  limits:
+    max-color: "&c"
+    block-limit-syntax: "[number]/[limit]"
+    panel:
+      title-syntax: "[title] [sort]"
+      entity-group-name-syntax: "[name]"
+      entity-name-syntax: "[name]"
+      block-name-syntax: "[name]"
+    errors: {}
+    recount: {}
