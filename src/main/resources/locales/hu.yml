@@ -15,23 +15,30 @@ admin:
       description: Egy játékos sziget limitjének újraszámolása
       finished: "&aA Sziget újraszámolás sikeresen befejeződött!"
     offset:
+      unknown: "&c Ismeretlen anyag vagy entitás [name]."
       main:
         description: lehetővé teszi az anyagok és entitások limiteltolásainak kezelését
       set:
         parameters: "<lejátszó> <anyag|entitás> <szám>"
         description: új eltolást állít be az anyag- vagy entitáskorláthoz
+        success: "&a A [name] határeltolódása [number] értékre van állítva."
+        same: "&c A [name] korláteltolása már [number]."
       add:
         parameters: "<lejátszó> <anyag|entitás> <szám>"
         description: eltolást ad hozzá az anyag- vagy entitáskorláthoz
+        success: "&a A [name] határeltolódása a [number] értékig nő."
       remove:
         parameters: "<lejátszó> <anyag|entitás> <szám>"
         description: csökkenti az anyag- vagy entitáskorlát ellentételezését
+        success: "&a A [name] limiteltolása [number] értékre csökken."
       reset:
         parameters: "<lejátszó> <anyag|entitás>"
         description: eltávolítja az anyag vagy entitás eltolását
+        success: "&a A [name] határeltolódása 0-ra van állítva."
       view:
         parameters: "<lejátszó> <anyag|entitás>"
         description: anyag vagy entitás eltolását jeleníti meg
+        message: "&a [name] eltolás értéke [number]."
 island:
   limits:
     description: Sziget limitek megtekintése
@@ -40,6 +47,10 @@ island:
     block-limit-syntax: "[number]/[limit]"
     no-limits: "&c Nincsenek korlátok ezen a világon"
     panel:
+      title-syntax: "[title] [sort]"
+      entity-group-name-syntax: "[name]"
+      entity-name-syntax: "[name]"
+      block-name-syntax: "[name]"
       A2Z: a > z
       Z2A: z > a
     errors:
