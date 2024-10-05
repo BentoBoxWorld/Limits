@@ -1,0 +1,36 @@
+---
+block-limits:
+  hit-limit: "&c[material] limitado a [number]!"
+entity-limits:
+  hit-limit: "&c[entity] gerando limitado a [number]!"
+limits: {}
+admin:
+  limits:
+    main: {}
+    calc: {}
+    offset:
+      unknown: "&c Material ou entidade desconhecida [name]."
+      main: {}
+      set:
+        success: "&a O deslocamento de limite para [name] é definido como [number]."
+        same: "&c O deslocamento limite para [name] já é [number]."
+      add:
+        success: "&a O deslocamento de limite para [name] é aumentado até [number]."
+      remove:
+        success: "&a O deslocamento de limite para [name] é reduzido até [number]."
+      reset:
+        success: "&a O deslocamento de limite para [name] é definido como 0."
+      view:
+        message: "&a [name] deslocamento é definido como [number]."
+island:
+  limits:
+    regular-color: "&a"
+    block-limit-syntax: "[number]/[limit]"
+    panel:
+      title-syntax: "[title] [sort]"
+      entity-group-name-syntax: "[name]"
+      entity-name-syntax: "[name]"
+      block-name-syntax: "[name]"
+      Z2A: z > a
+    errors: {}
+    recount: {}
