@@ -1,0 +1,36 @@
+---
+block-limits:
+  hit-limit: "&c[material] limitato a [number]!"
+entity-limits:
+  hit-limit: "&c[entity] la generazione è limitata a [number]!"
+limits: {}
+admin:
+  limits:
+    main: {}
+    calc: {}
+    offset:
+      unknown: "&c Materiale o entità sconosciuta [name]."
+      main: {}
+      set:
+        success: "&a Il limite di offset per [name] è impostato su [number]."
+        same: "&c Il limite di offset per [name] è già [number]."
+      add:
+        success: "&a Il limite di offset per [name] è aumentato fino a [number]."
+      remove:
+        success: "&a Il limite di offset per [name] è ridotto fino a [number]."
+      reset:
+        success: "&a Il limite di offset per [name] è impostato su 0."
+      view:
+        message: "&a [name] offset è impostato su [number]."
+island:
+  limits:
+    block-limit-syntax: "[number]/[limit]"
+    panel:
+      title-syntax: "[title] [sort]"
+      entity-group-name-syntax: "[name]"
+      entity-name-syntax: "[name]"
+      block-name-syntax: "[name]"
+      A2Z: a > z
+      Z2A: z > a
+    errors: {}
+    recount: {}
