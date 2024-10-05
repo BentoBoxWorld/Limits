@@ -1,0 +1,65 @@
+---
+block-limits:
+  hit-limit: "&c[material] beperkt tot [number]!"
+entity-limits:
+  hit-limit: "&c[entity] spawning beperkt tot [number]!"
+limits:
+  panel-title: Eilandgrenzen
+admin:
+  limits:
+    main:
+      parameters: "<speler>"
+      description: toon de eilandgrenzen voor de speler
+    calc:
+      parameters: "<speler>"
+      description: herbereken de eilandlimieten voor de speler
+      finished: "&a Eiland herberekening succesvol afgerond!"
+    offset:
+      unknown: "&c Onbekend materiaal of entiteit [name]."
+      main:
+        description: maakt het mogelijk om limietoffsets voor materialen en entiteiten
+          te beheren
+      set:
+        parameters: "<speler> <materiaal|entiteit> <nummer>"
+        description: stelt nieuwe offset in voor materiaal- of entiteitslimiet
+        success: "&a Limietoffset voor [name] is ingesteld op [number]."
+        same: "&c Limietoffset voor [name] is al [number]."
+      add:
+        parameters: "<speler> <materiaal|entiteit> <nummer>"
+        description: voegt offset toe voor materiaal- of entiteitslimiet
+        success: "&a Limietoffset voor [name] is verhoogd tot [number]."
+      remove:
+        parameters: "<speler> <materiaal|entiteit> <nummer>"
+        description: vermindert offset voor materiaal- of entiteitslimiet
+        success: "&a Limietoffset voor [name] is verlaagd tot [number]."
+      reset:
+        parameters: "<speler> <materiaal|entiteit>"
+        description: verwijdert offset voor materiaal of entiteit
+        success: "&a Limietoffset voor [name] is ingesteld op 0."
+      view:
+        parameters: "<speler> <materiaal|entiteit>"
+        description: geeft offset weer voor materiaal of entiteit
+        message: "&a [name] offset is ingesteld op [number]."
+island:
+  limits:
+    description: toon uw eilandgrenzen
+    max-color: "&c"
+    regular-color: "&a"
+    block-limit-syntax: "[number]/[limit]"
+    no-limits: "&c Er zijn geen grenzen gesteld in deze wereld"
+    panel:
+      title-syntax: "[title] [sort]"
+      entity-group-name-syntax: "[name]"
+      entity-name-syntax: "[name]"
+      block-name-syntax: "[name]"
+      A2Z: a > z
+      Z2A: z > a
+    errors:
+      no-owner: "&c Dat eiland heeft geen eigenaar"
+      not-on-island: "&c Voor deze locatie zijn geen limieten ingesteld."
+    recount:
+      description: vertelt over de grenzen van uw eiland
+      now-recounting: "&b Nu aan het navertellen. Dit kan even duren, even geduld
+        aub..."
+      in-progress: "&c Eilandrecovery is bezig. Even geduld..."
+      time-out: "&c Time-out bij het navertellen. Is het eiland echt groot?"
