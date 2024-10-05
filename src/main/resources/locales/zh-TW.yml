@@ -3,34 +3,61 @@ block-limits:
   hit-limit: "&c[material]僅限[number]！"
 entity-limits:
   hit-limit: "&c[entity] 產生僅限於 [number]！"
-limits: {}
+limits:
+  panel-title: 島嶼限制
 admin:
   limits:
-    main: {}
-    calc: {}
+    main:
+      parameters: "<玩家>"
+      description: 顯示玩家的島嶼限制
+    calc:
+      parameters: "<玩家>"
+      description: 重新計算玩家的島嶼限制
+      finished: "&a 島嶼重新計算成功完成！"
     offset:
       unknown: "&c 未知材料或實體[name]。"
-      main: {}
+      main:
+        description: 允許管理材料和實體的限制偏移
       set:
+        parameters: "<玩家> <材質|實體> <數字>"
+        description: 設定材料或實體限制的新偏移
         success: "&a [name] 的限制偏移量設定為 [number]。"
         same: "&c [name] 的限制偏移量已經是 [number]。"
       add:
+        parameters: "<玩家> <材質|實體> <數字>"
+        description: 添加材料或實體限制的偏移量
         success: "&a [name] 的限制偏移量增加到 [number]。"
       remove:
+        parameters: "<玩家> <材質|實體> <數字>"
+        description: 減少材料或實體限制的偏移
         success: "&a [name] 的限制偏移量減少到 [number]。"
-      reset: {}
+      reset:
+        parameters: "<玩家> <材質|實體>"
+        description: 刪除材質或實體的偏移
+        success: "&a [名稱] 的限制偏移量設定為 0。"
       view:
+        parameters: "<玩家> <材質|實體>"
+        description: 顯示材料或實體的偏移
         message: "&a [name] 偏移量設定為 [number]。"
 island:
   limits:
+    description: 顯示您的島嶼限制
     max-color: "&c"
     regular-color: "&a"
     block-limit-syntax: "[number]/[limit]"
+    no-limits: "&c 這個世界沒有限制"
     panel:
       title-syntax: "[title] [sort]"
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
       A2Z: a > z
-    errors: {}
-    recount: {}
+      Z2A: z > a
+    errors:
+      no-owner: "&c 那島沒有主人"
+      not-on-island: "&c 該位置沒有設定限制。"
+    recount:
+      description: 詳細說明您的島嶼的限制
+      now-recounting: "&b 現在重述。這可能需要一段時間，請稍候..."
+      in-progress: "&c 島回收正在進行中。請稍等..."
+      time-out: "&c 重新計數時逾時。島真的很大嗎？"
