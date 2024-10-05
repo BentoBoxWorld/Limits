@@ -15,23 +15,30 @@ admin:
       description: tính toán lại giới hạn đảo của người chơi
       finished: "&aTính toán đã hoàn thành!"
     offset:
+      unknown: "&c Tài liệu hoặc thực thể không xác định [name]."
       main:
         description: cho phép quản lý các giới hạn bù trừ cho vật liệu và thực thể
       set:
         parameters: "<người chơi> <vật liệu|thực thể> <số>"
         description: thiết lập độ lệch mới cho giới hạn vật liệu hoặc thực thể
+        success: "&a Độ lệch giới hạn cho [name] được đặt thành [number]."
+        same: "&c Độ lệch giới hạn cho [name] đã là [number]."
       add:
         parameters: "<người chơi> <vật liệu|thực thể> <số>"
         description: thêm độ lệch cho giới hạn vật liệu hoặc thực thể
+        success: "&a Độ lệch giới hạn cho [name] được tăng lên cho đến [number]."
       remove:
         parameters: "<người chơi> <vật liệu|thực thể> <số>"
         description: giảm độ lệch cho giới hạn vật liệu hoặc thực thể
+        success: "&a Độ lệch giới hạn cho [name] được giảm xuống đến [number]."
       reset:
         parameters: "<người chơi> <vật liệu|thực thể>"
         description: xóa phần bù cho vật liệu hoặc thực thể
+        success: "&a Độ lệch giới hạn cho [name] được đặt thành 0."
       view:
         parameters: "<người chơi> <vật liệu|thực thể>"
         description: hiển thị bù trừ cho vật liệu hoặc thực thể
+        message: "&a [name] bù trừ được đặt thành [number]."
 island:
   limits:
     description: xem giới hạn đảo của bạn
@@ -40,7 +47,12 @@ island:
     block-limit-syntax: "[number]/[limit]"
     no-limits: "&c Không có giới hạn nào được đặt ra trên thế giới này"
     panel:
+      title-syntax: "[title] [sort]"
+      entity-group-name-syntax: "[name]"
+      entity-name-syntax: "[name]"
+      block-name-syntax: "[name]"
       A2Z: a > z
+      Z2A: z > a
     errors:
       no-owner: "&c Hòn đảo đó không có chủ sở hữu"
       not-on-island: "&c Vị trí này không có giới hạn nào được đặt ra."
