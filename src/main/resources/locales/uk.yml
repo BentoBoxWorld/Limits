@@ -1,0 +1,63 @@
+---
+block-limits:
+  hit-limit: "&c[material] обмежено [number]!"
+entity-limits:
+  hit-limit: "&c[entity] породження обмежено до [number]!"
+limits:
+  panel-title: Межі острова
+admin:
+  limits:
+    main:
+      parameters: "<гравець>"
+      description: показати обмеження острова для гравця
+    calc:
+      parameters: "<гравець>"
+      description: перерахувати обмеження острова для гравця
+      finished: Перерахунок острова успішно завершено!
+    offset:
+      unknown: "&c Невідомий матеріал або сутність [name]."
+      main:
+        description: дозволяє керувати зсувами лімітів для матеріалів і сутностей
+      set:
+        parameters: "<гравець> <матеріал|сутність> <номер>"
+        description: встановлює нове зміщення для обмеження матеріалу або сутності
+        success: "&a Лімітне зміщення для [name] встановлено на [number]."
+        same: "&c Обмежене зміщення для [name] вже [number]."
+      add:
+        parameters: "<гравець> <матеріал|сутність> <номер>"
+        description: додає зсув для обмеження матеріалу або сутності
+        success: "&a Лімітне зміщення для [name] збільшується до [number]."
+      remove:
+        parameters: "<гравець> <матеріал|сутність> <номер>"
+        description: зменшує зсув для ліміту матеріалу або сутності
+        success: "&a Лімітне зміщення для [name] зменшується до [number]."
+      reset:
+        parameters: "<гравець> <матеріал|сутність>"
+        description: видаляє зсув для матеріалу або сутності
+        success: "&a Лімітне зміщення для [name] встановлено на 0."
+      view:
+        parameters: "<гравець> <матеріал|сутність>"
+        description: відображає зсув для матеріалу або сутності
+        message: "&зміщення [name] встановлено на [number]."
+island:
+  limits:
+    description: покажіть межі свого острова
+    max-color: "&c"
+    regular-color: "&a"
+    block-limit-syntax: "[number]/[limit]"
+    no-limits: "&c У цьому світі немає обмежень"
+    panel:
+      title-syntax: "[title] [sort]"
+      entity-group-name-syntax: "[name]"
+      entity-name-syntax: "[name]"
+      block-name-syntax: "[name]"
+      A2Z: a > z
+      Z2A: z > a
+    errors:
+      no-owner: "&c Цей острів не має власника"
+      not-on-island: "&c Це місце не має обмежень."
+    recount:
+      description: перераховує ліміти для вашого острова
+      now-recounting: "&b Тепер перераховую. Це може зайняти деякий час, зачекайте..."
+      in-progress: "&c Перерахування острова триває. Будь ласка, зачекайте..."
+      time-out: "&c Тайм-аут під час перерахунку. Чи справді острів великий?"
