@@ -1,4 +1,4 @@
-package bentobox.addon.limits.listeners;
+package world.bentobox.limits;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -26,6 +26,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.plugin.PluginManager;
 import org.eclipse.jdt.annotation.Nullable;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,11 +42,9 @@ import world.bentobox.bentobox.api.events.island.IslandEvent;
 import world.bentobox.bentobox.api.events.team.TeamSetownerEvent;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.managers.IslandsManager;
-import world.bentobox.limits.EntityGroup;
-import world.bentobox.limits.Limits;
-import world.bentobox.limits.Settings;
 import world.bentobox.limits.listeners.BlockLimitsListener;
 import world.bentobox.limits.listeners.JoinListener;
+import world.bentobox.limits.mocks.ServerMocks;
 import world.bentobox.limits.objects.IslandBlockCount;
 
 /**
@@ -82,44 +81,50 @@ public class JoinListenerTest {
 
     @Before
     public void setUp() {
-	jl = new JoinListener(addon);
-	// Setup addon
-	when(addon.getGameModes()).thenReturn(Collections.singletonList(bskyblock));
-	when(addon.getGameModeName(any())).thenReturn("bskyblock");
-	when(addon.getGameModePermPrefix(any())).thenReturn("bskyblock.");
-	when(addon.getSettings()).thenReturn(settings);
-	// Settings
-	when(settings.getGroupLimitDefinitions())
-            .thenReturn(new ArrayList<>(List.of(new EntityGroup("friendly", new HashSet<>(), -1, null))));
-	// Island Manager
-	when(island.getUniqueId()).thenReturn("unique_id");
-    when(island.getOwner()).thenReturn(uuid);
-	when(im.getIsland(any(), any(UUID.class))).thenReturn(island);
-    when(im.getIslands(any(), any(UUID.class))).thenReturn(List.of(island));
-	// Default is that player has island
-	when(addon.getIslands()).thenReturn(im);
-	// Player
-    when(player.getUniqueId()).thenReturn(uuid);
-	when(player.getName()).thenReturn("tastybento");
-	// No permissions by default
-	when(player.getEffectivePermissions()).thenReturn(Collections.emptySet());
-	// bsKyBlock
-	when(bskyblock.getPermissionPrefix()).thenReturn("bskyblock.");
-	AddonDescription desc = new AddonDescription.Builder("main", "BSkyBlock", "1.0").build();
-	when(bskyblock.getDescription()).thenReturn(desc);
+        ServerMocks.newServer();
+        jl = new JoinListener(addon);
+        // Setup addon
+        when(addon.getGameModes()).thenReturn(Collections.singletonList(bskyblock));
+        when(addon.getGameModeName(any())).thenReturn("bskyblock");
+        when(addon.getGameModePermPrefix(any())).thenReturn("bskyblock.");
+        when(addon.getSettings()).thenReturn(settings);
+        // Settings
+        when(settings.getGroupLimitDefinitions())
+                .thenReturn(new ArrayList<>(List.of(new EntityGroup("friendly", new HashSet<>(), -1, null))));
+        // Island Manager
+        when(island.getUniqueId()).thenReturn("unique_id");
+        when(island.getOwner()).thenReturn(uuid);
+        when(im.getIsland(any(), any(UUID.class))).thenReturn(island);
+        when(im.getIslands(any(), any(UUID.class))).thenReturn(List.of(island));
+        // Default is that player has island
+        when(addon.getIslands()).thenReturn(im);
+        // Player
+        when(player.getUniqueId()).thenReturn(uuid);
+        when(player.getName()).thenReturn("tastybento");
+        // No permissions by default
+        when(player.getEffectivePermissions()).thenReturn(Collections.emptySet());
+        // bsKyBlock
+        when(bskyblock.getPermissionPrefix()).thenReturn("bskyblock.");
+        AddonDescription desc = new AddonDescription.Builder("main", "BSkyBlock", "1.0").build();
+        when(bskyblock.getDescription()).thenReturn(desc);
 
-	// Block limit listener
-	when(addon.getBlockLimitListener()).thenReturn(bll);
-	when(bll.getIsland(anyString())).thenReturn(ibc);
+        // Block limit listener
+        when(addon.getBlockLimitListener()).thenReturn(bll);
+        when(bll.getIsland(anyString())).thenReturn(ibc);
 
-	// bukkit
-	PowerMockito.mockStatic(Bukkit.class);
-	// default is that owner is online
-	when(owner.isOnline()).thenReturn(true);
-	when(owner.getPlayer()).thenReturn(player);
-	when(Bukkit.getOfflinePlayer(any(UUID.class))).thenReturn(owner);
-	when(Bukkit.getPluginManager()).thenReturn(pim);
+        // bukkit
+        PowerMockito.mockStatic(Bukkit.class);
+        // default is that owner is online
+        when(owner.isOnline()).thenReturn(true);
+        when(owner.getPlayer()).thenReturn(player);
+        when(Bukkit.getOfflinePlayer(any(UUID.class))).thenReturn(owner);
+        when(Bukkit.getPluginManager()).thenReturn(pim);
 
+    }
+
+    @After
+    public void tearDown() {
+        ServerMocks.unsetBukkitServer();
     }
 
     /**
@@ -128,9 +133,9 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnNewIslandWrongReason() {
-	IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.BAN);
-	jl.onNewIsland(e);
-	verify(island, never()).getWorld();
+        IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.BAN);
+        jl.onNewIsland(e);
+        verify(island, never()).getWorld();
     }
 
     /**
@@ -139,9 +144,9 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnNewIslandRegistered() {
-	IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.REGISTERED);
-	jl.onNewIsland(e);
-	verify(island).getWorld();
+        IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.REGISTERED);
+        jl.onNewIsland(e);
+        verify(island).getWorld();
     }
 
     /**
@@ -150,9 +155,9 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnNewIslandResetted() {
-	IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.RESETTED);
-	jl.onNewIsland(e);
-	verify(island).getWorld();
+        IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.RESETTED);
+        jl.onNewIsland(e);
+        verify(island).getWorld();
     }
 
     /**
@@ -202,12 +207,12 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnOwnerChange() {
-	TeamSetownerEvent e = mock(TeamSetownerEvent.class);
-	when(e.getIsland()).thenReturn(island);
-	when(e.getNewOwner()).thenReturn(UUID.randomUUID());
-	jl.onOwnerChange(e);
-	verify(e, Mockito.times(2)).getIsland();
-	verify(e).getNewOwner();
+        TeamSetownerEvent e = mock(TeamSetownerEvent.class);
+        when(e.getIsland()).thenReturn(island);
+        when(e.getNewOwner()).thenReturn(UUID.randomUUID());
+        jl.onOwnerChange(e);
+        verify(e, Mockito.times(2)).getIsland();
+        verify(e).getNewOwner();
     }
 
     /**
@@ -216,10 +221,10 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnPlayerJoin() {
-	PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
-	jl.onPlayerJoin(e);
-	verify(addon).getGameModes();
-	verify(bll).setIsland("unique_id", ibc);
+        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        jl.onPlayerJoin(e);
+        verify(addon).getGameModes();
+        verify(bll).setIsland("unique_id", ibc);
     }
 
     /**
@@ -228,11 +233,11 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnPlayerJoinIBCNull() {
-	ibc = null;
-	PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
-	jl.onPlayerJoin(e);
-	verify(addon).getGameModes();
-	verify(bll, never()).setIsland("unique_id", ibc);
+        ibc = null;
+        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        jl.onPlayerJoin(e);
+        verify(addon).getGameModes();
+        verify(bll, never()).setIsland("unique_id", ibc);
     }
 
     /**
@@ -241,15 +246,15 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnPlayerJoinWithPermNotLimits() {
-	Set<PermissionAttachmentInfo> perms = new HashSet<>();
-	PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
-	when(permAtt.getPermission()).thenReturn("bskyblock.my.perm.for.game");
-	perms.add(permAtt);
-	when(player.getEffectivePermissions()).thenReturn(perms);
-	PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
-	jl.onPlayerJoin(e);
-	verify(addon).getGameModes();
-	verify(bll).setIsland("unique_id", ibc);
+        Set<PermissionAttachmentInfo> perms = new HashSet<>();
+        PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
+        when(permAtt.getPermission()).thenReturn("bskyblock.my.perm.for.game");
+        perms.add(permAtt);
+        when(player.getEffectivePermissions()).thenReturn(perms);
+        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        jl.onPlayerJoin(e);
+        verify(addon).getGameModes();
+        verify(bll).setIsland("unique_id", ibc);
     }
 
     /**
@@ -258,16 +263,16 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnPlayerJoinWithPermLimitsWrongSize() {
-	Set<PermissionAttachmentInfo> perms = new HashSet<>();
-	PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
-	when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.my.perm.for.game");
-	when(permAtt.getValue()).thenReturn(true);
-	perms.add(permAtt);
-	when(player.getEffectivePermissions()).thenReturn(perms);
-	PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
-	jl.onPlayerJoin(e);
-	verify(addon).logError(
-		"Player tastybento has permission: 'bskyblock.island.limit.my.perm.for.game' but format must be 'bskyblock.island.limit.MATERIAL.NUMBER', 'bskyblock.island.limit.ENTITY-TYPE.NUMBER', or 'bskyblock.island.limit.ENTITY-GROUP.NUMBER' Ignoring...");
+        Set<PermissionAttachmentInfo> perms = new HashSet<>();
+        PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
+        when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.my.perm.for.game");
+        when(permAtt.getValue()).thenReturn(true);
+        perms.add(permAtt);
+        when(player.getEffectivePermissions()).thenReturn(perms);
+        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        jl.onPlayerJoin(e);
+        verify(addon).logError(
+                "Player tastybento has permission: 'bskyblock.island.limit.my.perm.for.game' but format must be 'bskyblock.island.limit.MATERIAL.NUMBER', 'bskyblock.island.limit.ENTITY-TYPE.NUMBER', or 'bskyblock.island.limit.ENTITY-GROUP.NUMBER' Ignoring...");
     }
 
     /**
@@ -276,16 +281,16 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnPlayerJoinWithPermLimitsInvalidMaterial() {
-	Set<PermissionAttachmentInfo> perms = new HashSet<>();
-	PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
-	when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.mumbo.34");
-	when(permAtt.getValue()).thenReturn(true);
-	perms.add(permAtt);
-	when(player.getEffectivePermissions()).thenReturn(perms);
-	PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
-	jl.onPlayerJoin(e);
-	verify(addon).logError(
-		"Player tastybento has permission: 'bskyblock.island.limit.mumbo.34' but MUMBO is not a valid material or entity type/group. Ignoring...");
+        Set<PermissionAttachmentInfo> perms = new HashSet<>();
+        PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
+        when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.mumbo.34");
+        when(permAtt.getValue()).thenReturn(true);
+        perms.add(permAtt);
+        when(player.getEffectivePermissions()).thenReturn(perms);
+        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        jl.onPlayerJoin(e);
+        verify(addon).logError(
+                "Player tastybento has permission: 'bskyblock.island.limit.mumbo.34' but MUMBO is not a valid material or entity type/group. Ignoring...");
     }
 
     /**
@@ -294,16 +299,16 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnPlayerJoinWithPermLimitsWildcard() {
-	Set<PermissionAttachmentInfo> perms = new HashSet<>();
-	PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
-	when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.*");
-	when(permAtt.getValue()).thenReturn(true);
-	perms.add(permAtt);
-	when(player.getEffectivePermissions()).thenReturn(perms);
-	PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
-	jl.onPlayerJoin(e);
-	verify(addon).logError(
-		"Player tastybento has permission: 'bskyblock.island.limit.*' but wildcards are not allowed. Ignoring...");
+        Set<PermissionAttachmentInfo> perms = new HashSet<>();
+        PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
+        when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.*");
+        when(permAtt.getValue()).thenReturn(true);
+        perms.add(permAtt);
+        when(player.getEffectivePermissions()).thenReturn(perms);
+        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        jl.onPlayerJoin(e);
+        verify(addon).logError(
+                "Player tastybento has permission: 'bskyblock.island.limit.*' but wildcards are not allowed. Ignoring...");
     }
 
     /**
@@ -312,16 +317,16 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnPlayerJoinWithPermLimitsNotNumber() {
-	Set<PermissionAttachmentInfo> perms = new HashSet<>();
-	PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
-	when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.STONE.abc");
-	when(permAtt.getValue()).thenReturn(true);
-	perms.add(permAtt);
-	when(player.getEffectivePermissions()).thenReturn(perms);
-	PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
-	jl.onPlayerJoin(e);
-	verify(addon).logError(
-		"Player tastybento has permission: 'bskyblock.island.limit.STONE.abc' but the last part MUST be an integer! Ignoring...");
+        Set<PermissionAttachmentInfo> perms = new HashSet<>();
+        PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
+        when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.STONE.abc");
+        when(permAtt.getValue()).thenReturn(true);
+        perms.add(permAtt);
+        when(player.getEffectivePermissions()).thenReturn(perms);
+        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        jl.onPlayerJoin(e);
+        verify(addon).logError(
+                "Player tastybento has permission: 'bskyblock.island.limit.STONE.abc' but the last part MUST be an integer! Ignoring...");
     }
 
     /**
@@ -330,16 +335,16 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnPlayerJoinWithPermLimitsSuccess() {
-	Set<PermissionAttachmentInfo> perms = new HashSet<>();
-	PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
-	when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.STONE.24");
-	when(permAtt.getValue()).thenReturn(true);
-	perms.add(permAtt);
-	when(player.getEffectivePermissions()).thenReturn(perms);
-	PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
-	jl.onPlayerJoin(e);
-	verify(addon, never()).logError(anyString());
-	verify(ibc).setBlockLimit(eq(Material.STONE), eq(24));
+        Set<PermissionAttachmentInfo> perms = new HashSet<>();
+        PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
+        when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.STONE.24");
+        when(permAtt.getValue()).thenReturn(true);
+        perms.add(permAtt);
+        when(player.getEffectivePermissions()).thenReturn(perms);
+        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        jl.onPlayerJoin(e);
+        verify(addon, never()).logError(anyString());
+        verify(ibc).setBlockLimit(eq(Material.STONE), eq(24));
     }
 
     /**
@@ -348,16 +353,16 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnPlayerJoinWithPermLimitsSuccessEntity() {
-	Set<PermissionAttachmentInfo> perms = new HashSet<>();
-	PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
-	when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.BAT.24");
-	when(permAtt.getValue()).thenReturn(true);
-	perms.add(permAtt);
-	when(player.getEffectivePermissions()).thenReturn(perms);
-	PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
-	jl.onPlayerJoin(e);
-	verify(addon, never()).logError(anyString());
-	verify(ibc).setEntityLimit(eq(EntityType.BAT), eq(24));
+        Set<PermissionAttachmentInfo> perms = new HashSet<>();
+        PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
+        when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.BAT.24");
+        when(permAtt.getValue()).thenReturn(true);
+        perms.add(permAtt);
+        when(player.getEffectivePermissions()).thenReturn(perms);
+        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        jl.onPlayerJoin(e);
+        verify(addon, never()).logError(anyString());
+        verify(ibc).setEntityLimit(eq(EntityType.BAT), eq(24));
     }
 
     /**
@@ -366,16 +371,16 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnPlayerJoinWithPermLimitsSuccessEntityGroup() {
-	Set<PermissionAttachmentInfo> perms = new HashSet<>();
-	PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
-	when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.friendly.24");
-	when(permAtt.getValue()).thenReturn(true);
-	perms.add(permAtt);
-	when(player.getEffectivePermissions()).thenReturn(perms);
-	PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
-	jl.onPlayerJoin(e);
-	verify(addon, never()).logError(anyString());
-	verify(ibc).setEntityGroupLimit(eq("friendly"), eq(24));
+        Set<PermissionAttachmentInfo> perms = new HashSet<>();
+        PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
+        when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.friendly.24");
+        when(permAtt.getValue()).thenReturn(true);
+        perms.add(permAtt);
+        when(player.getEffectivePermissions()).thenReturn(perms);
+        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        jl.onPlayerJoin(e);
+        verify(addon, never()).logError(anyString());
+        verify(ibc).setEntityGroupLimit(eq("friendly"), eq(24));
     }
 
     /**
@@ -384,41 +389,41 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnPlayerJoinWithPermLimitsMultiPerms() {
-	Set<PermissionAttachmentInfo> perms = new HashSet<>();
-	PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
-	when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.STONE.24");
-	when(permAtt.getValue()).thenReturn(true);
-	perms.add(permAtt);
-	PermissionAttachmentInfo permAtt2 = mock(PermissionAttachmentInfo.class);
-    when(permAtt2.getPermission()).thenReturn("bskyblock.island.limit.short_grass.14");
-	when(permAtt2.getValue()).thenReturn(true);
-	perms.add(permAtt2);
-	PermissionAttachmentInfo permAtt3 = mock(PermissionAttachmentInfo.class);
-	when(permAtt3.getPermission()).thenReturn("bskyblock.island.limit.dirt.34");
-	when(permAtt3.getValue()).thenReturn(true);
-	perms.add(permAtt3);
-	PermissionAttachmentInfo permAtt4 = mock(PermissionAttachmentInfo.class);
-	when(permAtt4.getPermission()).thenReturn("bskyblock.island.limit.chicken.34");
-	when(permAtt4.getValue()).thenReturn(true);
-	perms.add(permAtt4);
-	PermissionAttachmentInfo permAtt5 = mock(PermissionAttachmentInfo.class);
-	when(permAtt5.getPermission()).thenReturn("bskyblock.island.limit.cave_spider.4");
-	when(permAtt5.getValue()).thenReturn(true);
-	perms.add(permAtt5);
-	PermissionAttachmentInfo permAtt6 = mock(PermissionAttachmentInfo.class);
-	when(permAtt6.getPermission()).thenReturn("bskyblock.island.limit.cave_spider.4");
-	when(permAtt6.getValue()).thenReturn(false); // negative perm
-	perms.add(permAtt6);
+        Set<PermissionAttachmentInfo> perms = new HashSet<>();
+        PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
+        when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.STONE.24");
+        when(permAtt.getValue()).thenReturn(true);
+        perms.add(permAtt);
+        PermissionAttachmentInfo permAtt2 = mock(PermissionAttachmentInfo.class);
+        when(permAtt2.getPermission()).thenReturn("bskyblock.island.limit.short_grass.14");
+        when(permAtt2.getValue()).thenReturn(true);
+        perms.add(permAtt2);
+        PermissionAttachmentInfo permAtt3 = mock(PermissionAttachmentInfo.class);
+        when(permAtt3.getPermission()).thenReturn("bskyblock.island.limit.dirt.34");
+        when(permAtt3.getValue()).thenReturn(true);
+        perms.add(permAtt3);
+        PermissionAttachmentInfo permAtt4 = mock(PermissionAttachmentInfo.class);
+        when(permAtt4.getPermission()).thenReturn("bskyblock.island.limit.chicken.34");
+        when(permAtt4.getValue()).thenReturn(true);
+        perms.add(permAtt4);
+        PermissionAttachmentInfo permAtt5 = mock(PermissionAttachmentInfo.class);
+        when(permAtt5.getPermission()).thenReturn("bskyblock.island.limit.cave_spider.4");
+        when(permAtt5.getValue()).thenReturn(true);
+        perms.add(permAtt5);
+        PermissionAttachmentInfo permAtt6 = mock(PermissionAttachmentInfo.class);
+        when(permAtt6.getPermission()).thenReturn("bskyblock.island.limit.cave_spider.4");
+        when(permAtt6.getValue()).thenReturn(false); // negative perm
+        perms.add(permAtt6);
 
-	when(player.getEffectivePermissions()).thenReturn(perms);
-	PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
-	jl.onPlayerJoin(e);
-	verify(addon, never()).logError(anyString());
-	verify(ibc).setBlockLimit(eq(Material.STONE), eq(24));
-    verify(ibc).setBlockLimit(eq(Material.SHORT_GRASS), eq(14));
-	verify(ibc).setBlockLimit(eq(Material.DIRT), eq(34));
-	verify(ibc).setEntityLimit(eq(EntityType.CHICKEN), eq(34));
-	verify(ibc).setEntityLimit(eq(EntityType.CAVE_SPIDER), eq(4));
+        when(player.getEffectivePermissions()).thenReturn(perms);
+        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        jl.onPlayerJoin(e);
+        verify(addon, never()).logError(anyString());
+        verify(ibc).setBlockLimit(eq(Material.STONE), eq(24));
+        verify(ibc).setBlockLimit(eq(Material.SHORT_GRASS), eq(14));
+        verify(ibc).setBlockLimit(eq(Material.DIRT), eq(34));
+        verify(ibc).setEntityLimit(eq(EntityType.CHICKEN), eq(34));
+        verify(ibc).setEntityLimit(eq(EntityType.CAVE_SPIDER), eq(4));
     }
 
     /**
@@ -487,9 +492,9 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnUnregisterIslandNotUnregistered() {
-	IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.BAN);
-	jl.onUnregisterIsland(e);
-	verify(island, never()).getWorld();
+        IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.BAN);
+        jl.onUnregisterIsland(e);
+        verify(island, never()).getWorld();
     }
 
     /**
@@ -498,10 +503,10 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnUnregisterIslandNotInWorld() {
-	IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.UNREGISTERED);
-	jl.onUnregisterIsland(e);
-	verify(island).getWorld();
-	verify(addon, never()).getBlockLimitListener();
+        IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.UNREGISTERED);
+        jl.onUnregisterIsland(e);
+        verify(island).getWorld();
+        verify(addon, never()).getBlockLimitListener();
     }
 
     /**
@@ -510,15 +515,15 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnUnregisterIslandInWorld() {
-	@SuppressWarnings("unchecked")
-	Map<Material, Integer> map = mock(Map.class);
-	when(ibc.getBlockLimits()).thenReturn(map);
-	when(addon.inGameModeWorld(any())).thenReturn(true);
-	IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.UNREGISTERED);
-	jl.onUnregisterIsland(e);
-	verify(island).getWorld();
-	verify(addon).getBlockLimitListener();
-	verify(map).clear();
+        @SuppressWarnings("unchecked")
+        Map<Material, Integer> map = mock(Map.class);
+        when(ibc.getBlockLimits()).thenReturn(map);
+        when(addon.inGameModeWorld(any())).thenReturn(true);
+        IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.UNREGISTERED);
+        jl.onUnregisterIsland(e);
+        verify(island).getWorld();
+        verify(addon).getBlockLimitListener();
+        verify(map).clear();
 
     }
 
