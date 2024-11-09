@@ -114,9 +114,13 @@
             <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots</url>
         </repository>
         <repository>
-            <id>codemc</id>
+            <id>bentoboxworld</id>
             <url>https://repo.codemc.org/repository/bentoboxworld/</url>
         </repository>
+        <repository>
+             <id>codemc</id>
+             <url>https://repo.codemc.org/repository/maven-snapshots/</url>
+         </repository>
     </repositories>
 
     <dependencies>
