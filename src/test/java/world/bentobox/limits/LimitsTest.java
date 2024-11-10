@@ -38,9 +38,6 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Ignore;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -268,7 +265,6 @@ public class LimitsTest {
      * Test method for {@link world.bentobox.limits.Limits#onEnable()}.
      */
     @Test
-    @Ignore
     public void testOnEnable() {
         addon.onEnable();
         File f = new File("config.yml");
@@ -288,7 +284,6 @@ public class LimitsTest {
      * Test method for {@link world.bentobox.limits.Limits#getSettings()}.
      */
     @Test
-    @Ignore
     public void testGetSettings() {
         assertNull(addon.getSettings());
         addon.onEnable();
@@ -300,7 +295,6 @@ public class LimitsTest {
      * Test method for {@link world.bentobox.limits.Limits#getGameModes()}.
      */
     @Test
-    @Ignore
     public void testGetGameModes() {
         assertTrue(addon.getGameModes().isEmpty());
         addon.onEnable();
@@ -311,7 +305,6 @@ public class LimitsTest {
      * Test method for {@link world.bentobox.limits.Limits#getBlockLimitListener()}.
      */
     @Test
-    @Ignore
     public void testGetBlockLimitListener() {
         assertNull(addon.getBlockLimitListener());
         addon.onEnable();
@@ -322,7 +315,6 @@ public class LimitsTest {
      * Test method for {@link world.bentobox.limits.Limits#inGameModeWorld(org.bukkit.World)}.
      */
     @Test
-    @Ignore
     public void testInGameModeWorld() {
         addon.onEnable();
         assertFalse(addon.inGameModeWorld(world));
@@ -334,7 +326,6 @@ public class LimitsTest {
      * Test method for {@link world.bentobox.limits.Limits#getGameModeName(org.bukkit.World)}.
      */
     @Test
-    @Ignore
     public void testGetGameModeName() {
         when(gameMode.inWorld(world)).thenReturn(true);
         assertTrue(addon.getGameModeName(world).isEmpty());
@@ -346,7 +337,6 @@ public class LimitsTest {
      * Test method for {@link world.bentobox.limits.Limits#getGameModePermPrefix(org.bukkit.World)}.
      */
     @Test
-    @Ignore
     public void testGetGameModePermPrefix() {
         when(gameMode.inWorld(world)).thenReturn(true);
         addon.onEnable();
@@ -357,7 +347,6 @@ public class LimitsTest {
      * Test method for {@link world.bentobox.limits.Limits#isCoveredGameMode(java.lang.String)}.
      */
     @Test
-    @Ignore
     public void testIsCoveredGameMode() {
         assertFalse(addon.isCoveredGameMode("BSkyBlock"));
         addon.onEnable();
@@ -368,7 +357,6 @@ public class LimitsTest {
      * Test method for {@link world.bentobox.limits.Limits#getJoinListener()}.
      */
     @Test
-    @Ignore
     public void testGetJoinListener() {
         assertNull(addon.getJoinListener());
         addon.onEnable();
