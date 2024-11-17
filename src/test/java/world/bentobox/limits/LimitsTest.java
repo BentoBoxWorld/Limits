@@ -62,6 +62,7 @@ import world.bentobox.bentobox.managers.FlagsManager;
 import world.bentobox.bentobox.managers.IslandWorldManager;
 import world.bentobox.bentobox.managers.IslandsManager;
 import world.bentobox.bentobox.managers.PlaceholdersManager;
+import world.bentobox.limits.mocks.ServerMocks;
 
 /**
  * @author tastybento
@@ -135,6 +136,7 @@ public class LimitsTest {
      */
     @Before
     public void setUp() throws Exception {
+        Server server = ServerMocks.newServer();
         // Set up plugin
         Whitebox.setInternalState(BentoBox.class, "instance", plugin);
         when(plugin.getLogger()).thenReturn(Logger.getAnonymousLogger());
@@ -175,7 +177,6 @@ public class LimitsTest {
 
         // Server
         PowerMockito.mockStatic(Bukkit.class);
-        Server server = mock(Server.class);
         when(Bukkit.getServer()).thenReturn(server);
         when(Bukkit.getLogger()).thenReturn(Logger.getAnonymousLogger());
         when(Bukkit.getPluginManager()).thenReturn(mock(PluginManager.class));
@@ -213,7 +214,6 @@ public class LimitsTest {
 
 
         // Bukkit
-        PowerMockito.mockStatic(Bukkit.class);
         when(Bukkit.getScheduler()).thenReturn(scheduler);
         ItemMeta meta = mock(ItemMeta.class);
         ItemFactory itemFactory = mock(ItemFactory.class);
@@ -239,6 +239,9 @@ public class LimitsTest {
      */
     @After
     public void tearDown() throws Exception {
+        ServerMocks.unsetBukkitServer();
+        User.clearUsers();
+        Mockito.framework().clearInlineMocks();
         deleteAll(new File("database"));
     }
 

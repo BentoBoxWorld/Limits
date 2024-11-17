@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.bukkit.Material;
+import org.bukkit.Registry;
 import org.bukkit.World;
 import org.bukkit.entity.EntityType;
 import org.eclipse.jdt.annotation.Nullable;
@@ -137,7 +138,7 @@ public class Limits extends Addon {
 
     private void registerPlaceholders(GameModeAddon gm) {
         if (getPlugin().getPlaceholdersManager() == null) return;
-        Arrays.stream(Material.values())
+        Registry.MATERIAL.stream()
         .filter(Material::isBlock)
         .forEach(m -> registerCountAndLimitPlaceholders(m, gm));
 

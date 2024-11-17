@@ -21,9 +21,7 @@ admin:
          finished: "&a Island recalc finished successfully!"
       offset:
         unknown: "&c Unknown material or entity [name]."
-        main:
-          parameters: ""
-          description: "allows to manage limits offsets for materials and entities"
+        description: "allows to manage limits offsets for materials and entities"
         set:
           parameters: "<player> <material|entity> <number>"
           description: "sets new offset for material or entity limit"
