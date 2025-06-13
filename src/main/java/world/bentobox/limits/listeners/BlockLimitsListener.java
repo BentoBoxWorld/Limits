@@ -162,6 +162,11 @@ public class BlockLimitsListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockBreakEvent e) {
+        if (e.getBlock().hasMetadata("blockbreakevent-ignore")) {
+            // Ignore event due to Advanced Enchantments. See https://ae.advancedplugins.net/for-developers/plugin-compatiblity-issues
+            // @since 1.28.0
+            return;
+        }
         handleBreak(e, e.getBlock());
     }
 

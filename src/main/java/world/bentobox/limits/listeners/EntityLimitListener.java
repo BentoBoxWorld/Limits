@@ -1,27 +1,9 @@
 package world.bentobox.limits.listeners;
 
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Tag;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.entity.Breedable;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.Villager;
+import org.bukkit.entity.*;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -32,7 +14,6 @@ import org.bukkit.event.entity.EntityBreedEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.eclipse.jdt.annotation.Nullable;
-
 import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.user.User;
@@ -40,8 +21,10 @@ import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Util;
 import world.bentobox.limits.EntityGroup;
 import world.bentobox.limits.Limits;
-import world.bentobox.limits.Settings;
 import world.bentobox.limits.objects.IslandBlockCount;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class EntityLimitListener implements Listener {
     private static final String MOD_BYPASS = "mod.bypass";
@@ -51,6 +34,7 @@ public class EntityLimitListener implements Listener {
 
     /**
      * Handles entity and natural limitations
+     *
      * @param addon - Limits object
      */
     public EntityLimitListener(Limits addon) {
@@ -59,6 +43,7 @@ public class EntityLimitListener implements Listener {
 
     /**
      * Handles minecart placing
+     *
      * @param e - event
      */
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
@@ -74,16 +59,16 @@ public class EntityLimitListener implements Listener {
         }
         // Check island
         addon.getIslands().getProtectedIslandAt(e.getVehicle().getLocation())
-        // Ignore spawn
-        .filter(i -> !i.isSpawn())
-        .ifPresent(island -> {
-            // Check if the player is at the limit
-            AtLimitResult res = atLimit(island, e.getVehicle());
-            if (res.hit()) {
-                e.setCancelled(true);
-                this.tellPlayers(e.getVehicle().getLocation(), e.getVehicle(), SpawnReason.MOUNT, res);
-            }
-        });
+                // Ignore spawn
+                .filter(i -> !i.isSpawn())
+                .ifPresent(island -> {
+                    // Check if the player is at the limit
+                    AtLimitResult res = atLimit(island, e.getVehicle());
+                    if (res.hit()) {
+                        e.setCancelled(true);
+                        this.tellPlayers(e.getVehicle().getLocation(), e.getVehicle(), SpawnReason.MOUNT, res);
+                    }
+                });
     }
 
 
@@ -110,7 +95,7 @@ public class EntityLimitListener implements Listener {
             justSpawned.remove(e.getEntity().getUniqueId());
             return;
         }
-        if (e.getSpawnReason().equals(SpawnReason.SHOULDER_ENTITY) || (!(e.getEntity() instanceof Villager ) && e.getSpawnReason().equals(SpawnReason.BREEDING))) {
+        if (e.getSpawnReason().equals(SpawnReason.SHOULDER_ENTITY) || (!(e.getEntity() instanceof Villager) && e.getSpawnReason().equals(SpawnReason.BREEDING))) {
             // Special case - do nothing - jumping around spawns parrots as they drop off player's shoulder
             // Ignore breeding because it's handled in the EntityBreedEvent listener
             return;
@@ -127,6 +112,7 @@ public class EntityLimitListener implements Listener {
 
     /**
      * handles paintings and item frames
+     *
      * @param e - event
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -158,7 +144,8 @@ public class EntityLimitListener implements Listener {
 
     /**
      * Check if a creature is allowed to spawn or not
-     * @param e - CreatureSpawnEvent
+     *
+     * @param e     - CreatureSpawnEvent
      * @param async - true if check can be done async, false if not
      * @return true if allowed or asycn, false if not.
      */
@@ -200,12 +187,12 @@ public class EntityLimitListener implements Listener {
 
         // Check for entities that need cleanup
         switch (reason) {
-        case BUILD_IRONGOLEM -> detectIronGolem(l);
-        case BUILD_SNOWMAN -> detectSnowman(l);
-        case BUILD_WITHER -> {
-            detectWither(l);
-        }
-        default -> throw new IllegalArgumentException("Unexpected value: " + reason);
+            case BUILD_IRONGOLEM -> detectIronGolem(l);
+            case BUILD_SNOWMAN -> detectSnowman(l);
+            case BUILD_WITHER -> {
+                detectWither(l);
+            }
+            default -> throw new IllegalArgumentException("Unexpected value: " + reason);
         }
         Entity entity = l.getWorld().spawnEntity(l, entityType);
         justSpawned.add(entity.getUniqueId());
@@ -300,7 +287,7 @@ public class EntityLimitListener implements Listener {
                                 && arm2.getRelative(bf.getOppositeFace()).isEmpty()
                                 && (head2.getType().equals(Material.WITHER_SKELETON_SKULL) || head2.getType().equals(Material.WITHER_SKELETON_WALL_SKULL))
                                 && (head3.getType().equals(Material.WITHER_SKELETON_SKULL) || head3.getType().equals(Material.WITHER_SKELETON_WALL_SKULL))
-                                ) {
+                        ) {
                             // Erase!
                             addon.getBlockLimitListener().removeBlock(body);
                             addon.getBlockLimitListener().removeBlock(arm1);
@@ -332,10 +319,11 @@ public class EntityLimitListener implements Listener {
 
     /**
      * Tell players within a 5 x 5 x 5 radius that the spawning was denied. Informing happens 1 tick after event
-     * @param l location
+     *
+     * @param l      location
      * @param entity entity spawned
      * @param reason reason - some reasons are not reported
-     * @param res at limit result
+     * @param res    at limit result
      */
     private void tellPlayers(Location l, Entity entity, SpawnReason reason, AtLimitResult res) {
         if (reason.equals(SpawnReason.SPAWNER) || reason.equals(SpawnReason.NATURAL)
@@ -366,8 +354,9 @@ public class EntityLimitListener implements Listener {
 
     /**
      * Checks if new entities can be added to island
+     *
      * @param island - island
-     * @param ent - the entity
+     * @param ent    - the entity
      * @return true if at the limit, false if not
      */
     AtLimitResult atLimit(Island island, Entity ent) {
@@ -396,16 +385,15 @@ public class EntityLimitListener implements Listener {
         // Group limits
         if (addon.getSettings().getGroupLimits().containsKey(ent.getType())) {
             addon.getSettings().getGroupLimits().getOrDefault(ent.getType(), new ArrayList<>()).stream()
-            .filter(group -> !groupsLimits.containsKey(group) || groupsLimits.get(group) > group.getLimit())
-            .forEach(group -> groupsLimits.put(group, group.getLimit()));
+                    .filter(group -> !groupsLimits.containsKey(group) || groupsLimits.get(group) > group.getLimit())
+                    .forEach(group -> groupsLimits.put(group, group.getLimit()));
         }
         if (limitAmount < 0 && groupsLimits.isEmpty()) {
             return new AtLimitResult();
         }
 
         // We have to count the entities
-        if (limitAmount >= 0)
-        {
+        if (limitAmount >= 0) {
             int count = (int) ent.getWorld().getNearbyEntities(island.getBoundingBox()).stream()
                     .filter(e -> e.getType().equals(ent.getType()))
                     .count();
@@ -419,8 +407,8 @@ public class EntityLimitListener implements Listener {
             Map<String, EntityGroup> groupbyname = groupsLimits.keySet().stream()
                     .collect(Collectors.toMap(EntityGroup::getName, e -> e));
             ibc.getEntityGroupLimits().entrySet().stream()
-            .filter(e -> groupbyname.containsKey(e.getKey()))
-            .forEach(e -> groupsLimits.put(groupbyname.get(e.getKey()), e.getValue()));
+                    .filter(e -> groupbyname.containsKey(e.getKey()))
+                    .forEach(e -> groupsLimits.put(groupbyname.get(e.getKey()), e.getValue()));
         }
         // Now do the group limits
         for (Map.Entry<EntityGroup, Integer> group : groupsLimits.entrySet()) { //do not use lambda
@@ -432,7 +420,7 @@ public class EntityLimitListener implements Listener {
             int count = (int) ent.getWorld().getNearbyEntities(island.getBoundingBox()).stream()
                     .filter(e -> group.getKey().contains(e.getType()))
                     .count();
-            int max = group.getValue() + + (ibc == null ? 0 : ibc.getEntityGroupLimitOffset(group.getKey().getName()));
+            int max = group.getValue() + +(ibc == null ? 0 : ibc.getEntityGroupLimitOffset(group.getKey().getName()));
             if (count >= max) {
                 return new AtLimitResult(group.getKey(), max);
             }
@@ -444,7 +432,8 @@ public class EntityLimitListener implements Listener {
         private Map.Entry<EntityType, Integer> typelimit;
         private Map.Entry<EntityGroup, Integer> grouplimit;
 
-        public AtLimitResult() {}
+        public AtLimitResult() {
+        }
 
         public AtLimitResult(EntityType type, int limit) {
             typelimit = new AbstractMap.SimpleEntry<>(type, limit);

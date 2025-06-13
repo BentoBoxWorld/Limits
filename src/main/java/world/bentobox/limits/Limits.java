@@ -1,20 +1,16 @@
 package world.bentobox.limits;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import org.bukkit.Material;
 import org.bukkit.Registry;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.eclipse.jdt.annotation.Nullable;
-
 import world.bentobox.bentobox.api.addons.Addon;
 import world.bentobox.bentobox.api.addons.GameModeAddon;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
+import world.bentobox.bentobox.managers.IslandWorldManager;
 import world.bentobox.limits.commands.admin.AdminCommand;
 import world.bentobox.limits.commands.player.PlayerCommand;
 import world.bentobox.limits.listeners.BlockLimitsListener;
@@ -22,11 +18,16 @@ import world.bentobox.limits.listeners.EntityLimitListener;
 import world.bentobox.limits.listeners.JoinListener;
 import world.bentobox.limits.objects.IslandBlockCount;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 
 /**
  * Addon to BentoBox that monitors and enforces limits
- * @author tastybento
  *
+ * @author tastybento
  */
 public class Limits extends Addon {
 
@@ -35,10 +36,11 @@ public class Limits extends Addon {
     private List<GameModeAddon> gameModes = new ArrayList<>();
     private BlockLimitsListener blockLimitListener;
     private JoinListener joinListener;
+    private IslandWorldManager islandWorldManager;
 
     @Override
-    public void onDisable(){
-        if (blockLimitListener  != null) {
+    public void onDisable() {
+        if (blockLimitListener != null) {
             blockLimitListener.save();
         }
     }
@@ -47,6 +49,7 @@ public class Limits extends Addon {
     public void onEnable() {
         // Load the plugin's config
         saveDefaultConfig();
+        this.islandWorldManager = getPlugin().getIWM();
         // Load settings
         settings = new Settings(this);
         // Register worlds from GameModes
@@ -54,14 +57,14 @@ public class Limits extends Addon {
                 .filter(gm -> settings.getGameModes().contains(gm.getDescription().getName()))
                 .collect(Collectors.toList());
         gameModes.forEach(gm ->
-        {
-            // Register commands
-            gm.getAdminCommand().ifPresent(a -> new AdminCommand(this, a));
-            gm.getPlayerCommand().ifPresent(a -> new PlayerCommand(this, a));
-            registerPlaceholders(gm);
-            log("Limits will apply to " + gm.getDescription().getName());
-        }
-                );
+                {
+                    // Register commands
+                    gm.getAdminCommand().ifPresent(a -> new AdminCommand(this, a));
+                    gm.getPlayerCommand().ifPresent(a -> new PlayerCommand(this, a));
+                    registerPlaceholders(gm);
+                    log("Limits will apply to " + gm.getDescription().getName());
+                }
+        );
         // Register listener
         blockLimitListener = new BlockLimitsListener(this);
         registerListener(blockLimitListener);
@@ -94,6 +97,7 @@ public class Limits extends Addon {
 
     /**
      * Checks if this world is covered by the activated game modes
+     *
      * @param world - world
      * @return true or false
      */
@@ -103,6 +107,7 @@ public class Limits extends Addon {
 
     /**
      * Get the name of the game mode for this world
+     *
      * @param world - world
      * @return game mode name or empty string if none
      */
@@ -112,6 +117,7 @@ public class Limits extends Addon {
 
     /**
      * Get the permission prefix for this world
+     *
      * @param world - world
      * @return permisdsion prefix or empty string if none
      */
@@ -122,6 +128,7 @@ public class Limits extends Addon {
 
     /**
      * Check if any of the game modes covered have this name
+     *
      * @param gameMode - name of game mode
      * @return true or false
      */
@@ -139,8 +146,8 @@ public class Limits extends Addon {
     private void registerPlaceholders(GameModeAddon gm) {
         if (getPlugin().getPlaceholdersManager() == null) return;
         Registry.MATERIAL.stream()
-        .filter(Material::isBlock)
-        .forEach(m -> registerCountAndLimitPlaceholders(m, gm));
+                .filter(Material::isBlock)
+                .forEach(m -> registerCountAndLimitPlaceholders(m, gm));
 
         Arrays.stream(EntityType.values())
                 .forEach(e -> registerCountAndLimitPlaceholders(e, gm));
@@ -150,15 +157,15 @@ public class Limits extends Addon {
      * Registers placeholders for the count and limit of the material
      * in the format of %Limits_(gamemode prefix)_island_(lowercase material name)_count%
      * and %Limits_(gamemode prefix)_island_(lowercase material name)_limit%
-     *
+     * <p>
      * Example: registerCountAndLimitPlaceholders("HOPPER", gm);
-     *  Placeholders:
-     *      "Limits_bskyblock_island_hopper_count"
-     *      "Limits_bskyblock_island_hopper_limit"
-     *      "Limits_bskyblock_island_hopper_base_limit"
-     *      "Limits_bskyblock_island_zombie_limit"
+     * Placeholders:
+     * "Limits_bskyblock_island_hopper_count"
+     * "Limits_bskyblock_island_hopper_limit"
+     * "Limits_bskyblock_island_hopper_base_limit"
+     * "Limits_bskyblock_island_zombie_limit"
      *
-     * @param m material
+     * @param m  material
      * @param gm game mode
      */
     private void registerCountAndLimitPlaceholders(Material m, GameModeAddon gm) {
@@ -180,12 +187,15 @@ public class Limits extends Addon {
         getPlugin().getPlaceholdersManager().registerPlaceholder(this,
                 gm.getDescription().getName().toLowerCase() + "_island_" + e.toString().toLowerCase() + "_base_limit",
                 user -> getBaseLimit(user, e, gm));
+        getPlugin().getPlaceholdersManager().registerPlaceholder(this,
+                gm.getDescription().getName().toLowerCase() + "_island_" + e.toString().toLowerCase() + "_count",
+                user -> String.valueOf(getCount(user, e, gm)));
     }
 
     /**
      * @param user - Used to identify the island the user belongs to
-     * @param m - The material we are trying to count on the island
-     * @param gm Game Mode Addon
+     * @param m    - The material we are trying to count on the island
+     * @param gm   Game Mode Addon
      * @return Number of blocks of the specified material on the given user's island
      */
     private int getCount(@Nullable User user, Material m, GameModeAddon gm) {
@@ -200,10 +210,32 @@ public class Limits extends Addon {
         return ibc.getBlockCount(m);
     }
 
+    private long getCount(@Nullable User user, EntityType e, GameModeAddon gm) {
+        Island is = gm.getIslands().getIsland(gm.getOverWorld(), user);
+        if (is == null || e.getEntityClass() == null) {
+            return 0;
+        }
+        Class<? extends Entity> entityClass = e.getEntityClass();
+        long count = is.getWorld().getEntitiesByClass(entityClass).stream()
+                .filter(ent -> is.inIslandSpace(ent.getLocation())).count();
+        /*  NETHER  */
+        if (islandWorldManager.isNetherIslands(is.getWorld()) && islandWorldManager.getNetherWorld(is.getWorld()) != null) {
+            count += islandWorldManager.getNetherWorld(is.getWorld()).getEntitiesByClass(entityClass).stream()
+                    .filter(ent -> is.inIslandSpace(ent.getLocation())).count();
+        }
+        /*  END  */
+        if (islandWorldManager.isEndIslands(is.getWorld()) && islandWorldManager.getEndWorld(is.getWorld()) != null) {
+            count += islandWorldManager.getEndWorld(is.getWorld()).getEntitiesByClass(entityClass).stream()
+                    .filter(ent -> is.inIslandSpace(ent.getLocation())).count();
+        }
+        return count;
+    }
+
+
     /**
      * @param user - Used to identify the island the user belongs to
-     * @param m - The material whose limit we are querying
-     * @param gm Game Mode Addon
+     * @param m    - The material whose limit we are querying
+     * @param gm   Game Mode Addon
      * @return The limit of the specified material on the given user's island
      */
     private String getLimit(@Nullable User user, Material m, GameModeAddon gm) {
@@ -263,5 +295,6 @@ public class Limits extends Addon {
 
         return limit == -1 ? LIMIT_NOT_SET : String.valueOf(limit);
     }
+
 
 }
