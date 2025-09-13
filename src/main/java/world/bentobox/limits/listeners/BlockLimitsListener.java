@@ -182,6 +182,7 @@ public class BlockLimitsListener implements Listener {
             return;
         }
         Material mat = b.getType();
+        
         // Check for stackable plants
         if (STACKABLE.contains(b.getType())) {
             // Check for blocks above
@@ -309,8 +310,9 @@ public class BlockLimitsListener implements Listener {
      */
     public Material fixMaterial(BlockData b) {
         Material mat = b.getMaterial();
-
-        if (mat == Material.REDSTONE_WALL_TORCH) {
+        if (mat.equals(Material.CHIPPED_ANVIL) || mat.equals(Material.DAMAGED_ANVIL)) {
+            return Material.ANVIL;
+        } else if (mat == Material.REDSTONE_WALL_TORCH) {
             return Material.REDSTONE_TORCH;
         } else if (mat == Material.WALL_TORCH) {
             return Material.TORCH;
