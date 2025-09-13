@@ -86,7 +86,8 @@ public class JoinListener implements Listener {
             }
             // Get the value
             int value = Integer.parseInt(split[4]);
-            addon.log("Setting login limit via perm for " + player.getName() + "...");
+            if(addon.getSettings().isLogLimitsOnJoin())
+                addon.log("Setting login limit via perm for " + player.getName() + "...");
 
             // Fire perm check event
             LimitsPermCheckEvent l = new LimitsPermCheckEvent(player, islandId, ibc, entgroup, et, m, value);
@@ -143,26 +144,32 @@ public class JoinListener implements Listener {
             // Entity group limit
             int v = Math.max(ibc.getEntityGroupLimit(entgroup.getName()), value);
             ibc.setEntityGroupLimit(entgroup.getName(), v);
-            addon.log("Setting group limit " + entgroup.getName() + " " + v);
+            if(addon.getSettings().isLogLimitsOnJoin())
+                addon.log("Setting group limit " + entgroup.getName() + " " + v);
         } else if (et != null && m == null) {
             // Entity limit
             int v = Math.max(ibc.getEntityLimit(et), value);
             ibc.setEntityLimit(et, v);
-            addon.log("Setting entity limit " + et + " " + v);
+            if(addon.getSettings().isLogLimitsOnJoin())
+                addon.log("Setting entity limit " + et + " " + v);
         } else if (m != null && et == null) {
             // Block limit
             int v = Math.max(ibc.getBlockLimit(m), value);
-            addon.log("Setting block limit " + m + " " + v);
+            if(addon.getSettings().isLogLimitsOnJoin())
+                addon.log("Setting block limit " + m + " " + v);
             ibc.setBlockLimit(m, v);
         } else {
             if (m != null && m.isBlock()) {
                 int v = Math.max(ibc.getBlockLimit(m), value);
-                addon.log("Setting block limit " + m + " " + v);
+                if(addon.getSettings().isLogLimitsOnJoin())
+                    addon.log("Setting block limit " + m + " " + v);
                 // Material limit
-                ibc.setBlockLimit(m, v);
+                if(addon.getSettings().isLogLimitsOnJoin())
+                    ibc.setBlockLimit(m, v);
             } else if (et != null) {
                 int v = Math.max(ibc.getEntityLimit(et), value);
-                addon.log("Setting entity limit " + et + " " + v);
+                if(addon.getSettings().isLogLimitsOnJoin())
+                    addon.log("Setting entity limit " + et + " " + v);
                 // This is an entity setting
                 ibc.setEntityLimit(et, v);
             }

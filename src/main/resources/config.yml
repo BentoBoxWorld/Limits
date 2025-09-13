@@ -17,6 +17,9 @@ ignore-center-block: true
 # Cooldown for player recount command in seconds
 cooldown: 120
 
+# Log limits on join (to console)
+log-limits-on-join: true
+
 # Use async checks for snowmen and iron golums. Set to false if you see problems.
 async-golums: true
 
