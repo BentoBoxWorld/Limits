@@ -26,86 +26,110 @@ import world.bentobox.limits.objects.IslandBlockCount;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Listener for entity limit events and logic.
+ */
 public class EntityLimitListener implements Listener {
+    /**
+     * Permission node for bypassing limits.
+     */
     private static final String MOD_BYPASS = "mod.bypass";
+    /**
+     * Reference to the Limits addon.
+     */
     private final Limits addon;
+    /**
+     * List of entity UUIDs that have just spawned to prevent double-processing.
+     */
     private final List<UUID> justSpawned = new ArrayList<>();
+    /**
+     * Cardinal directions used for block structure detection.
+     */
     private static final List<BlockFace> CARDINALS = List.of(BlockFace.UP, BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST, BlockFace.DOWN);
 
     /**
-     * Handles entity and natural limitations
+     * Constructs the EntityLimitListener.
      *
-     * @param addon - Limits object
+     * @param addon Limits addon instance
      */
     public EntityLimitListener(Limits addon) {
         this.addon = addon;
     }
 
     /**
-     * Handles minecart placing
+     * Handles minecart placement and checks entity limits.
      *
-     * @param e - event
+     * @param vehicleCreateEvent VehicleCreateEvent instance
      */
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
-    public void onMinecart(VehicleCreateEvent e) {
+    public void onMinecart(VehicleCreateEvent vehicleCreateEvent) {
         // Return if not in a known world
-        if (!addon.inGameModeWorld(e.getVehicle().getWorld())) {
+        if (!addon.inGameModeWorld(vehicleCreateEvent.getVehicle().getWorld())) {
             return;
         }
         // Debounce
-        if (justSpawned.contains(e.getVehicle().getUniqueId())) {
-            justSpawned.remove(e.getVehicle().getUniqueId());
+        if (justSpawned.contains(vehicleCreateEvent.getVehicle().getUniqueId())) {
+            justSpawned.remove(vehicleCreateEvent.getVehicle().getUniqueId());
             return;
         }
         // Check island
-        addon.getIslands().getProtectedIslandAt(e.getVehicle().getLocation())
+        addon.getIslands().getProtectedIslandAt(vehicleCreateEvent.getVehicle().getLocation())
                 // Ignore spawn
                 .filter(i -> !i.isSpawn())
                 .ifPresent(island -> {
                     // Check if the player is at the limit
-                    AtLimitResult res = atLimit(island, e.getVehicle());
+                    AtLimitResult res = atLimit(island, vehicleCreateEvent.getVehicle());
                     if (res.hit()) {
-                        e.setCancelled(true);
-                        this.tellPlayers(e.getVehicle().getLocation(), e.getVehicle(), SpawnReason.MOUNT, res);
+                        vehicleCreateEvent.setCancelled(true);
+                        this.tellPlayers(vehicleCreateEvent.getVehicle().getLocation(), vehicleCreateEvent.getVehicle(), SpawnReason.MOUNT, res);
                     }
                 });
     }
 
-
+    /**
+     * Handles entity breeding and checks entity limits.
+     *
+     * @param entityBreedEvent EntityBreedEvent instance
+     */
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
-    public void onBreed(final EntityBreedEvent e) {
-        if (addon.inGameModeWorld(e.getEntity().getWorld())
-                && e.getBreeder() != null
-                && (e.getBreeder() instanceof Player p)
-                && !(p.isOp() || p.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getEntity().getWorld()) + MOD_BYPASS))
-                && !checkLimit(e, e.getEntity(), SpawnReason.BREEDING, false)
-                && e.getFather() instanceof Breedable f && e.getMother() instanceof Breedable m) {
-            f.setBreed(false);
-            m.setBreed(false);
+    public void onBreed(final EntityBreedEvent entityBreedEvent) {
+        if (addon.inGameModeWorld(entityBreedEvent.getEntity().getWorld())
+                && entityBreedEvent.getBreeder() != null
+                && (entityBreedEvent.getBreeder() instanceof Player player)
+                && !(player.isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(entityBreedEvent.getEntity().getWorld()) + MOD_BYPASS))
+                && !checkLimit(entityBreedEvent, entityBreedEvent.getEntity(), SpawnReason.BREEDING, false)
+                && entityBreedEvent.getFather() instanceof Breedable father && entityBreedEvent.getMother() instanceof Breedable mother) {
+            father.setBreed(false);
+            mother.setBreed(false);
         }
     }
 
+    /**
+     * Handles creature spawning and checks entity limits.
+     *
+     * @param creatureSpawnEvent CreatureSpawnEvent instance
+     */
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
-    public void onCreatureSpawn(final CreatureSpawnEvent e) {
+    public void onCreatureSpawn(final CreatureSpawnEvent creatureSpawnEvent) {
         // Return if not in a known world
-        if (!addon.inGameModeWorld(e.getLocation().getWorld())) {
+        if (!addon.inGameModeWorld(creatureSpawnEvent.getLocation().getWorld())) {
             return;
         }
-        if (justSpawned.contains(e.getEntity().getUniqueId())) {
-            justSpawned.remove(e.getEntity().getUniqueId());
+        if (justSpawned.contains(creatureSpawnEvent.getEntity().getUniqueId())) {
+            justSpawned.remove(creatureSpawnEvent.getEntity().getUniqueId());
             return;
         }
-        if (e.getSpawnReason().equals(SpawnReason.SHOULDER_ENTITY) || (!(e.getEntity() instanceof Villager) && e.getSpawnReason().equals(SpawnReason.BREEDING))) {
+        if (creatureSpawnEvent.getSpawnReason().equals(SpawnReason.SHOULDER_ENTITY) || (!(creatureSpawnEvent.getEntity() instanceof Villager) && creatureSpawnEvent.getSpawnReason().equals(SpawnReason.BREEDING))) {
             // Special case - do nothing - jumping around spawns parrots as they drop off player's shoulder
             // Ignore breeding because it's handled in the EntityBreedEvent listener
             return;
         }
         // Some checks can be done async, some not
-        if (e.getSpawnReason().equals(SpawnReason.BUILD_SNOWMAN) || e.getSpawnReason().equals(SpawnReason.BUILD_IRONGOLEM)) {
-            checkLimit(e, e.getEntity(), e.getSpawnReason(), addon.getSettings().isAsyncGolums());
+        if (creatureSpawnEvent.getSpawnReason().equals(SpawnReason.BUILD_SNOWMAN) || creatureSpawnEvent.getSpawnReason().equals(SpawnReason.BUILD_IRONGOLEM)) {
+            checkLimit(creatureSpawnEvent, creatureSpawnEvent.getEntity(), creatureSpawnEvent.getSpawnReason(), addon.getSettings().isAsyncGolums());
         } else {
             // Check limit sync
-            checkLimit(e, e.getEntity(), e.getSpawnReason(), false);
+            checkLimit(creatureSpawnEvent, creatureSpawnEvent.getEntity(), creatureSpawnEvent.getSpawnReason(), false);
         }
 
     }
@@ -113,25 +137,25 @@ public class EntityLimitListener implements Listener {
     /**
      * handles paintings and item frames
      *
-     * @param e - event
+     * @param hangingPlaceEvent - event
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBlock(HangingPlaceEvent e) {
-        if (!addon.inGameModeWorld(e.getBlock().getWorld())) {
+    public void onBlock(HangingPlaceEvent hangingPlaceEvent) {
+        if (!addon.inGameModeWorld(hangingPlaceEvent.getBlock().getWorld())) {
             return;
         }
-        Player player = e.getPlayer();
+        Player player = hangingPlaceEvent.getPlayer();
         if (player == null) return;
-        addon.getIslands().getIslandAt(e.getEntity().getLocation()).ifPresent(island -> {
-            boolean bypass = Objects.requireNonNull(player).isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(e.getEntity().getWorld()) + MOD_BYPASS);
+        addon.getIslands().getIslandAt(hangingPlaceEvent.getEntity().getLocation()).ifPresent(island -> {
+            boolean bypass = Objects.requireNonNull(player).isOp() || player.hasPermission(addon.getPlugin().getIWM().getPermissionPrefix(hangingPlaceEvent.getEntity().getWorld()) + MOD_BYPASS);
             // Check if entity can be hung
             AtLimitResult res;
-            if (!bypass && !island.isSpawn() && (res = atLimit(island, e.getEntity())).hit()) {
+            if (!bypass && !island.isSpawn() && (res = atLimit(island, hangingPlaceEvent.getEntity())).hit()) {
                 // Not allowed
-                e.setCancelled(true);
+                hangingPlaceEvent.setCancelled(true);
                 if (res.getTypelimit() != null) {
                     User.getInstance(player).notify("block-limits.hit-limit", "[material]",
-                            Util.prettifyText(e.getEntity().getType().toString()),
+                            Util.prettifyText(hangingPlaceEvent.getEntity().getType().toString()),
                             TextVariables.NUMBER, String.valueOf(res.getTypelimit().getValue()));
                 } else {
                     User.getInstance(player).notify("block-limits.hit-limit", "[material]",
@@ -143,67 +167,91 @@ public class EntityLimitListener implements Listener {
     }
 
     /**
-     * Check if a creature is allowed to spawn or not
+     * Checks if a creature is allowed to spawn or not.
      *
-     * @param e     - CreatureSpawnEvent
-     * @param async - true if check can be done async, false if not
-     * @return true if allowed or asycn, false if not.
+     * @param cancelableEvent Cancelable event instance
+     * @param livingEntity Entity being spawned
+     * @param spawnReason Reason for spawning
+     * @param runAsync Whether to run asynchronously
+     * @return true if allowed or async, false if not
      */
-    private boolean checkLimit(Cancellable c, LivingEntity e, SpawnReason reason, boolean async) {
-        Location l = e.getLocation();
-        if (async) {
-            c.setCancelled(true);
+    private boolean checkLimit(Cancellable cancelableEvent, LivingEntity livingEntity, SpawnReason spawnReason, boolean runAsync) {
+        Location l = livingEntity.getLocation();
+        if (runAsync) {
+            cancelableEvent.setCancelled(true);
         }
-        return processIsland(c, e, l, reason, async);
+        return processIsland(cancelableEvent, livingEntity, l, spawnReason, runAsync);
     }
 
-    private boolean processIsland(Cancellable c, LivingEntity e, Location l, SpawnReason reason, boolean async) {
-        if (addon.getIslands().getIslandAt(e.getLocation()).isEmpty()) {
-            c.setCancelled(false);
+    /**
+     * Processes the island for entity limit checks.
+     *
+     * @param cancelableEvent Cancelable event instance
+     * @param livingEntity Entity being spawned
+     * @param location Location of entity
+     * @param spawnReason Reason for spawning
+     * @param runAsync Whether to run asynchronously
+     * @return true if allowed, false if not
+     */
+    private boolean processIsland(Cancellable cancelableEvent, LivingEntity livingEntity, Location location, SpawnReason spawnReason, boolean runAsync) {
+        if (addon.getIslands().getIslandAt(livingEntity.getLocation()).isEmpty()) {
+            cancelableEvent.setCancelled(false);
             return true;
         }
-        Island island = addon.getIslands().getIslandAt(e.getLocation()).get();
+        Island island = addon.getIslands().getIslandAt(livingEntity.getLocation()).get();
         // Check if creature is allowed to spawn or not
-        AtLimitResult res = atLimit(island, e);
+        AtLimitResult res = atLimit(island, livingEntity);
         if (island.isSpawn() || !res.hit()) {
             // Allowed
-            if (async) {
-                Bukkit.getScheduler().runTask(BentoBox.getInstance(), () -> preSpawn(e.getType(), reason, l));
+            if (runAsync) {
+                Bukkit.getScheduler().runTask(BentoBox.getInstance(), () -> preSpawn(livingEntity.getType(), spawnReason, location));
             } // else do nothing
         } else {
-            if (async) {
-                e.remove();
+            if (runAsync) {
+                livingEntity.remove();
             } else {
-                c.setCancelled(true);
+                cancelableEvent.setCancelled(true);
             }
             // If the reason is anything but because of a spawner then tell players within range
-            tellPlayers(l, e, reason, res);
+            tellPlayers(location, livingEntity, spawnReason, res);
             return false;
         }
         return true;
     }
 
-    private void preSpawn(EntityType entityType, SpawnReason reason, Location l) {
+    /**
+     * Spawns an entity and handles special cases for golems, snowmen, and withers.
+     *
+     * @param entityType Type of entity to spawn
+     * @param spawnReason Reason for spawning
+     * @param location Location to spawn
+     */
+    private void preSpawn(EntityType entityType, SpawnReason spawnReason, Location location) {
 
         // Check for entities that need cleanup
-        switch (reason) {
-            case BUILD_IRONGOLEM -> detectIronGolem(l);
-            case BUILD_SNOWMAN -> detectSnowman(l);
+        switch (spawnReason) {
+            case BUILD_IRONGOLEM -> detectIronGolem(location);
+            case BUILD_SNOWMAN -> detectSnowman(location);
             case BUILD_WITHER -> {
-                detectWither(l);
+                detectWither(location);
             }
-            default -> throw new IllegalArgumentException("Unexpected value: " + reason);
+            default -> throw new IllegalArgumentException("Unexpected value: " + spawnReason);
         }
-        Entity entity = l.getWorld().spawnEntity(l, entityType);
+        Entity entity = location.getWorld().spawnEntity(location, entityType);
         justSpawned.add(entity.getUniqueId());
-        if (reason == SpawnReason.BUILD_WITHER) {
+        if (spawnReason == SpawnReason.BUILD_WITHER) {
             // Create explosion
-            l.getWorld().createExplosion(l, 7F, true, true, entity);
+            location.getWorld().createExplosion(location, 7F, true, true, entity);
         }
     }
 
-    private void detectIronGolem(Location l) {
-        Block legs = l.getBlock();
+    /**
+     * Detects and removes iron golem construction blocks.
+     *
+     * @param location Location of golem spawn
+     */
+    private void detectIronGolem(Location location) {
+        Block legs = location.getBlock();
         // Erase legs
         addon.getBlockLimitListener().removeBlock(legs);
         legs.setType(Material.AIR);
@@ -238,8 +286,13 @@ public class EntityLimitListener implements Listener {
         }
     }
 
-    private void detectSnowman(Location l) {
-        Block legs = l.getBlock();
+    /**
+     * Detects and removes snowman construction blocks.
+     *
+     * @param location Location of snowman spawn
+     */
+    private void detectSnowman(Location location) {
+        Block legs = location.getBlock();
         // Erase legs
         addon.getBlockLimitListener().removeBlock(legs);
         legs.setType(Material.AIR);
@@ -263,8 +316,13 @@ public class EntityLimitListener implements Listener {
 
     }
 
-    private void detectWither(Location l) {
-        Block legs = l.getBlock();
+    /**
+     * Detects and removes wither construction blocks.
+     *
+     * @param location Location of wither spawn
+     */
+    private void detectWither(Location location) {
+        Block legs = location.getBlock();
         // Erase legs
         addon.getBlockLimitListener().removeBlock(legs);
         legs.setType(Material.AIR);
@@ -309,42 +367,47 @@ public class EntityLimitListener implements Listener {
         }
     }
 
-
-    private boolean isWither(Block body) {
+    /**
+     * Checks if the block is a valid wither base block.
+     *
+     * @param block Block to check
+     * @return true if block is a wither base block
+     */
+    private boolean isWither(Block block) {
         if (Util.getMinecraftVersion() < 16) {
-            return body.getType().equals(Material.SOUL_SAND);
+            return block.getType().equals(Material.SOUL_SAND);
         }
-        return Tag.WITHER_SUMMON_BASE_BLOCKS.isTagged(body.getType());
+        return Tag.WITHER_SUMMON_BASE_BLOCKS.isTagged(block.getType());
     }
 
     /**
-     * Tell players within a 5 x 5 x 5 radius that the spawning was denied. Informing happens 1 tick after event
+     * Notifies players within a 5x5x5 radius that entity spawning was denied.
      *
-     * @param l      location
-     * @param entity entity spawned
-     * @param reason reason - some reasons are not reported
-     * @param res    at limit result
+     * @param location Location of denied spawn
+     * @param entity Entity that was denied
+     * @param spawnReason Reason for spawning
+     * @param atLimitResult Result of limit check
      */
-    private void tellPlayers(Location l, Entity entity, SpawnReason reason, AtLimitResult res) {
-        if (reason.equals(SpawnReason.SPAWNER) || reason.equals(SpawnReason.NATURAL)
-                || reason.equals(SpawnReason.INFECTION) || reason.equals(SpawnReason.NETHER_PORTAL)
-                || reason.equals(SpawnReason.REINFORCEMENTS) || reason.equals(SpawnReason.SLIME_SPLIT)) {
+    private void tellPlayers(Location location, Entity entity, SpawnReason spawnReason, AtLimitResult atLimitResult) {
+        if (spawnReason.equals(SpawnReason.SPAWNER) || spawnReason.equals(SpawnReason.NATURAL)
+                || spawnReason.equals(SpawnReason.INFECTION) || spawnReason.equals(SpawnReason.NETHER_PORTAL)
+                || spawnReason.equals(SpawnReason.REINFORCEMENTS) || spawnReason.equals(SpawnReason.SLIME_SPLIT)) {
             return;
         }
-        World w = l.getWorld();
+        World w = location.getWorld();
         if (w == null) return;
         Bukkit.getScheduler().runTask(addon.getPlugin(), () -> {
-            for (Entity ent : w.getNearbyEntities(l, 5, 5, 5)) {
+            for (Entity ent : w.getNearbyEntities(location, 5, 5, 5)) {
                 if (ent instanceof Player p) {
                     p.updateInventory();
-                    if (res.getTypelimit() != null) {
+                    if (atLimitResult.getTypelimit() != null) {
                         User.getInstance(p).notify("entity-limits.hit-limit", "[entity]",
                                 Util.prettifyText(entity.getType().toString()),
-                                TextVariables.NUMBER, String.valueOf(res.getTypelimit().getValue()));
+                                TextVariables.NUMBER, String.valueOf(atLimitResult.getTypelimit().getValue()));
                     } else {
                         User.getInstance(p).notify("entity-limits.hit-limit", "[entity]",
-                                res.getGrouplimit().getKey().getName() + " (" + res.getGrouplimit().getKey().getTypes().stream().map(x -> Util.prettifyText(x.toString())).collect(Collectors.joining(", ")) + ")",
-                                TextVariables.NUMBER, String.valueOf(res.getGrouplimit().getValue()));
+                                atLimitResult.getGrouplimit().getKey().getName() + " (" + atLimitResult.getGrouplimit().getKey().getTypes().stream().map(x -> Util.prettifyText(x.toString())).collect(Collectors.joining(", ")) + ")",
+                                TextVariables.NUMBER, String.valueOf(atLimitResult.getGrouplimit().getValue()));
                     }
                 }
             }
@@ -353,13 +416,13 @@ public class EntityLimitListener implements Listener {
     }
 
     /**
-     * Checks if new entities can be added to island
+     * Checks if new entities can be added to the island.
      *
-     * @param island - island
-     * @param ent    - the entity
-     * @return true if at the limit, false if not
+     * @param island Island to check
+     * @param entity Entity to check
+     * @return AtLimitResult indicating if at limit
      */
-    AtLimitResult atLimit(Island island, Entity ent) {
+    AtLimitResult atLimit(Island island, Entity entity) {
         // Check island settings first
         int limitAmount = -1;
         Map<EntityGroup, Integer> groupsLimits = new HashMap<>();
@@ -368,9 +431,9 @@ public class EntityLimitListener implements Listener {
         IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(island.getUniqueId());
         if (ibc != null) {
             // Get the limit amount for this type
-            limitAmount = ibc.getEntityLimit(ent.getType());
+            limitAmount = ibc.getEntityLimit(entity.getType());
             // Handle entity groups
-            List<EntityGroup> groupdefs = addon.getSettings().getGroupLimits().getOrDefault(ent.getType(),
+            List<EntityGroup> groupdefs = addon.getSettings().getGroupLimits().getOrDefault(entity.getType(),
                     new ArrayList<>());
             groupdefs.forEach(def -> {
                 int limit = ibc.getEntityGroupLimit(def.getName());
@@ -379,12 +442,12 @@ public class EntityLimitListener implements Listener {
             });
         }
         // If no island settings then try global settings
-        if (limitAmount < 0 && addon.getSettings().getLimits().containsKey(ent.getType())) {
-            limitAmount = addon.getSettings().getLimits().get(ent.getType());
+        if (limitAmount < 0 && addon.getSettings().getLimits().containsKey(entity.getType())) {
+            limitAmount = addon.getSettings().getLimits().get(entity.getType());
         }
         // Group limits
-        if (addon.getSettings().getGroupLimits().containsKey(ent.getType())) {
-            addon.getSettings().getGroupLimits().getOrDefault(ent.getType(), new ArrayList<>()).stream()
+        if (addon.getSettings().getGroupLimits().containsKey(entity.getType())) {
+            addon.getSettings().getGroupLimits().getOrDefault(entity.getType(), new ArrayList<>()).stream()
                     .filter(group -> !groupsLimits.containsKey(group) || groupsLimits.get(group) > group.getLimit())
                     .forEach(group -> groupsLimits.put(group, group.getLimit()));
         }
@@ -394,12 +457,12 @@ public class EntityLimitListener implements Listener {
 
         // We have to count the entities
         if (limitAmount >= 0) {
-            int count = (int) ent.getWorld().getNearbyEntities(island.getBoundingBox()).stream()
-                    .filter(e -> e.getType().equals(ent.getType()))
+            int count = (int) entity.getWorld().getNearbyEntities(island.getBoundingBox()).stream()
+                    .filter(e -> e.getType().equals(entity.getType()))
                     .count();
-            int max = limitAmount + (ibc == null ? 0 : ibc.getEntityLimitOffset(ent.getType()));
+            int max = limitAmount + (ibc == null ? 0 : ibc.getEntityLimitOffset(entity.getType()));
             if (count >= max) {
-                return new AtLimitResult(ent.getType(), max);
+                return new AtLimitResult(entity.getType(), max);
             }
         }
         // Group limits
@@ -417,7 +480,7 @@ public class EntityLimitListener implements Listener {
             //            int count = (int) ent.getWorld().getEntities().stream()
             //                    .filter(e -> group.getKey().contains(e.getType()))
             //                    .filter(e -> island.inIslandSpace(e.getLocation())).count();
-            int count = (int) ent.getWorld().getNearbyEntities(island.getBoundingBox()).stream()
+            int count = (int) entity.getWorld().getNearbyEntities(island.getBoundingBox()).stream()
                     .filter(e -> group.getKey().contains(e.getType()))
                     .count();
             int max = group.getValue() + +(ibc == null ? 0 : ibc.getEntityGroupLimitOffset(group.getKey().getName()));
@@ -428,32 +491,62 @@ public class EntityLimitListener implements Listener {
         return new AtLimitResult();
     }
 
+    /**
+     * Result class for entity limit checks.
+     */
     static class AtLimitResult {
         private Map.Entry<EntityType, Integer> typelimit;
         private Map.Entry<EntityGroup, Integer> grouplimit;
 
+        /**
+         * Default constructor for AtLimitResult.
+         */
         public AtLimitResult() {
         }
 
+        /**
+         * Constructor for type limit result.
+         *
+         * @param type EntityType at limit
+         * @param limit Limit value
+         */
         public AtLimitResult(EntityType type, int limit) {
             typelimit = new AbstractMap.SimpleEntry<>(type, limit);
         }
 
+        /**
+         * Constructor for group limit result.
+         *
+         * @param type EntityGroup at limit
+         * @param limit Limit value
+         */
         public AtLimitResult(EntityGroup type, int limit) {
             grouplimit = new AbstractMap.SimpleEntry<>(type, limit);
         }
 
         /**
+         * Returns true if at limit.
+         *
          * @return true if at limit
          */
         public boolean hit() {
             return typelimit != null || grouplimit != null;
         }
 
+        /**
+         * Gets the type limit entry.
+         *
+         * @return Entry of EntityType and limit
+         */
         public Map.Entry<EntityType, Integer> getTypelimit() {
             return typelimit;
         }
 
+        /**
+         * Gets the group limit entry.
+         *
+         * @return Entry of EntityGroup and limit
+         */
         public Map.Entry<EntityGroup, Integer> getGrouplimit() {
             return grouplimit;
         }
