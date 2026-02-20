@@ -27,6 +27,7 @@ public class Settings {
     private final Map<EntityType, Integer> limits = new EnumMap<>(EntityType.class);
     private final Map<EntityType, List<EntityGroup>> groupLimits = new EnumMap<>(EntityType.class);
     private final List<String> gameModes;
+    private final boolean logLimitsOnJoin;
     private final boolean asyncGolums;
     private static final List<EntityType> DISALLOWED = Arrays.asList(
             EntityType.TNT,
@@ -79,6 +80,8 @@ public class Settings {
                 }
             }
         }
+        // Log limits on join
+        logLimitsOnJoin = addon.getConfig().getBoolean("log-limits-on-join", true);
         // Async Golums
         asyncGolums = addon.getConfig().getBoolean("async-golums", true);
 
@@ -156,6 +159,13 @@ public class Settings {
      */
     public List<String> getGameModes() {
         return gameModes;
+    }
+
+    /**
+     * @return the logLimitsOnJoin
+     */
+    public boolean isLogLimitsOnJoin() {
+        return logLimitsOnJoin;
     }
 
     /**
