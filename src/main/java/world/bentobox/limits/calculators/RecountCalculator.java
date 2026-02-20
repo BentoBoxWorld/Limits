@@ -14,7 +14,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
@@ -94,7 +94,7 @@ public class RecountCalculator {
     }
 
     private void checkBlock(BlockData b) {
-        Material md = bll.fixMaterial(b);
+        NamespacedKey md = bll.fixMaterial(b);
         // md is limited
         if (bll.getMaterialLimits(world, island.getUniqueId()).containsKey(md)) {
             results.mdCount.add(md);

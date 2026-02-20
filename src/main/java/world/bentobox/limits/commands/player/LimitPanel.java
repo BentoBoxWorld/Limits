@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
@@ -58,7 +58,7 @@ public class LimitPanel {
         }
         // Get the limits for this island
         IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(island.getUniqueId());
-        Map<Material, Integer> matLimits = addon.getBlockLimitListener().getMaterialLimits(world, island.getUniqueId());
+        Map<NamespacedKey, Integer> matLimits = addon.getBlockLimitListener().getMaterialLimits(world, island.getUniqueId());
         if (matLimits.isEmpty() && addon.getSettings().getLimits().isEmpty()) {
             user.sendMessage("island.limits.no-limits");
             return;

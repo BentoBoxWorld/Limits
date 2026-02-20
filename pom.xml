@@ -160,11 +160,13 @@
             <version>${bentobox.version}</version>
             <scope>provided</scope>
         </dependency>
-        <!-- Paper API - optional, for Paper-specific events like ShulkerDuplicateEvent -->
+        <!-- Paper API - optional, for Paper-specific events like ShulkerDuplicateEvent.
+             Must be a version compiled for Java 17 (1.20.4 and earlier); Paper 1.20.6+
+             targets Java 21, incompatible with this project's release 17 setting. -->
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>${spigot.version}</version>
+            <version>1.20.4-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>

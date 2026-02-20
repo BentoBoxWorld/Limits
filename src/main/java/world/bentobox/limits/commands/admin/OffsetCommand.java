@@ -148,7 +148,7 @@ public class OffsetCommand extends CompositeCommand
 
             int offset = Integer.parseInt(args.get(2));
 
-            if (material != null && offset == islandData.getBlockLimitOffset(material) ||
+            if (material != null && offset == islandData.getBlockLimitOffset(material.getKey()) ||
                 entityType != null && offset == islandData.getEntityLimitOffset(entityType))
             {
                 user.sendMessage("admin.limits.offset.set.same",
@@ -161,7 +161,7 @@ public class OffsetCommand extends CompositeCommand
 
             if (material != null)
             {
-                islandData.setBlockLimitsOffset(material, offset);
+                islandData.setBlockLimitsOffset(material.getKey(), offset);
                 islandData.setChanged();
 
                 user.sendMessage("admin.limits.offset.set.success",
@@ -274,9 +274,9 @@ public class OffsetCommand extends CompositeCommand
 
             if (material != null)
             {
-                offset += islandData.getBlockLimitOffset(material);
+                offset += islandData.getBlockLimitOffset(material.getKey());
 
-                islandData.setBlockLimitsOffset(material, offset);
+                islandData.setBlockLimitsOffset(material.getKey(), offset);
                 islandData.setChanged();
 
                 user.sendMessage("admin.limits.offset.add.success",
@@ -391,9 +391,9 @@ public class OffsetCommand extends CompositeCommand
 
             if (material != null)
             {
-                offset = islandData.getBlockLimitOffset(material) - offset;
+                offset = islandData.getBlockLimitOffset(material.getKey()) - offset;
 
-                islandData.setBlockLimitsOffset(material, offset);
+                islandData.setBlockLimitsOffset(material.getKey(), offset);
                 islandData.setChanged();
 
                 user.sendMessage("admin.limits.offset.remove.success",
@@ -499,7 +499,7 @@ public class OffsetCommand extends CompositeCommand
 
             if (material != null)
             {
-                islandData.setBlockLimitsOffset(material, 0);
+                islandData.setBlockLimitsOffset(material.getKey(), 0);
                 islandData.setChanged();
 
                 user.sendMessage("admin.limits.offset.reset.success",
@@ -601,7 +601,7 @@ public class OffsetCommand extends CompositeCommand
 
             if (material != null)
             {
-                int offset = islandData.getBlockLimitOffset(material);
+                int offset = islandData.getBlockLimitOffset(material.getKey());
                 user.sendMessage("admin.limits.offset.view.message",
                     TextVariables.NAME, material.name(),
                     TextVariables.NUMBER, String.valueOf(offset));

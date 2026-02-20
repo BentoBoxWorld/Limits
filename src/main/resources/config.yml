@@ -3,6 +3,7 @@ gamemodes:
 - AcidIsland
 - BSkyBlock
 - CaveBlock
+- AOneBlock
 
 # Ignore this island's center block. For most worlds, this is bedrock, but for AOneBlock it is
 # the magic block, so ignoring it from limits makes sense.
@@ -24,6 +25,8 @@ async-golums: true
 # Use this section to limit how many blocks can be added to an island.
 # 0 means the item will be blocked from placement completely.
 # These limits apply to every game mode world
+# The following general terms can be used: STAIRS, DOORS, SIGNS, LOGS, SNOW, LEAVES, SHULKER_BOXES,
+# BANNERS, RAILS, ICE, BUTTONS, CANDLE_CAKES, CAMPFIRES, SLABS, STONE_BRICKS,
 blocklimits:
   HOPPER: 10
 # This section is for world-specific limits and overrides the general limit

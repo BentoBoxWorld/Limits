@@ -7,10 +7,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.World;
 import org.bukkit.entity.EntityType;
 import org.eclipse.jdt.annotation.Nullable;
@@ -61,17 +62,17 @@ public class LimitTab implements Tab {
             //.put(EntityType.CHEST_BOAT, Material.OAK_CHEST_BOAT)
             .build();
     // This is a map of blocks to Items
-    private static final Map<Material, Material> B2M;
+    private static final Map<NamespacedKey, NamespacedKey> B2M;
     static {
-        ImmutableMap.Builder<Material, Material> builder = ImmutableMap.<Material, Material>builder()
-                .put(Material.POTATOES, Material.POTATO)
-                .put(Material.CARROTS, Material.CARROT)
-                .put(Material.BEETROOTS, Material.BEETROOT)
-                .put(Material.REDSTONE_WIRE, Material.REDSTONE).put(Material.MELON_STEM, Material.MELON)
-                .put(Material.PUMPKIN_STEM, Material.PUMPKIN);
-        // Block to Material icons
-        Optional.ofNullable(Material.getMaterial("SWEET_BERRY_BUSH")).ifPresent(material -> builder.put(material, Objects.requireNonNull(Material.getMaterial("SWEET_BERRIES"))));
-        Optional.ofNullable(Material.getMaterial("BAMBOO_SAPLING")).ifPresent(material -> builder.put(material, Objects.requireNonNull(Material.getMaterial("BAMBOO"))));
+        ImmutableMap.Builder<NamespacedKey, NamespacedKey> builder = ImmutableMap.<NamespacedKey, NamespacedKey>builder()
+                .put(Material.POTATOES.getKey(), Material.POTATO.getKey())
+                .put(Material.CARROTS.getKey(), Material.CARROT.getKey())
+                .put(Material.BEETROOTS.getKey(), Material.BEETROOT.getKey())
+                .put(Material.REDSTONE_WIRE.getKey(), Material.REDSTONE.getKey()).put(Material.MELON_STEM.getKey(), Material.MELON.getKey())
+                .put(Material.PUMPKIN_STEM.getKey(), Material.PUMPKIN.getKey())
+                .put(Material.SWEET_BERRY_BUSH.getKey(), Material.SWEET_BERRIES.getKey())
+                .put(Material.BAMBOO_SAPLING.getKey(), Material.BAMBOO.getKey())
+                ;
         B2M = builder.build();
     }
 
@@ -81,7 +82,7 @@ public class LimitTab implements Tab {
     private final List<@Nullable PanelItem> result;
     private final SORT_BY sortBy;
 
-    public LimitTab(Limits addon, IslandBlockCount ibc, Map<Material, Integer> matLimits, Island island, World world, User user, SORT_BY sortBy) {
+    public LimitTab(Limits addon, IslandBlockCount ibc, Map<NamespacedKey, Integer> matLimits, Island island, World world, User user, SORT_BY sortBy) {
         this.addon = addon;
         this.world = world;
         this.user = user;
@@ -173,14 +174,15 @@ public class LimitTab implements Tab {
 
     }
 
-    private void addMaterialIcons(IslandBlockCount ibc, Map<Material, Integer> matLimits) {
+    private void addMaterialIcons(IslandBlockCount ibc, Map<NamespacedKey, Integer> matLimits) {
         // Material limits
-        for (Entry<Material, Integer> en : matLimits.entrySet()) {
+        for (Entry<NamespacedKey, Integer> en : matLimits.entrySet()) {
             PanelItemBuilder pib = new PanelItemBuilder();
             pib.name(user.getTranslation("island.limits.panel.block-name-syntax", TextVariables.NAME,
                     Util.prettifyText(en.getKey().toString())));
             // Adjust icon
-            pib.icon(B2M.getOrDefault(en.getKey(), en.getKey()));
+            Material mat = Registry.MATERIAL.get(B2M.getOrDefault(en.getKey(), en.getKey()));
+            pib.icon(Objects.requireNonNullElse(mat, Material.PAPER));
 
             int count = ibc == null ? 0 : ibc.getBlockCounts().getOrDefault(en.getKey(), 0);
             int value = en.getValue();
