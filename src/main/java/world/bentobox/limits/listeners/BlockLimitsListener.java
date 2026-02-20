@@ -1,17 +1,18 @@
 package world.bentobox.limits.listeners;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
+import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
+import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -60,15 +61,8 @@ public class BlockLimitsListener implements Listener {
     /**
      * Blocks that are not counted
      */
-    private static final List<Material> DO_NOT_COUNT = Arrays.asList(Material.LAVA, Material.WATER, Material.AIR, Material.FIRE, Material.END_PORTAL, Material.NETHER_PORTAL);
-    private static final List<Material> STACKABLE;
-
-    static {
-        List<Material> stackable = new ArrayList<>();
-        stackable.add(Material.SUGAR_CANE);
-        Optional.ofNullable(Material.getMaterial("BAMBOO")).ifPresent(stackable::add);
-        STACKABLE = Collections.unmodifiableList(stackable);
-    }
+    private static final List<NamespacedKey> DO_NOT_COUNT = List.of(Material.LAVA.getKey(), Material.WATER.getKey(), Material.AIR.getKey(), Material.FIRE.getKey(), Material.END_PORTAL.getKey(), Material.NETHER_PORTAL.getKey());
+    private static final List<NamespacedKey> STACKABLE = List.of(Material.SUGAR_CANE.getKey(), Material.BAMBOO.getKey());
 
     /**
      * Save every 10 blocks of change
@@ -78,8 +72,8 @@ public class BlockLimitsListener implements Listener {
     private final Map<String, IslandBlockCount> islandCountMap = new HashMap<>();
     private final Map<String, Integer> saveMap = new HashMap<>();
     private final Database<IslandBlockCount> handler;
-    private final Map<World, Map<Material, Integer>> worldLimitMap = new HashMap<>();
-    private Map<Material, Integer> defaultLimitMap = new EnumMap<>(Material.class);
+    private final Map<World, Map<NamespacedKey, Integer>> worldLimitMap = new HashMap<>();
+    private Map<NamespacedKey, Integer> defaultLimitMap = new HashMap<>();
 
     public BlockLimitsListener(Limits addon) {
         this.addon = addon;
@@ -125,25 +119,59 @@ public class BlockLimitsListener implements Listener {
         }
 
     }
-
+    /*
+    private static final Set<Tag<Material>> TAGS = Set.of(Tag.ANVIL, 
+            Tag.BAMBOO_BLOCKS, Tag.BANNERS, Tag.BEDS, Tag.BEEHIVES, Tag.BUTTONS, Tag.CAMPFIRES, Tag.CANDLE_CAKES, 
+            Tag.CORALS, Tag.CAULDRONS, Tag.CAVE_VINES, Tag.DIRT, Tag.DOORS,
+            Tag.FENCE_GATES, Tag.FENCES, Tag.ICE, Tag.LEAVES, Tag.LOGS,
+            Tag.NYLIUM, Tag.PLANKS, Tag.PORTALS, Tag.RAILS, Tag.SAND, Tag.SAPLINGS, Tag.SHULKER_BOXES,
+            Tag.SIGNS, Tag.SLABS, Tag.SNOW, Tag.STAIRS, Tag.STONE_BRICKS, 
+            Tag.PRESSURE_PLATES, Tag.TERRACOTTA, Tag.TRAPDOORS, Tag.WALLS,
+            Tag.WART_BLOCKS, Tag.WOOL, Tag.WOOL_CARPETS);*/
     /**
      * Loads limit map from configuration section
      *
      * @param cs - configuration section
      * @return limit map
      */
-    private Map<Material, Integer> loadLimits(ConfigurationSection cs) {
-        Map<Material, Integer> mats = new EnumMap<>(Material.class);
-        for (String material : cs.getKeys(false)) {
-            Material mat = Material.getMaterial(material);
-            if (mat != null && mat.isBlock() && !DO_NOT_COUNT.contains(mat)) {
-                mats.put(mat, cs.getInt(material));
-                addon.log("Limit " + mat + " to " + cs.getInt(material));
+    private Map<NamespacedKey, Integer> loadLimits(ConfigurationSection cs) {
+        Map<NamespacedKey, Integer> limits = new HashMap<>();
+        for (String key : cs.getKeys(false)) {
+            int limit = cs.getInt(key);
+            NamespacedKey nsKey;
+            if (key.contains(":")) {
+                // Config already has a full namespaced key
+                nsKey = NamespacedKey.fromString(key.toLowerCase(Locale.ROOT));
             } else {
-                addon.logError("Material " + material + " is not a valid block. Skipping...");
+                // Assume "minecraft" namespace if none provided
+                nsKey = new NamespacedKey(NamespacedKey.MINECRAFT, key.toLowerCase(Locale.ROOT));
+            }
+
+            boolean matched = false;
+
+            // Try match to Material
+            Material mat = Registry.MATERIAL.get(nsKey);
+            if (mat != null) {
+                limits.put(mat.getKey(), limit);
+                matched = true;
+            }
+
+            // Try match to a Tag<Material>
+            if (!matched) {
+                Tag<Material> tag = Bukkit.getTag("blocks", nsKey, Material.class);
+                if (tag != null) {
+                    limits.put(tag.getKey(), limit);
+                    matched = true;
+                }
+            }
+
+
+            // Log warning if nothing matched
+            if (!matched) {
+                Bukkit.getLogger().warning("Unknown material or tag in config: " + key);
             }
         }
-        return mats;
+        return limits;
     }
 
 
@@ -182,9 +210,9 @@ public class BlockLimitsListener implements Listener {
             return;
         }
         Material mat = b.getType();
-        
+
         // Check for stackable plants
-        if (STACKABLE.contains(b.getType())) {
+        if (STACKABLE.contains(b.getType().getKey())) {
             // Check for blocks above
             Block block = b;
             while(block.getRelative(BlockFace.UP).getType().equals(mat) && block.getY() < b.getWorld().getMaxHeight()) {
@@ -308,33 +336,33 @@ public class BlockLimitsListener implements Listener {
      * @param b block data
      * @return material that matches the block data
      */
-    public Material fixMaterial(BlockData b) {
+    public NamespacedKey fixMaterial(BlockData b) {
         Material mat = b.getMaterial();
         if (mat.equals(Material.CHIPPED_ANVIL) || mat.equals(Material.DAMAGED_ANVIL)) {
-            return Material.ANVIL;
+            return Material.ANVIL.getKey();
         } else if (mat == Material.REDSTONE_WALL_TORCH) {
-            return Material.REDSTONE_TORCH;
+            return Material.REDSTONE_TORCH.getKey();
         } else if (mat == Material.WALL_TORCH) {
-            return Material.TORCH;
+            return Material.TORCH.getKey();
         } else if (mat == Material.ZOMBIE_WALL_HEAD) {
-            return Material.ZOMBIE_HEAD;
+            return Material.ZOMBIE_HEAD.getKey();
         } else if (mat == Material.CREEPER_WALL_HEAD) {
-            return Material.CREEPER_HEAD;
+            return Material.CREEPER_HEAD.getKey();
         } else if (mat == Material.PLAYER_WALL_HEAD) {
-            return Material.PLAYER_HEAD;
+            return Material.PLAYER_HEAD.getKey();
         } else if (mat == Material.DRAGON_WALL_HEAD) {
-            return Material.DRAGON_HEAD;
+            return Material.DRAGON_HEAD.getKey();
         } else if (mat == Material.BAMBOO_SAPLING) {
-            return Material.BAMBOO;
+            return Material.BAMBOO.getKey();
         } else if (mat == Material.PISTON_HEAD || mat == Material.MOVING_PISTON) {
             TechnicalPiston tp = (TechnicalPiston) b;
             if (tp.getType() == TechnicalPiston.Type.NORMAL) {
-                return Material.PISTON;
+                return Material.PISTON.getKey();
             } else {
-                return Material.STICKY_PISTON;
+                return Material.STICKY_PISTON.getKey();
             }
         }
-        return mat;
+        return mat.getKey();
     }
 
     /**
@@ -412,7 +440,7 @@ public class BlockLimitsListener implements Listener {
      * @param id - island id
      * @return limit amount if at limit or -1 if no limit
      */
-    private int checkLimit(World w, Material m, String id) {
+    private int checkLimit(World w, NamespacedKey m, String id) {
         // Check island limits
         IslandBlockCount ibc = islandCountMap.get(id);
         if (ibc.isBlockLimited(m)) {
@@ -438,9 +466,9 @@ public class BlockLimitsListener implements Listener {
      * @param id - island id
      * @return map of limits for materials
      */
-    public Map<Material, Integer> getMaterialLimits(World w, String id) {
+    public Map<NamespacedKey, Integer> getMaterialLimits(World w, String id) {
         // Merge limits
-        Map<Material, Integer> result = new EnumMap<>(Material.class);
+        Map<NamespacedKey, Integer> result = new HashMap<>();
         // Default
         result.putAll(defaultLimitMap);
         // World
@@ -454,7 +482,7 @@ public class BlockLimitsListener implements Listener {
 
             // Add offsets to the every limit.
             islandBlockCount.getBlockLimitsOffset().forEach((material, offset) ->
-                result.put(material, result.getOrDefault(material, 0) + offset));
+            result.put(material, result.getOrDefault(material, 0) + offset));
         }
         return result;
     }

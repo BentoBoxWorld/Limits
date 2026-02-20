@@ -1,11 +1,18 @@
 package world.bentobox.limits;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.eclipse.jdt.annotation.Nullable;
+
 import world.bentobox.bentobox.api.addons.Addon;
 import world.bentobox.bentobox.api.addons.GameModeAddon;
 import world.bentobox.bentobox.api.user.User;
@@ -16,12 +23,8 @@ import world.bentobox.limits.commands.player.PlayerCommand;
 import world.bentobox.limits.listeners.BlockLimitsListener;
 import world.bentobox.limits.listeners.EntityLimitListener;
 import world.bentobox.limits.listeners.JoinListener;
+import world.bentobox.limits.listeners.PaperShulkerLimitListener;
 import world.bentobox.limits.objects.IslandBlockCount;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 
 
 /**
@@ -70,7 +73,19 @@ public class Limits extends Addon {
         registerListener(blockLimitListener);
         joinListener = new JoinListener(this);
         registerListener(joinListener);
-        registerListener(new EntityLimitListener(this));
+        EntityLimitListener entityLimitListener = new EntityLimitListener(this);
+        registerListener(entityLimitListener);
+        // Register Paper-specific listener for shulker duplication limiting if running on Paper.
+        // ShulkerDuplicateEvent fires before the original shulker teleports, giving an accurate
+        // entity count. CreatureSpawnEvent fires after the teleport, so the original shulker may
+        // have already left the island bounding box, causing the count to be off by one.
+        try {
+            Class.forName("io.papermc.paper.event.entity.ShulkerDuplicateEvent");
+            registerListener(new PaperShulkerLimitListener(this, entityLimitListener));
+            log("Paper detected: shulker duplication limiting active via ShulkerDuplicateEvent.");
+        } catch (ClassNotFoundException e) {
+            // Not running on Paper; CreatureSpawnEvent handles duplication on Spigot.
+        }
         // Done
     }
 
@@ -147,7 +162,7 @@ public class Limits extends Addon {
         if (getPlugin().getPlaceholdersManager() == null) return;
         Registry.MATERIAL.stream()
                 .filter(Material::isBlock)
-                .forEach(m -> registerCountAndLimitPlaceholders(m, gm));
+                .forEach(m -> registerCountAndLimitPlaceholders(m.getKey(), gm));
 
         Arrays.stream(EntityType.values())
                 .forEach(e -> registerCountAndLimitPlaceholders(e, gm));
@@ -168,7 +183,7 @@ public class Limits extends Addon {
      * @param m  material
      * @param gm game mode
      */
-    private void registerCountAndLimitPlaceholders(Material m, GameModeAddon gm) {
+    private void registerCountAndLimitPlaceholders(NamespacedKey m, GameModeAddon gm) {
         getPlugin().getPlaceholdersManager().registerPlaceholder(this,
                 gm.getDescription().getName().toLowerCase() + "_island_" + m.toString().toLowerCase() + "_count",
                 user -> String.valueOf(getCount(user, m, gm)));
@@ -198,7 +213,7 @@ public class Limits extends Addon {
      * @param gm   Game Mode Addon
      * @return Number of blocks of the specified material on the given user's island
      */
-    private int getCount(@Nullable User user, Material m, GameModeAddon gm) {
+    private int getCount(@Nullable User user, NamespacedKey m, GameModeAddon gm) {
         Island is = gm.getIslands().getIsland(gm.getOverWorld(), user);
         if (is == null) {
             return 0;
@@ -238,7 +253,7 @@ public class Limits extends Addon {
      * @param gm   Game Mode Addon
      * @return The limit of the specified material on the given user's island
      */
-    private String getLimit(@Nullable User user, Material m, GameModeAddon gm) {
+    private String getLimit(@Nullable User user, NamespacedKey m, GameModeAddon gm) {
         Island is = gm.getIslands().getIsland(gm.getOverWorld(), user);
         if (is == null) {
             return LIMIT_NOT_SET;
@@ -254,7 +269,7 @@ public class Limits extends Addon {
         return limit == -1 ? LIMIT_NOT_SET : String.valueOf(limit);
     }
 
-    private String getBaseLimit(@Nullable User user, Material m, GameModeAddon gm) {
+    private String getBaseLimit(@Nullable User user, NamespacedKey m, GameModeAddon gm) {
         Island is = gm.getIslands().getIsland(gm.getOverWorld(), user);
         if (is == null) {
             return LIMIT_NOT_SET;

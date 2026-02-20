@@ -29,7 +29,9 @@ import world.bentobox.limits.events.LimitsPermCheckEvent;
 import world.bentobox.limits.objects.IslandBlockCount;
 
 /**
- * Sets block limits based on player permission
+ * This listener handles events related to players joining, island creation, and ownership changes
+ * to apply permission-based block, entity, and entity group limits to islands.
+ * It checks player permissions and dynamically adjusts the limits for each island they own.
  * 
  * @author tastybento
  *
@@ -38,232 +40,300 @@ public class JoinListener implements Listener {
 
     private final Limits addon;
 
+    /**
+     * Constructs the listener.
+     * @param addon The Limits addon instance.
+     */
     public JoinListener(Limits addon) {
         this.addon = addon;
     }
 
     /**
-     * Check and set the permissions of the player and how they affect the island
-     * limits
+     * Checks a player's permissions and applies any limits to a specific island.
+     * The permissions are expected to be in the format: [permissionPrefix].[MATERIAL|ENTITY|GROUP].<limit>
+     * E.g., "bskyblock.island.limit.COBBLESTONE.100"
      * 
-     * @param player           - player
-     * @param permissionPrefix - permission prefix for this game mode
-     * @param islandId         - island string id
-     * @param gameMode         - game mode string doing the checking
+     * @param player           - The player whose permissions are being checked.
+     * @param permissionPrefix - The prefix for the limit permissions (e.g., "bskyblock.island.limit.").
+     * @param islandId         - The unique ID of the island to apply limits to.
+     * @param gameMode         - The name of the game mode the island belongs to.
      */
     public void checkPerms(Player player, String permissionPrefix, String islandId, String gameMode) {
-        IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(islandId);
+        // Get the existing block counts and limits for the island.
+        IslandBlockCount islandBlockCount = addon.getBlockLimitListener().getIsland(islandId);
         // Check permissions
-        if (ibc != null) {
-            // Clear permission limits
-            ibc.getEntityLimits().clear();
-            ibc.getEntityGroupLimits().clear();
-            ibc.getBlockLimits().clear();
+        if (islandBlockCount != null) {
+            // Clear any previously set permission-based limits before re-evaluating.
+            // This ensures that limits are fresh on each check and removed permissions are respected.
+            islandBlockCount.getEntityLimits().clear();
+            islandBlockCount.getEntityGroupLimits().clear();
+            islandBlockCount.getBlockLimits().clear();
         }
-        for (PermissionAttachmentInfo perms : player.getEffectivePermissions()) {
-            if (!perms.getValue() || !perms.getPermission().startsWith(permissionPrefix)
-                    || badSyntaxCheck(perms, player.getName(), permissionPrefix)) {
+        // Iterate through all effective permissions of the player.
+        for (PermissionAttachmentInfo permissionInfo : player.getEffectivePermissions()) {
+            // Skip permissions that are not set to true, don't match the prefix, or have bad syntax.
+            if (!permissionInfo.getValue() || !permissionInfo.getPermission().startsWith(permissionPrefix)
+                    || badSyntaxCheck(permissionInfo, player.getName(), permissionPrefix)) {
                 continue;
             }
-            // Check formatting
-            String[] split = perms.getPermission().split("\\.");
-            // Entities & materials
-            EntityType et = Arrays.stream(EntityType.values()).filter(t -> t.name().equalsIgnoreCase(split[3]))
+            // Split the permission string to parse it. E.g., "bskyblock.island.limit.COBBLESTONE.100"
+            String[] permissionParts = permissionInfo.getPermission().split("\\.");
+            // Try to match the relevant part of the permission to an EntityType, Material, or a defined EntityGroup.
+            EntityType entityType = Arrays.stream(EntityType.values()).filter(type -> type.name().equalsIgnoreCase(permissionParts[3]))
                     .findFirst().orElse(null);
-            Material m = Arrays.stream(Material.values()).filter(t -> t.name().equalsIgnoreCase(split[3])).findFirst()
+            Material material = Arrays.stream(Material.values()).filter(mat -> mat.name().equalsIgnoreCase(permissionParts[3])).findFirst()
                     .orElse(null);
-            EntityGroup entgroup = addon.getSettings().getGroupLimitDefinitions().stream()
-                    .filter(t -> t.getName().equalsIgnoreCase(split[3])).findFirst().orElse(null);
+            EntityGroup entityGroup = addon.getSettings().getGroupLimitDefinitions().stream()
+                    .filter(group -> group.getName().equalsIgnoreCase(permissionParts[3])).findFirst().orElse(null);
 
-            if (entgroup == null && et == null && m == null) {
-                logError(player.getName(), perms.getPermission(),
-                        split[3].toUpperCase(Locale.ENGLISH) + " is not a valid material or entity type/group.");
+            // If the permission part is not a valid type, log an error and stop processing this permission.
+            if (entityGroup == null && entityType == null && material == null) {
+                logError(player.getName(), permissionInfo.getPermission(),
+                        permissionParts[3].toUpperCase(Locale.ENGLISH) + " is not a valid material or entity type/group.");
                 break;
             }
-            // Make an ibc if required
-            if (ibc == null) {
-                ibc = new IslandBlockCount(islandId, gameMode);
+            // If this is the first limit being applied, create a new IslandBlockCount object.
+            if (islandBlockCount == null) {
+                islandBlockCount = new IslandBlockCount(islandId, gameMode);
             }
-            // Get the value
-            int value = Integer.parseInt(split[4]);
-            if(addon.getSettings().isLogLimitsOnJoin())
+            // The last part of the permission is the limit value.
+            int limitValue = Integer.parseInt(permissionParts[4]);
+            if (addon.getSettings().isLogLimitsOnJoin())
                 addon.log("Setting login limit via perm for " + player.getName() + "...");
 
-            // Fire perm check event
-            LimitsPermCheckEvent l = new LimitsPermCheckEvent(player, islandId, ibc, entgroup, et, m, value);
-            Bukkit.getPluginManager().callEvent(l);
-            if (l.isCancelled()) {
+            // Fire a custom event to allow other plugins to modify or cancel the limit application.
+            LimitsPermCheckEvent limitsPermCheckEvent = new LimitsPermCheckEvent(player, islandId, islandBlockCount, entityGroup, entityType, material, limitValue);
+            Bukkit.getPluginManager().callEvent(limitsPermCheckEvent);
+            if (limitsPermCheckEvent.isCancelled()) {
                 addon.log("Permissions not set because another addon/plugin canceled setting.");
                 continue;
             }
-            // Use event values
-            ibc = l.getIbc();
-            // Make an ibc if required
-            if (ibc == null) {
-                ibc = new IslandBlockCount(islandId, gameMode);
+            // Update local variables with any changes from the event.
+            islandBlockCount = limitsPermCheckEvent.getIbc();
+            // If the event handler nulled the IslandBlockCount, create a new one.
+            if (islandBlockCount == null) {
+                islandBlockCount = new IslandBlockCount(islandId, gameMode);
             }
-            // Run null checks and set ibc
-            runNullCheckAndSet(ibc, l);
+            // Apply the limit to the island's block/entity counts.
+            runNullCheckAndSet(islandBlockCount, limitsPermCheckEvent);
         }
-        // Check removed permissions
-        // If any changes have been made then store it - don't make files unless they
-        // are needed
-        if (ibc != null)
-            addon.getBlockLimitListener().setIsland(islandId, ibc);
+        // After checking all permissions, save the updated IslandBlockCount if it has been modified.
+        if (islandBlockCount != null)
+            addon.getBlockLimitListener().setIsland(islandId, islandBlockCount);
     }
 
-    private boolean badSyntaxCheck(PermissionAttachmentInfo perms, String name, String permissionPrefix) {
-        // No wildcards
-        if (perms.getPermission().contains(permissionPrefix + "*")) {
-            logError(name, perms.getPermission(), "wildcards are not allowed.");
+    /**
+     * Validates the syntax of a limit permission string.
+     * @param permissionInfo The permission to check.
+     * @param playerName The name of the player for logging purposes.
+     * @param permissionPrefix The required prefix for the permission.
+     * @return true if the syntax is bad, false otherwise.
+     */
+    private boolean badSyntaxCheck(PermissionAttachmentInfo permissionInfo, String playerName, String permissionPrefix) {
+        // Wildcard permissions are not supported for limits.
+        if (permissionInfo.getPermission().contains(permissionPrefix + "*")) {
+            logError(playerName, permissionInfo.getPermission(), "wildcards are not allowed.");
             return true;
         }
-        // Check formatting
-        String[] split = perms.getPermission().split("\\.");
-        if (split.length != 5) {
-            logError(name, perms.getPermission(), "format must be '" + permissionPrefix + "MATERIAL.NUMBER', '"
+        // The permission must have exactly 5 parts separated by dots.
+        String[] permissionParts = permissionInfo.getPermission().split("\\.");
+        if (permissionParts.length != 5) {
+            logError(playerName, permissionInfo.getPermission(), "format must be '" + permissionPrefix + "MATERIAL.NUMBER', '"
                     + permissionPrefix + "ENTITY-TYPE.NUMBER', or '" + permissionPrefix + "ENTITY-GROUP.NUMBER'");
             return true;
         }
-        // Check value
+        // The last part of the permission must be a valid integer.
         try {
-            Integer.parseInt(split[4]);
+            Integer.parseInt(permissionParts[4]);
         } catch (Exception e) {
-            logError(name, perms.getPermission(), "the last part MUST be an integer!");
+            logError(playerName, permissionInfo.getPermission(), "the last part MUST be an integer!");
             return true;
         }
         return false;
     }
 
-    private void runNullCheckAndSet(@NonNull IslandBlockCount ibc, @NonNull LimitsPermCheckEvent l) {
-        EntityGroup entgroup = l.getEntityGroup();
-        EntityType et = l.getEntityType();
-        Material m = l.getMaterial();
-        int value = l.getValue();
-        if (entgroup != null) {
-            // Entity group limit
-            int v = Math.max(ibc.getEntityGroupLimit(entgroup.getName()), value);
-            ibc.setEntityGroupLimit(entgroup.getName(), v);
-            if(addon.getSettings().isLogLimitsOnJoin())
-                addon.log("Setting group limit " + entgroup.getName() + " " + v);
-        } else if (et != null && m == null) {
-            // Entity limit
-            int v = Math.max(ibc.getEntityLimit(et), value);
-            ibc.setEntityLimit(et, v);
-            if(addon.getSettings().isLogLimitsOnJoin())
-                addon.log("Setting entity limit " + et + " " + v);
-        } else if (m != null && et == null) {
-            // Block limit
-            int v = Math.max(ibc.getBlockLimit(m), value);
-            if(addon.getSettings().isLogLimitsOnJoin())
-                addon.log("Setting block limit " + m + " " + v);
-            ibc.setBlockLimit(m, v);
+    /**
+     * Applies the limit from a permission check event to the island's block/entity counts.
+     * It ensures that if multiple permissions grant a limit for the same thing, the highest limit is used.
+     * @param islandBlockCount The island's count object to modify.
+     * @param event The event containing the limit information.
+     */
+    private void runNullCheckAndSet(@NonNull IslandBlockCount islandBlockCount, @NonNull LimitsPermCheckEvent event) {
+        EntityGroup entityGroup = event.getEntityGroup();
+        EntityType entityType = event.getEntityType();
+        Material material = event.getMaterial();
+        int limitValue = event.getValue();
+        if (entityGroup != null) {
+            // It's a limit for a defined group of entities.
+            // Use Math.max to ensure the highest limit from multiple permissions is used.
+            int newLimit = Math.max(islandBlockCount.getEntityGroupLimit(entityGroup.getName()), limitValue);
+            islandBlockCount.setEntityGroupLimit(entityGroup.getName(), newLimit);
+            if (addon.getSettings().isLogLimitsOnJoin())
+                addon.log("Setting group limit " + entityGroup.getName() + " " + newLimit);
+        } else if (entityType != null && material == null) {
+            // It's a limit for a specific entity type.
+            int newLimit = Math.max(islandBlockCount.getEntityLimit(entityType), limitValue);
+            islandBlockCount.setEntityLimit(entityType, newLimit);
+            if (addon.getSettings().isLogLimitsOnJoin())
+                addon.log("Setting entity limit " + entityType + " " + newLimit);
+        } else if (material != null && entityType == null) {
+            // It's a limit for a specific block material.
+            int newLimit = Math.max(islandBlockCount.getBlockLimit(material.getKey()), limitValue);
+            if (addon.getSettings().isLogLimitsOnJoin())
+                addon.log("Setting block limit " + material + " " + newLimit);
+            islandBlockCount.setBlockLimit(material.getKey(), newLimit);
         } else {
-            if (m != null && m.isBlock()) {
-                int v = Math.max(ibc.getBlockLimit(m), value);
-                if(addon.getSettings().isLogLimitsOnJoin())
-                    addon.log("Setting block limit " + m + " " + v);
+            // This handles ambiguous cases where a name could be both a material and an entity (e.g., ARMOR_STAND).
+            if (material != null && material.isBlock()) {
+                // If it's a block, apply a block limit.
+                int newLimit = Math.max(islandBlockCount.getBlockLimit(material.getKey()), limitValue);
+                if (addon.getSettings().isLogLimitsOnJoin())
+                    addon.log("Setting block limit " + material + " " + newLimit);
                 // Material limit
-                if(addon.getSettings().isLogLimitsOnJoin())
-                    ibc.setBlockLimit(m, v);
-            } else if (et != null) {
-                int v = Math.max(ibc.getEntityLimit(et), value);
-                if(addon.getSettings().isLogLimitsOnJoin())
-                    addon.log("Setting entity limit " + et + " " + v);
+                islandBlockCount.setBlockLimit(material.getKey(), newLimit);
+            } else if (entityType != null) {
+                // Otherwise, treat it as an entity limit.
+                int newLimit = Math.max(islandBlockCount.getEntityLimit(entityType), limitValue);
+                if (addon.getSettings().isLogLimitsOnJoin())
+                    addon.log("Setting entity limit " + entityType + " " + newLimit);
                 // This is an entity setting
-                ibc.setEntityLimit(et, v);
+                islandBlockCount.setEntityLimit(entityType, newLimit);
             }
         }
 
     }
 
-    private void logError(String name, String perm, String error) {
-        addon.logError("Player " + name + " has permission: '" + perm + "' but " + error + " Ignoring...");
+    /**
+     * Logs an error message related to a permission.
+     * @param playerName The player with the problematic permission.
+     * @param permission The permission string.
+     * @param errorMessage The error description.
+     */
+    private void logError(String playerName, String permission, String errorMessage) {
+        addon.logError("Player " + playerName + " has permission: '" + permission + "' but " + errorMessage + " Ignoring...");
     }
 
     /*
      * Event handling
      */
 
+    /**
+     * Handles island creation, reset, and registration events.
+     * When a new island is made available, set the owner's permission-based limits.
+     * @param event The island event.
+     */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onNewIsland(IslandEvent e) {
-        if (!e.getReason().equals(Reason.CREATED) && !e.getReason().equals(Reason.RESETTED)
-                && !e.getReason().equals(Reason.REGISTERED)) {
+    public void onNewIsland(IslandEvent event) {
+        if (!event.getReason().equals(Reason.CREATED) && !event.getReason().equals(Reason.RESETTED)
+                && !event.getReason().equals(Reason.REGISTERED)) {
             return;
         }
-        setOwnerPerms(e.getIsland(), e.getOwner());
+        setOwnerPerms(event.getIsland(), event.getOwner());
     }
 
+    /**
+     * Handles island ownership changes.
+     * Removes the old owner's limits and applies the new owner's limits.
+     * @param event The team set owner event.
+     */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onOwnerChange(TeamSetownerEvent e) {
-        removeOwnerPerms(e.getIsland());
-        setOwnerPerms(e.getIsland(), e.getNewOwner());
+    public void onOwnerChange(TeamSetownerEvent event) {
+        removeOwnerPerms(event.getIsland());
+        setOwnerPerms(event.getIsland(), event.getNewOwner());
     }
 
+    /**
+     * Handles player join events.
+     * When a player joins, iterate through all game modes and check their owned islands
+     * to ensure their limits are up-to-date.
+     * @param event The player join event.
+     */
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
-    public void onPlayerJoin(PlayerJoinEvent e) {
+    public void onPlayerJoin(PlayerJoinEvent event) {
         // Check if player has any islands in the game modes
-        addon.getGameModes().forEach(gm -> {
-            addon.getIslands().getIslands(gm.getOverWorld(), e.getPlayer().getUniqueId()).stream()
-                    .filter(island -> e.getPlayer().getUniqueId().equals(island.getOwner()))
+        addon.getGameModes().forEach(gameMode -> {
+            addon.getIslands().getIslands(gameMode.getOverWorld(), event.getPlayer().getUniqueId()).stream()
+                    // Filter to only islands they own.
+                    .filter(island -> event.getPlayer().getUniqueId().equals(island.getOwner()))
                     .map(Island::getUniqueId).forEach(islandId -> {
-                        IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(islandId);
-                        if (!joinEventCheck(e.getPlayer(), islandId, ibc)) {
-                            checkPerms(e.getPlayer(), gm.getPermissionPrefix() + "island.limit.", islandId,
-                                    gm.getDescription().getName());
+                        IslandBlockCount islandBlockCount = addon.getBlockLimitListener().getIsland(islandId);
+                        // Fire an event to see if this check should be cancelled, then run the permission check.
+                        if (!joinEventCheck(event.getPlayer(), islandId, islandBlockCount)) {
+                            checkPerms(event.getPlayer(), gameMode.getPermissionPrefix() + "island.limit.", islandId,
+                                    gameMode.getDescription().getName());
                         }
                     });
         });
     }
 
     /**
-     * Fire event so other addons can cancel this permissions change
+     * Fires a custom event before applying permissions on player join.
+     * This allows other addons to cancel the permission check or provide a custom IslandBlockCount object.
      * 
-     * @param player   player
-     * @param islandId island id
-     * @param ibc      island block count
-     * @return true if canceled
+     * @param player   The player joining.
+     * @param islandId The ID of the island being checked.
+     * @param islandBlockCount The current IslandBlockCount for the island.
+     * @return true if the permission check should be cancelled, false otherwise.
      */
-    private boolean joinEventCheck(Player player, String islandId, IslandBlockCount ibc) {
+    private boolean joinEventCheck(Player player, String islandId, IslandBlockCount islandBlockCount) {
         // Fire event, so other addons can cancel this permissions change
-        LimitsJoinPermCheckEvent e = new LimitsJoinPermCheckEvent(player, islandId, ibc);
-        Bukkit.getPluginManager().callEvent(e);
-        if (e.isCancelled()) {
+        LimitsJoinPermCheckEvent event = new LimitsJoinPermCheckEvent(player, islandId, islandBlockCount);
+        Bukkit.getPluginManager().callEvent(event);
+        if (event.isCancelled()) {
             return true;
         }
-        // Get ibc from event if it has changed
-        ibc = e.getIbc();
+        // Get islandBlockCount from event if it has changed
+        islandBlockCount = event.getIbc();
         // If perms should be ignored, but the IBC given in the event used, then set it
-        // and return
-        if (e.isIgnorePerms() && ibc != null) {
-            addon.getBlockLimitListener().setIsland(islandId, ibc);
+        // and return true to cancel the normal permission check.
+        if (event.isIgnorePerms() && islandBlockCount != null) {
+            addon.getBlockLimitListener().setIsland(islandId, islandBlockCount);
             return true;
         }
         return false;
     }
 
+    /**
+     * Handles island un-registration (deletion).
+     * Removes any limits associated with the island.
+     * @param event The island event.
+     */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onUnregisterIsland(IslandEvent e) {
-        if (!e.getReason().equals(Reason.UNREGISTERED)) {
+    public void onUnregisterIsland(IslandEvent event) {
+        if (!event.getReason().equals(Reason.UNREGISTERED)) {
             return;
         }
-        removeOwnerPerms(e.getIsland());
+        removeOwnerPerms(event.getIsland());
     }
 
     /*
      * Utility methods
      */
 
+    /**
+     * Removes all permission-based limits from an island.
+     * This is typically done when an owner changes or the island is deleted.
+     * @param island The island to clear limits from.
+     */
     private void removeOwnerPerms(Island island) {
         World world = island.getWorld();
         if (addon.inGameModeWorld(world)) {
-            IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(island.getUniqueId());
-            if (ibc != null) {
-                ibc.getBlockLimits().clear();
+            IslandBlockCount islandBlockCount = addon.getBlockLimitListener().getIsland(island.getUniqueId());
+            if (islandBlockCount != null) {
+                // Just clear the maps. This preserves any actual block counts.
+                islandBlockCount.getBlockLimits().clear();
+                islandBlockCount.getEntityLimits().clear();
+                islandBlockCount.getEntityGroupLimits().clear();
             }
         }
     }
 
+    /**
+     * Applies permission-based limits for an island's owner.
+     * It only runs if the owner is online.
+     * @param island The island to apply limits to.
+     * @param ownerUUID The UUID of the owner.
+     */
     private void setOwnerPerms(Island island, UUID ownerUUID) {
         World world = island.getWorld();
         if (addon.inGameModeWorld(world)) {
@@ -271,11 +341,12 @@ public class JoinListener implements Listener {
             OfflinePlayer owner = Bukkit.getOfflinePlayer(ownerUUID);
             if (owner.isOnline()) {
                 // Set perm-based limits
-                String prefix = addon.getGameModePermPrefix(world);
-                String name = addon.getGameModeName(world);
-                if (!prefix.isEmpty() && !name.isEmpty() && owner.getPlayer() != null) {
-                    checkPerms(Objects.requireNonNull(owner.getPlayer()), prefix + "island.limit.",
-                            island.getUniqueId(), name);
+                String permissionPrefix = addon.getGameModePermPrefix(world);
+                String gameModeName = addon.getGameModeName(world);
+                if (!permissionPrefix.isEmpty() && !gameModeName.isEmpty() && owner.getPlayer() != null) {
+                    // Run the main permission check logic.
+                    checkPerms(Objects.requireNonNull(owner.getPlayer()), permissionPrefix + "island.limit.",
+                            island.getUniqueId(), gameModeName);
                 }
             }
         }

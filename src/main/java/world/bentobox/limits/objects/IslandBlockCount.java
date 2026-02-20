@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.EntityType;
 
 import com.google.gson.annotations.Expose;
@@ -21,16 +21,16 @@ import world.bentobox.bentobox.database.objects.Table;
 public class IslandBlockCount implements DataObject {
 
     @Expose
-    private Map<Material, Integer> blockCounts = new EnumMap<>(Material.class);
+    private Map<NamespacedKey, Integer> blockCounts = new HashMap<>();
 
     /**
      * Permission based limits
      */
     @Expose
-    private Map<Material, Integer> blockLimits = new EnumMap<>(Material.class);
-
+    private Map<NamespacedKey, Integer> blockLimits = new HashMap<>();
+    
     @Expose
-    private Map<Material, Integer> blockLimitsOffset = new EnumMap<>(Material.class);
+    private Map<NamespacedKey, Integer> blockLimitsOffset = new HashMap<>();
 
     private boolean changed;
 
@@ -54,9 +54,9 @@ public class IslandBlockCount implements DataObject {
      * @param gameMode - Game mode name from gm.getDescription().getName()
      */
     public IslandBlockCount(String islandId, String gameMode) {
-	this.uniqueId = islandId;
-	this.gameMode = gameMode;
-	setChanged();
+        this.uniqueId = islandId;
+        this.gameMode = gameMode;
+        setChanged();
     }
 
     /**
@@ -64,25 +64,25 @@ public class IslandBlockCount implements DataObject {
      * 
      * @param material - material
      */
-    public void add(Material material) {
-	getBlockCounts().merge(material, 1, Integer::sum);
-	setChanged();
+    public void add(NamespacedKey material) {
+         getBlockCounts().merge(material, 1, Integer::sum);
+        setChanged();
     }
 
     /**
      * Clear all island-specific entity group limits
      */
     public void clearEntityGroupLimits() {
-	entityGroupLimits.clear();
-	setChanged();
+        entityGroupLimits.clear();
+        setChanged();
     }
 
     /**
      * Clear all island-specific entity type limits
      */
     public void clearEntityLimits() {
-	entityLimits.clear();
-	setChanged();
+        entityLimits.clear();
+        setChanged();
     }
 
     /**
@@ -91,18 +91,18 @@ public class IslandBlockCount implements DataObject {
      * @param m - material
      * @return count
      */
-    public Integer getBlockCount(Material m) {
-	return getBlockCounts().getOrDefault(m, 0);
+    public Integer getBlockCount(NamespacedKey m) {
+        return getBlockCounts().getOrDefault(m, 0);
     }
 
     /**
      * @return the blockCount
      */
-    public Map<Material, Integer> getBlockCounts() {
-	if (blockCounts == null) {
-	    blockCounts = new EnumMap<>(Material.class);
-	}
-	return blockCounts;
+    public Map<NamespacedKey, Integer> getBlockCounts() {
+        if (blockCounts == null) {
+            blockCounts = new HashMap<>();
+        }
+        return blockCounts;
     }
 
     /**
@@ -111,8 +111,8 @@ public class IslandBlockCount implements DataObject {
      * @param m - material
      * @return limit or -1 for unlimited
      */
-    public int getBlockLimit(Material m) {
-	return getBlockLimits().getOrDefault(m, -1);
+    public int getBlockLimit(NamespacedKey m) {
+         return getBlockLimits().getOrDefault(m, -1);
     }
 
     /**
@@ -121,25 +121,25 @@ public class IslandBlockCount implements DataObject {
      * @param m - material
      * @return offset
      */
-    public int getBlockLimitOffset(Material m) {
-	return getBlockLimitsOffset().getOrDefault(m, 0);
+    public int getBlockLimitOffset(NamespacedKey m) {
+        return getBlockLimitsOffset().getOrDefault(m, 0);
     }
 
     /**
      * @return the blockLimits
      */
-    public Map<Material, Integer> getBlockLimits() {
-	return Objects.requireNonNullElse(blockLimits, new EnumMap<>(Material.class));
+    public Map<NamespacedKey, Integer> getBlockLimits() {
+        return Objects.requireNonNullElse(blockLimits, new HashMap<>());
     }
 
     /**
      * @return the blockLimitsOffset
      */
-    public Map<Material, Integer> getBlockLimitsOffset() {
-	if (blockLimitsOffset == null) {
-	    blockLimitsOffset = new EnumMap<>(Material.class);
-	}
-	return blockLimitsOffset;
+    public Map<NamespacedKey, Integer> getBlockLimitsOffset() {
+        if (blockLimitsOffset == null) {
+            blockLimitsOffset = new HashMap<>();
+        }
+        return blockLimitsOffset;
     }
 
     /**
@@ -149,7 +149,7 @@ public class IslandBlockCount implements DataObject {
      * @return limit or -1 for unlimited
      */
     public int getEntityGroupLimit(String name) {
-	return getEntityGroupLimits().getOrDefault(name, -1);
+        return getEntityGroupLimits().getOrDefault(name, -1);
     }
 
     /**
@@ -159,24 +159,24 @@ public class IslandBlockCount implements DataObject {
      * @return offset
      */
     public int getEntityGroupLimitOffset(String name) {
-	return getEntityGroupLimitsOffset().getOrDefault(name, 0);
+        return getEntityGroupLimitsOffset().getOrDefault(name, 0);
     }
 
     /**
      * @return the entityGroupLimits
      */
     public Map<String, Integer> getEntityGroupLimits() {
-	return Objects.requireNonNullElse(entityGroupLimits, new HashMap<>());
+        return Objects.requireNonNullElse(entityGroupLimits, new HashMap<>());
     }
 
     /**
      * @return the entityGroupLimitsOffset
      */
     public Map<String, Integer> getEntityGroupLimitsOffset() {
-	if (entityGroupLimitsOffset == null) {
-	    entityGroupLimitsOffset = new HashMap<>();
-	}
-	return entityGroupLimitsOffset;
+        if (entityGroupLimitsOffset == null) {
+            entityGroupLimitsOffset = new HashMap<>();
+        }
+        return entityGroupLimitsOffset;
     }
 
     /**
@@ -186,7 +186,7 @@ public class IslandBlockCount implements DataObject {
      * @return limit or -1 for unlimited
      */
     public int getEntityLimit(EntityType t) {
-	return getEntityLimits().getOrDefault(t, -1);
+        return getEntityLimits().getOrDefault(t, -1);
     }
 
     /**
@@ -196,31 +196,31 @@ public class IslandBlockCount implements DataObject {
      * @return offset
      */
     public int getEntityLimitOffset(EntityType t) {
-	return getEntityLimitsOffset().getOrDefault(t, 0);
+        return getEntityLimitsOffset().getOrDefault(t, 0);
     }
 
     /**
      * @return the entityLimits
      */
     public Map<EntityType, Integer> getEntityLimits() {
-	return Objects.requireNonNullElse(entityLimits, new EnumMap<>(EntityType.class));
+        return Objects.requireNonNullElse(entityLimits, new EnumMap<>(EntityType.class));
     }
 
     /**
      * @return the entityLimitsOffset
      */
     public Map<EntityType, Integer> getEntityLimitsOffset() {
-	if (entityLimitsOffset == null) {
-	    entityLimitsOffset = new EnumMap<>(EntityType.class);
-	}
-	return entityLimitsOffset;
+        if (entityLimitsOffset == null) {
+            entityLimitsOffset = new EnumMap<>(EntityType.class);
+        }
+        return entityLimitsOffset;
     }
 
     /**
      * @return the gameMode
      */
     public String getGameMode() {
-	return gameMode;
+        return gameMode;
     }
 
     /*
@@ -230,7 +230,7 @@ public class IslandBlockCount implements DataObject {
      */
     @Override
     public String getUniqueId() {
-	return uniqueId;
+        return uniqueId;
     }
 
     /**
@@ -239,10 +239,9 @@ public class IslandBlockCount implements DataObject {
      * @param m - material
      * @return true if no more material can be added
      */
-    public boolean isAtLimit(Material m) {
-	// Check island limits first
-	return getBlockLimits().containsKey(m)
-		&& getBlockCounts().getOrDefault(m, 0) >= getBlockLimit(m) + this.getBlockLimitOffset(m);
+    public boolean isAtLimit(NamespacedKey m) {
+        return getBlockLimits().containsKey(m)
+                && getBlockCount(m) >= getBlockLimit(m) + this.getBlockLimitOffset(m);
     }
 
     /**
@@ -252,23 +251,23 @@ public class IslandBlockCount implements DataObject {
      * @param limit    - limit to check
      * @return true if count is >= limit
      */
-    public boolean isAtLimit(Material material, int limit) {
-	return getBlockCounts().getOrDefault(material, 0) >= limit + this.getBlockLimitOffset(material);
+    public boolean isAtLimit(NamespacedKey material, int limit) {
+        return getBlockCount(material) >= limit + this.getBlockLimitOffset(material);
     }
 
-    public boolean isBlockLimited(Material m) {
-	return getBlockLimits().containsKey(m);
+    public boolean isBlockLimited(NamespacedKey m) {
+        return getBlockLimits().containsKey(m);
     }
 
     /**
      * @return the changed
      */
     public boolean isChanged() {
-	return changed;
+        return changed;
     }
 
     public boolean isGameMode(String gameMode) {
-	return getGameMode().equals(gameMode);
+        return getGameMode().equals(gameMode);
     }
 
     /**
@@ -276,18 +275,21 @@ public class IslandBlockCount implements DataObject {
      * 
      * @param material - material
      */
-    public void remove(Material material) {
-	getBlockCounts().put(material, getBlockCounts().getOrDefault(material, 0) - 1);
-	getBlockCounts().values().removeIf(v -> v <= 0);
-	setChanged();
+    public void remove(NamespacedKey material) {
+         // Otherwise, decrement/remove individual block
+        getBlockCounts().computeIfPresent(material, (m, count) -> {
+            int newCount = count - 1;
+            return (newCount > 0) ? newCount : null; // null removes the entry
+        });
+
     }
 
     /**
      * @param blockCounts the blockCount to set
      */
-    public void setBlockCounts(Map<Material, Integer> blockCounts) {
-	this.blockCounts = blockCounts;
-	setChanged();
+    public void setBlockCounts(Map<NamespacedKey, Integer> blockCounts) {
+        this.blockCounts = blockCounts;
+        setChanged();
     }
 
     /**
@@ -296,17 +298,17 @@ public class IslandBlockCount implements DataObject {
      * @param m     - material
      * @param limit - maximum number allowed
      */
-    public void setBlockLimit(Material m, int limit) {
-	getBlockLimits().put(m, limit);
-	setChanged();
+    public void setBlockLimit(NamespacedKey m, int limit) {
+        getBlockLimits().put(m, limit);
+        setChanged();
     }
 
     /**
      * @param blockLimits the blockLimits to set
      */
-    public void setBlockLimits(Map<Material, Integer> blockLimits) {
-	this.blockLimits = blockLimits;
-	setChanged();
+    public void setBlockLimits(Map<NamespacedKey, Integer> blockLimits) {
+        this.blockLimits = blockLimits;
+        setChanged();
     }
 
     /**
@@ -316,22 +318,22 @@ public class IslandBlockCount implements DataObject {
      * @param m                 material
      * @param blockLimitsOffset the blockLimitsOffset to set
      */
-    public void setBlockLimitsOffset(Material m, Integer blockLimitsOffset) {
-	getBlockLimitsOffset().put(m, blockLimitsOffset);
+    public void setBlockLimitsOffset(NamespacedKey m, Integer blockLimitsOffset) {
+        getBlockLimitsOffset().put(m, blockLimitsOffset);
     }
 
     /**
      * Mark changed
      */
     public void setChanged() {
-	this.changed = true;
+        this.changed = true;
     }
 
     /**
      * @param changed the changed to set
      */
     public void setChanged(boolean changed) {
-	this.changed = changed;
+        this.changed = changed;
     }
 
     /**
@@ -341,16 +343,16 @@ public class IslandBlockCount implements DataObject {
      * @param limit - limit
      */
     public void setEntityGroupLimit(String name, int limit) {
-	getEntityGroupLimits().put(name, limit);
-	setChanged();
+        getEntityGroupLimits().put(name, limit);
+        setChanged();
     }
 
     /**
      * @param entityGroupLimits the entityGroupLimits to set
      */
     public void setEntityGroupLimits(Map<String, Integer> entityGroupLimits) {
-	this.entityGroupLimits = entityGroupLimits;
-	setChanged();
+        this.entityGroupLimits = entityGroupLimits;
+        setChanged();
     }
 
     /**
@@ -361,7 +363,7 @@ public class IslandBlockCount implements DataObject {
      * @param entityGroupLimitsOffset the entityGroupLimitsOffset to set
      */
     public void setEntityGroupLimitsOffset(String name, Integer entityGroupLimitsOffset) {
-	getEntityGroupLimitsOffset().put(name, entityGroupLimitsOffset);
+        getEntityGroupLimitsOffset().put(name, entityGroupLimitsOffset);
     }
 
     /**
@@ -371,16 +373,16 @@ public class IslandBlockCount implements DataObject {
      * @param limit - limit
      */
     public void setEntityLimit(EntityType t, int limit) {
-	getEntityLimits().put(t, limit);
-	setChanged();
+        getEntityLimits().put(t, limit);
+        setChanged();
     }
 
     /**
      * @param entityLimits the entityLimits to set
      */
     public void setEntityLimits(Map<EntityType, Integer> entityLimits) {
-	this.entityLimits = entityLimits;
-	setChanged();
+        this.entityLimits = entityLimits;
+        setChanged();
     }
 
     /**
@@ -391,15 +393,15 @@ public class IslandBlockCount implements DataObject {
      * @param entityLimitsOffset the entityLimitsOffset to set
      */
     public void setEntityLimitsOffset(EntityType type, Integer entityLimitsOffset) {
-	this.getEntityLimitsOffset().put(type, entityLimitsOffset);
+        this.getEntityLimitsOffset().put(type, entityLimitsOffset);
     }
 
     /**
      * @param gameMode the gameMode to set
      */
     public void setGameMode(String gameMode) {
-	this.gameMode = gameMode;
-	setChanged();
+        this.gameMode = gameMode;
+        setChanged();
     }
 
     /*
@@ -411,7 +413,8 @@ public class IslandBlockCount implements DataObject {
      */
     @Override
     public void setUniqueId(String uniqueId) {
-	this.uniqueId = uniqueId;
-	setChanged();
+        this.uniqueId = uniqueId;
+        setChanged();
     }
-}
+
+ }
