@@ -35,6 +35,9 @@ import world.bentobox.limits.objects.IslandBlockCount;
  */
 public class OffsetCommand extends CompositeCommand
 {
+    private static final String UNKNOWN_PLAYER = "general.errors.unknown-player";
+    private static final String NO_ISLAND = "general.errors.player-has-no-island";
+    private static final String UNKNOWN_MATERIAL = "admin.limits.offset.unknown";
     /**
      * Instantiates a new Offset command.
      *
@@ -116,7 +119,7 @@ public class OffsetCommand extends CompositeCommand
 
             if (targetUUID == null)
             {
-                user.sendMessage("general.errors.unknown-player", TextVariables.NAME, args.get(0));
+                user.sendMessage(UNKNOWN_PLAYER, TextVariables.NAME, args.get(0));
                 return false;
             }
 
@@ -124,7 +127,7 @@ public class OffsetCommand extends CompositeCommand
 
             if (island == null)
             {
-                user.sendMessage("general.errors.player-has-no-island");
+                user.sendMessage(NO_ISLAND);
                 return false;
             }
 
@@ -142,13 +145,13 @@ public class OffsetCommand extends CompositeCommand
 
             if (material == null && entityType == null)
             {
-                user.sendMessage("admin.limits.offset.unknown", TextVariables.NAME, args.get(1));
+                user.sendMessage(UNKNOWN_MATERIAL, TextVariables.NAME, args.get(1));
                 return false;
             }
 
             int offset = Integer.parseInt(args.get(2));
 
-            if (material != null && offset == islandData.getBlockLimitOffset(material) ||
+            if (material != null && offset == islandData.getBlockLimitOffset(material.getKey()) ||
                 entityType != null && offset == islandData.getEntityLimitOffset(entityType))
             {
                 user.sendMessage("admin.limits.offset.set.same",
@@ -161,7 +164,7 @@ public class OffsetCommand extends CompositeCommand
 
             if (material != null)
             {
-                islandData.setBlockLimitsOffset(material, offset);
+                islandData.setBlockLimitsOffset(material.getKey(), offset);
                 islandData.setChanged();
 
                 user.sendMessage("admin.limits.offset.set.success",
@@ -240,7 +243,7 @@ public class OffsetCommand extends CompositeCommand
 
             if (targetUUID == null)
             {
-                user.sendMessage("general.errors.unknown-player", TextVariables.NAME, args.get(0));
+                user.sendMessage(UNKNOWN_PLAYER, TextVariables.NAME, args.get(0));
                 return false;
             }
 
@@ -248,7 +251,7 @@ public class OffsetCommand extends CompositeCommand
 
             if (island == null)
             {
-                user.sendMessage("general.errors.player-has-no-island");
+                user.sendMessage(NO_ISLAND);
                 return false;
             }
 
@@ -266,7 +269,7 @@ public class OffsetCommand extends CompositeCommand
 
             if (material == null && entityType == null)
             {
-                user.sendMessage("admin.limits.offset.unknown", TextVariables.NAME, args.get(1));
+                user.sendMessage(UNKNOWN_MATERIAL, TextVariables.NAME, args.get(1));
                 return false;
             }
 
@@ -274,9 +277,9 @@ public class OffsetCommand extends CompositeCommand
 
             if (material != null)
             {
-                offset += islandData.getBlockLimitOffset(material);
+                offset += islandData.getBlockLimitOffset(material.getKey());
 
-                islandData.setBlockLimitsOffset(material, offset);
+                islandData.setBlockLimitsOffset(material.getKey(), offset);
                 islandData.setChanged();
 
                 user.sendMessage("admin.limits.offset.add.success",
@@ -357,7 +360,7 @@ public class OffsetCommand extends CompositeCommand
 
             if (targetUUID == null)
             {
-                user.sendMessage("general.errors.unknown-player", TextVariables.NAME, args.get(0));
+                user.sendMessage(UNKNOWN_PLAYER, TextVariables.NAME, args.get(0));
                 return false;
             }
 
@@ -365,7 +368,7 @@ public class OffsetCommand extends CompositeCommand
 
             if (island == null)
             {
-                user.sendMessage("general.errors.player-has-no-island");
+                user.sendMessage(NO_ISLAND);
                 return false;
             }
 
@@ -383,7 +386,7 @@ public class OffsetCommand extends CompositeCommand
 
             if (material == null && entityType == null)
             {
-                user.sendMessage("admin.limits.offset.unknown", TextVariables.NAME, args.get(1));
+                user.sendMessage(UNKNOWN_MATERIAL, TextVariables.NAME, args.get(1));
                 return false;
             }
 
@@ -391,9 +394,9 @@ public class OffsetCommand extends CompositeCommand
 
             if (material != null)
             {
-                offset = islandData.getBlockLimitOffset(material) - offset;
+                offset = islandData.getBlockLimitOffset(material.getKey()) - offset;
 
-                islandData.setBlockLimitsOffset(material, offset);
+                islandData.setBlockLimitsOffset(material.getKey(), offset);
                 islandData.setChanged();
 
                 user.sendMessage("admin.limits.offset.remove.success",
@@ -474,7 +477,7 @@ public class OffsetCommand extends CompositeCommand
 
             if (targetUUID == null)
             {
-                user.sendMessage("general.errors.unknown-player", TextVariables.NAME, args.get(0));
+                user.sendMessage(UNKNOWN_PLAYER, TextVariables.NAME, args.get(0));
                 return false;
             }
 
@@ -482,7 +485,7 @@ public class OffsetCommand extends CompositeCommand
 
             if (island == null)
             {
-                user.sendMessage("general.errors.player-has-no-island");
+                user.sendMessage(NO_ISLAND);
                 return false;
             }
 
@@ -493,13 +496,13 @@ public class OffsetCommand extends CompositeCommand
 
             if (material == null && entityType == null)
             {
-                user.sendMessage("admin.limits.offset.unknown", TextVariables.NAME, args.get(1));
+                user.sendMessage(UNKNOWN_MATERIAL, TextVariables.NAME, args.get(1));
                 return false;
             }
 
             if (material != null)
             {
-                islandData.setBlockLimitsOffset(material, 0);
+                islandData.setBlockLimitsOffset(material.getKey(), 0);
                 islandData.setChanged();
 
                 user.sendMessage("admin.limits.offset.reset.success",
@@ -576,7 +579,7 @@ public class OffsetCommand extends CompositeCommand
 
             if (targetUUID == null)
             {
-                user.sendMessage("general.errors.unknown-player", TextVariables.NAME, args.get(0));
+                user.sendMessage(UNKNOWN_PLAYER, TextVariables.NAME, args.get(0));
                 return false;
             }
 
@@ -584,7 +587,7 @@ public class OffsetCommand extends CompositeCommand
 
             if (island == null)
             {
-                user.sendMessage("general.errors.player-has-no-island");
+                user.sendMessage(NO_ISLAND);
                 return false;
             }
 
@@ -595,13 +598,13 @@ public class OffsetCommand extends CompositeCommand
 
             if (material == null && entityType == null)
             {
-                user.sendMessage("admin.limits.offset.unknown", TextVariables.NAME, args.get(1));
+                user.sendMessage(UNKNOWN_MATERIAL, TextVariables.NAME, args.get(1));
                 return false;
             }
 
             if (material != null)
             {
-                int offset = islandData.getBlockLimitOffset(material);
+                int offset = islandData.getBlockLimitOffset(material.getKey());
                 user.sendMessage("admin.limits.offset.view.message",
                     TextVariables.NAME, material.name(),
                     TextVariables.NUMBER, String.valueOf(offset));

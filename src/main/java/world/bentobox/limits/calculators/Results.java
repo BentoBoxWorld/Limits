@@ -1,6 +1,6 @@
 package world.bentobox.limits.calculators;
 
-import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.EntityType;
 
 import com.google.common.collect.HashMultiset;
@@ -21,7 +21,7 @@ public class Results {
          */
         TIMEOUT
     }
-    final Multiset<Material> mdCount = HashMultiset.create();
+    final Multiset<NamespacedKey> mdCount = HashMultiset.create();
     final Multiset<EntityType> entityCount = HashMultiset.create();
 
     final Result state;
@@ -36,7 +36,7 @@ public class Results {
     /**
      * @return the mdCount
      */
-    public Multiset<Material> getMdCount() {
+    public Multiset<NamespacedKey> getMdCount() {
         return mdCount;
     }
 

@@ -19,6 +19,7 @@ import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -344,7 +345,7 @@ public class JoinListenerTest {
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
         jl.onPlayerJoin(e);
         verify(addon, never()).logError(anyString());
-        verify(ibc).setBlockLimit(eq(Material.STONE), eq(24));
+        verify(ibc).setBlockLimit(eq(Material.STONE.getKey()), eq(24));
     }
 
     /**
@@ -419,9 +420,9 @@ public class JoinListenerTest {
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
         jl.onPlayerJoin(e);
         verify(addon, never()).logError(anyString());
-        verify(ibc).setBlockLimit(eq(Material.STONE), eq(24));
-        verify(ibc).setBlockLimit(eq(Material.SHORT_GRASS), eq(14));
-        verify(ibc).setBlockLimit(eq(Material.DIRT), eq(34));
+        verify(ibc).setBlockLimit(eq(Material.STONE.getKey()), eq(24));
+        verify(ibc).setBlockLimit(eq(Material.SHORT_GRASS.getKey()), eq(14));
+        verify(ibc).setBlockLimit(eq(Material.DIRT.getKey()), eq(34));
         verify(ibc).setEntityLimit(eq(EntityType.CHICKEN), eq(34));
         verify(ibc).setEntityLimit(eq(EntityType.CAVE_SPIDER), eq(4));
     }
@@ -451,9 +452,9 @@ public class JoinListenerTest {
         jl.onPlayerJoin(e);
         verify(addon, never()).logError(anyString());
         // Only the limit over 25 should be set
-        verify(ibc, never()).setBlockLimit(eq(Material.STONE), eq(24));
-        verify(ibc, never()).setBlockLimit(eq(Material.STONE), eq(14));
-        verify(ibc).setBlockLimit(eq(Material.STONE), eq(34));
+        verify(ibc, never()).setBlockLimit(eq(Material.STONE.getKey()), eq(24));
+        verify(ibc, never()).setBlockLimit(eq(Material.STONE.getKey()), eq(14));
+        verify(ibc).setBlockLimit(eq(Material.STONE.getKey()), eq(34));
     }
 
     /**
@@ -516,7 +517,7 @@ public class JoinListenerTest {
     @Test
     public void testOnUnregisterIslandInWorld() {
         @SuppressWarnings("unchecked")
-        Map<Material, Integer> map = mock(Map.class);
+        Map<NamespacedKey, Integer> map = mock(Map.class);
         when(ibc.getBlockLimits()).thenReturn(map);
         when(addon.inGameModeWorld(any())).thenReturn(true);
         IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.UNREGISTERED);
@@ -534,7 +535,7 @@ public class JoinListenerTest {
     public void testOnUnregisterIslandInWorldNullIBC() {
         when(bll.getIsland(anyString())).thenReturn(null);
         @SuppressWarnings("unchecked")
-        Map<Material, Integer> map = mock(Map.class);
+        Map<NamespacedKey, Integer> map = mock(Map.class);
         when(ibc.getBlockLimits()).thenReturn(map);
         when(addon.inGameModeWorld(any())).thenReturn(true);
         IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.UNREGISTERED);
