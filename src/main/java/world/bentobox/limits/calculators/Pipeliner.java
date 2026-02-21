@@ -79,7 +79,11 @@ public class Pipeliner {
             iD.getR().complete(null);
             return;
         }
-        iD.scanIsland(this);
+        iD.scanIsland(
+                () -> inProcessQueue.getOrDefault(iD, System.currentTimeMillis()),
+                () -> inProcessQueue.remove(iD),
+                task::isCancelled,
+                () -> scanIsland(iD));
     }
 
 

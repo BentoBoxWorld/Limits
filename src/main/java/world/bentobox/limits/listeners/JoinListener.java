@@ -98,8 +98,7 @@ public class JoinListener implements Listener {
             }
             // The last part of the permission is the limit value.
             int limitValue = Integer.parseInt(permissionParts[4]);
-            if (addon.getSettings().isLogLimitsOnJoin())
-                addon.log("Setting login limit via perm for " + player.getName() + "...");
+            logIfEnabled("Setting login limit via perm for " + player.getName() + "...");
 
             // Fire a custom event to allow other plugins to modify or cancel the limit application.
             LimitsPermCheckEvent limitsPermCheckEvent = new LimitsPermCheckEvent(player, islandId, islandBlockCount, entityGroup, entityType, material, limitValue);
@@ -164,43 +163,38 @@ public class JoinListener implements Listener {
         Material material = event.getMaterial();
         int limitValue = event.getValue();
         if (entityGroup != null) {
-            // It's a limit for a defined group of entities.
-            // Use Math.max to ensure the highest limit from multiple permissions is used.
             int newLimit = Math.max(islandBlockCount.getEntityGroupLimit(entityGroup.getName()), limitValue);
             islandBlockCount.setEntityGroupLimit(entityGroup.getName(), newLimit);
-            if (addon.getSettings().isLogLimitsOnJoin())
-                addon.log("Setting group limit " + entityGroup.getName() + " " + newLimit);
+            logIfEnabled("Setting group limit " + entityGroup.getName() + " " + newLimit);
         } else if (entityType != null && material == null) {
-            // It's a limit for a specific entity type.
             int newLimit = Math.max(islandBlockCount.getEntityLimit(entityType), limitValue);
             islandBlockCount.setEntityLimit(entityType, newLimit);
-            if (addon.getSettings().isLogLimitsOnJoin())
-                addon.log("Setting entity limit " + entityType + " " + newLimit);
+            logIfEnabled("Setting entity limit " + entityType + " " + newLimit);
         } else if (material != null && entityType == null) {
-            // It's a limit for a specific block material.
             int newLimit = Math.max(islandBlockCount.getBlockLimit(material.getKey()), limitValue);
-            if (addon.getSettings().isLogLimitsOnJoin())
-                addon.log("Setting block limit " + material + " " + newLimit);
+            logIfEnabled("Setting block limit " + material + " " + newLimit);
             islandBlockCount.setBlockLimit(material.getKey(), newLimit);
         } else {
-            // This handles ambiguous cases where a name could be both a material and an entity (e.g., ARMOR_STAND).
-            if (material != null && material.isBlock()) {
-                // If it's a block, apply a block limit.
-                int newLimit = Math.max(islandBlockCount.getBlockLimit(material.getKey()), limitValue);
-                if (addon.getSettings().isLogLimitsOnJoin())
-                    addon.log("Setting block limit " + material + " " + newLimit);
-                // Material limit
-                islandBlockCount.setBlockLimit(material.getKey(), newLimit);
-            } else if (entityType != null) {
-                // Otherwise, treat it as an entity limit.
-                int newLimit = Math.max(islandBlockCount.getEntityLimit(entityType), limitValue);
-                if (addon.getSettings().isLogLimitsOnJoin())
-                    addon.log("Setting entity limit " + entityType + " " + newLimit);
-                // This is an entity setting
-                islandBlockCount.setEntityLimit(entityType, newLimit);
-            }
+            applyAmbiguousLimit(islandBlockCount, entityType, material, limitValue);
         }
+    }
 
+    private void applyAmbiguousLimit(@NonNull IslandBlockCount islandBlockCount, EntityType entityType, Material material, int limitValue) {
+        if (material != null && material.isBlock()) {
+            int newLimit = Math.max(islandBlockCount.getBlockLimit(material.getKey()), limitValue);
+            logIfEnabled("Setting block limit " + material + " " + newLimit);
+            islandBlockCount.setBlockLimit(material.getKey(), newLimit);
+        } else if (entityType != null) {
+            int newLimit = Math.max(islandBlockCount.getEntityLimit(entityType), limitValue);
+            logIfEnabled("Setting entity limit " + entityType + " " + newLimit);
+            islandBlockCount.setEntityLimit(entityType, newLimit);
+        }
+    }
+
+    private void logIfEnabled(String message) {
+        if (addon.getSettings().isLogLimitsOnJoin()) {
+            addon.log(message);
+        }
     }
 
     /**

@@ -11,6 +11,7 @@ import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Util;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.calculators.Pipeliner;
+import world.bentobox.limits.calculators.Results;
 
 /**
  *
@@ -60,16 +61,7 @@ public class CalcCommand extends CompositeCommand {
             } else {
                 //Calculate
                 user.sendMessage("island.limits.recount.now-recounting");
-                new Pipeliner(addon).addIsland(island).thenAccept(results -> {
-                    if (results == null) {
-                        user.sendMessage("island.limits.recount.in-progress");
-                    } else {
-                        switch (results.getState()) {
-                        case TIMEOUT -> user.sendMessage("admin.limits.calc.timeout");
-                        default -> user.sendMessage("admin.limits.calc.finished");
-                        }
-                    }
-                });
+                new Pipeliner(addon).addIsland(island).thenAccept(results -> handlePipelineResult(user, results));
             }
 
             return true;
@@ -80,6 +72,17 @@ public class CalcCommand extends CompositeCommand {
     }
 
 
+
+    private void handlePipelineResult(User user, Results results) {
+        if (results == null) {
+            user.sendMessage("island.limits.recount.in-progress");
+        } else {
+            switch (results.getState()) {
+                case TIMEOUT -> user.sendMessage("admin.limits.calc.timeout");
+                default -> user.sendMessage("admin.limits.calc.finished");
+            }
+        }
+    }
 
     @Override
     public Optional<List<String>> tabComplete(User user, String alias, List<String> args) {
