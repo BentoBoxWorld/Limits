@@ -278,7 +278,10 @@ public class BlockLimitsListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockFormEvent e) {
-        process(e.getBlock(), true);
+        // Remove the old block state count (e.g., COPPER_CHEST before oxidation)
+        process(e.getBlock(), false);
+        // Add the new block state count (e.g., EXPOSED_COPPER_CHEST after oxidation)
+        process(e.getBlock(), e.getNewState().getBlockData(), true);
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
@@ -373,7 +376,21 @@ public class BlockLimitsListener implements Listener {
      * @return limit amount if over limit, or -1 if no limitation
      */
     private int process(Block b, boolean add) {
-        if (DO_NOT_COUNT.contains(fixMaterial(b.getBlockData())) || !addon.inGameModeWorld(b.getWorld())) {
+        return process(b, b.getBlockData(), add);
+    }
+
+    /**
+     * Check if a block can be placed or needs to be removed based on limits.
+     * This variant allows specifying block data different from the block's current data,
+     * which is needed for block state transitions (e.g., copper oxidation or waxing).
+     *
+     * @param b - block (used for location and world)
+     * @param blockData - block data to use for material checks
+     * @param add - true to add a block, false to remove
+     * @return limit amount if over limit, or -1 if no limitation
+     */
+    private int process(Block b, BlockData blockData, boolean add) {
+        if (DO_NOT_COUNT.contains(fixMaterial(blockData)) || !addon.inGameModeWorld(b.getWorld())) {
             return -1;
         }
         // Check if on island
@@ -391,14 +408,14 @@ public class BlockLimitsListener implements Listener {
             islandCountMap.putIfAbsent(id, new IslandBlockCount(id, gameMode));
             if (add) {
                 // Check limit
-                int limit = checkLimit(b.getWorld(), fixMaterial(b.getBlockData()), id);
+                int limit = checkLimit(b.getWorld(), fixMaterial(blockData), id);
                 if (limit > -1) {
                     return limit;
                 }
-                islandCountMap.get(id).add(fixMaterial(b.getBlockData()));
+                islandCountMap.get(id).add(fixMaterial(blockData));
             } else {
                 if (islandCountMap.containsKey(id)) {
-                    islandCountMap.get(id).remove(fixMaterial(b.getBlockData()));
+                    islandCountMap.get(id).remove(fixMaterial(blockData));
                 }
             }
             updateSaveMap(id);
