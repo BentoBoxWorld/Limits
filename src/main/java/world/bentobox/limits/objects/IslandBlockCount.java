@@ -129,7 +129,10 @@ public class IslandBlockCount implements DataObject {
      * @return the blockLimits
      */
     public Map<NamespacedKey, Integer> getBlockLimits() {
-        return Objects.requireNonNullElse(blockLimits, new HashMap<>());
+        if (blockLimits == null) {
+            blockLimits = new HashMap<>();
+        }
+        return blockLimits;
     }
 
     /**
