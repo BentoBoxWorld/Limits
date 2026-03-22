@@ -153,11 +153,17 @@ public class BlockLimitsListener implements Listener {
 
             boolean matched = false;
 
-            // Try match to Material
+            // Try match to Material - only accept block materials that are not in DO_NOT_COUNT
             Material mat = Registry.MATERIAL.get(nsKey);
             if (mat != null) {
-                limits.put(mat.getKey(), limit);
                 matched = true;
+                if (!mat.isBlock()) {
+                    Bukkit.getLogger().warning("Non-block material in block limits config: " + key);
+                } else if (DO_NOT_COUNT.contains(mat.getKey())) {
+                    Bukkit.getLogger().warning("Uncountable material in block limits config: " + key);
+                } else {
+                    limits.put(mat.getKey(), limit);
+                }
             }
 
             // Try match to a Tag<Material>
