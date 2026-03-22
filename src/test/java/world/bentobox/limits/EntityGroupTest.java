@@ -14,7 +14,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import world.bentobox.limits.mocks.ServerMocks;
+import org.mockbukkit.mockbukkit.MockBukkit;
 
 public class EntityGroupTest {
 
@@ -22,13 +22,13 @@ public class EntityGroupTest {
 
     @BeforeEach
     public void setUp() {
-        ServerMocks.newServer();
+        MockBukkit.mock();
         group = new EntityGroup("monsters", Set.of(EntityType.ZOMBIE, EntityType.SKELETON), 10, Material.ZOMBIE_HEAD);
     }
 
     @AfterEach
     public void tearDown() {
-        ServerMocks.unsetBukkitServer();
+        MockBukkit.unmock();
     }
 
     @Test

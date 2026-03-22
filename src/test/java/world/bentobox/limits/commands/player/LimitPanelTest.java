@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.bukkit.NamespacedKey;
-import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
@@ -32,7 +31,7 @@ import world.bentobox.limits.Limits;
 import world.bentobox.limits.Settings;
 import world.bentobox.limits.listeners.BlockLimitsListener;
 import world.bentobox.limits.listeners.JoinListener;
-import world.bentobox.limits.mocks.ServerMocks;
+import org.mockbukkit.mockbukkit.MockBukkit;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -60,11 +59,10 @@ public class LimitPanelTest {
     private LimitPanel limitPanel;
     private UUID userUUID;
     private UUID targetUUID;
-    private Server server;
 
     @BeforeEach
     void setUp() {
-        server = ServerMocks.newServer();
+        MockBukkit.mock();
 
         userUUID = UUID.randomUUID();
         targetUUID = UUID.randomUUID();
@@ -81,7 +79,7 @@ public class LimitPanelTest {
 
     @AfterEach
     void tearDown() {
-        ServerMocks.unsetBukkitServer();
+        MockBukkit.unmock();
     }
 
     @Test
@@ -108,8 +106,7 @@ public class LimitPanelTest {
         when(island.getUniqueId()).thenReturn("island-id");
         when(bll.getMaterialLimits(eq(world), eq("island-id"))).thenReturn(Collections.emptyMap());
         when(settings.getLimits()).thenReturn(Collections.emptyMap());
-        // Target player is offline
-        when(server.getPlayer(any(UUID.class))).thenReturn(null);
+        // Target player is offline (MockBukkit returns null by default when no players added)
 
         limitPanel.showLimits(gm, user, targetUUID);
 
@@ -122,8 +119,7 @@ public class LimitPanelTest {
         when(island.getUniqueId()).thenReturn("island-id");
         when(bll.getMaterialLimits(eq(world), eq("island-id"))).thenReturn(Collections.emptyMap());
         when(settings.getLimits()).thenReturn(Collections.emptyMap());
-        // Target player is offline
-        when(server.getPlayer(any(UUID.class))).thenReturn(null);
+        // Target player is offline (MockBukkit returns null by default when no players added)
 
         limitPanel.showLimits(gm, user, targetUUID);
 

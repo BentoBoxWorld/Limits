@@ -24,14 +24,8 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.logging.Logger;
 
-import org.bukkit.Server;
-import org.bukkit.UnsafeValues;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemFactory;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.plugin.PluginManager;
-import org.bukkit.scheduler.BukkitScheduler;
 import org.eclipse.jdt.annotation.NonNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -61,7 +55,8 @@ import world.bentobox.bentobox.managers.FlagsManager;
 import world.bentobox.bentobox.managers.IslandWorldManager;
 import world.bentobox.bentobox.managers.IslandsManager;
 import world.bentobox.bentobox.managers.PlaceholdersManager;
-import world.bentobox.limits.mocks.ServerMocks;
+import org.mockbukkit.mockbukkit.MockBukkit;
+import org.mockbukkit.mockbukkit.ServerMock;
 
 /**
  * @author tastybento
@@ -87,9 +82,6 @@ public class LimitsTest {
     @Mock
     private AddonsManager am;
     @Mock
-    private BukkitScheduler scheduler;
-
-    @Mock
     private Settings pluginSettings;
     @Mock
     private PlaceholdersManager phm;
@@ -100,10 +92,6 @@ public class LimitsTest {
     @Mock
     private World world;
     private UUID uuid;
-
-    @Mock
-    private PluginManager pim;
-
 
     private Limits addon;
 
@@ -137,7 +125,7 @@ public class LimitsTest {
      */
     @BeforeEach
     public void setUp() throws Exception {
-        Server server = ServerMocks.newServer();
+        ServerMock server = MockBukkit.mock();
 
         // Set up plugin
         mockedBentoBox = Mockito.mockStatic(BentoBox.class);
@@ -178,16 +166,7 @@ public class LimitsTest {
         // Return the reference (USE THIS IN THE FUTURE)
         when(user.getTranslation(Mockito.anyString())).thenAnswer((Answer<String>) invocation -> invocation.getArgument(0, String.class));
 
-        // Server - stub via the Server mock instead of mockStatic(Bukkit.class)
-        when(server.getPluginManager()).thenReturn(pim);
-        when(server.getScheduler()).thenReturn(scheduler);
-        ItemMeta meta = mock(ItemMeta.class);
-        ItemFactory itemFactory = mock(ItemFactory.class);
-        when(itemFactory.getItemMeta(any())).thenReturn(meta);
-        when(server.getItemFactory()).thenReturn(itemFactory);
-        UnsafeValues unsafe = mock(UnsafeValues.class);
-        when(unsafe.getDataVersion()).thenReturn(777);
-        when(server.getUnsafe()).thenReturn(unsafe);
+        // MockBukkit provides real implementations for server methods
 
         // Addon
         addon = new Limits();
@@ -238,7 +217,7 @@ public class LimitsTest {
         if (mockedBentoBox != null) {
             mockedBentoBox.close();
         }
-        ServerMocks.unsetBukkitServer();
+        MockBukkit.unmock();
         User.clearUsers();
         Mockito.framework().clearInlineMocks();
         deleteAll(new File("database"));

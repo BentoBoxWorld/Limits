@@ -11,7 +11,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import world.bentobox.limits.mocks.ServerMocks;
+import org.mockbukkit.mockbukkit.MockBukkit;
 
 public class IslandBlockCountTest {
 
@@ -20,14 +20,14 @@ public class IslandBlockCountTest {
 
     @BeforeEach
     public void setUp() {
-        ServerMocks.newServer();
+        MockBukkit.mock();
         stoneKey = Material.STONE.getKey();
         ibc = new IslandBlockCount("island1", "BSkyBlock");
     }
 
     @AfterEach
     public void tearDown() {
-        ServerMocks.unsetBukkitServer();
+        MockBukkit.unmock();
     }
 
     @Test

@@ -46,7 +46,7 @@ import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.managers.IslandsManager;
 import world.bentobox.limits.listeners.BlockLimitsListener;
 import world.bentobox.limits.listeners.JoinListener;
-import world.bentobox.limits.mocks.ServerMocks;
+import org.mockbukkit.mockbukkit.MockBukkit;
 import world.bentobox.limits.objects.IslandBlockCount;
 
 /**
@@ -85,7 +85,7 @@ public class JoinListenerTest {
 
     @BeforeEach
     public void setUp() {
-        ServerMocks.newServer();
+        MockBukkit.mock();
         jl = new JoinListener(addon);
         // Setup addon
         when(addon.getGameModes()).thenReturn(Collections.singletonList(bskyblock));
@@ -129,7 +129,7 @@ public class JoinListenerTest {
     @AfterEach
     public void tearDown() {
         mockedBukkit.close();
-        ServerMocks.unsetBukkitServer();
+        MockBukkit.unmock();
     }
 
     /**
