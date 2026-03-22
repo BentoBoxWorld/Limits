@@ -252,38 +252,42 @@ public class EntityLimitListener implements Listener {
      */
     private void detectIronGolem(Location location) {
         Block legs = location.getBlock();
-        // Erase legs
         addon.getBlockLimitListener().removeBlock(legs);
         legs.setType(Material.AIR);
-        // Look around for possible constructions
         for (BlockFace bf : CARDINALS) {
             Block body = legs.getRelative(bf);
             if (body.getType().equals(Material.IRON_BLOCK)) {
-                // Check for head
                 Block head = body.getRelative(bf);
-                if (head.getType() == Material.CARVED_PUMPKIN || head.getType() == Material.JACK_O_LANTERN) {
-                    // Check for arms the rule is that they must be opposite and have nothing "beneath" them
-                    for (BlockFace bf2 : CARDINALS) {
-                        Block arm1 = body.getRelative(bf2);
-                        Block arm2 = body.getRelative(bf2.getOppositeFace());
-                        if (arm1.getType() == Material.IRON_BLOCK && arm2.getType() == Material.IRON_BLOCK
-                                && arm1.getRelative(bf.getOppositeFace()).isEmpty()
-                                && arm2.getRelative(bf.getOppositeFace()).isEmpty()) {
-                            // Erase!
-                            addon.getBlockLimitListener().removeBlock(body);
-                            addon.getBlockLimitListener().removeBlock(arm1);
-                            addon.getBlockLimitListener().removeBlock(arm2);
-                            addon.getBlockLimitListener().removeBlock(head);
-                            body.setType(Material.AIR);
-                            arm1.setType(Material.AIR);
-                            arm2.setType(Material.AIR);
-                            head.setType(Material.AIR);
-                            return;
-                        }
-                    }
+                if (isGolemHead(head) && eraseGolemIfArmsMatch(body, head, bf)) {
+                    return;
                 }
             }
         }
+    }
+
+    private boolean isGolemHead(Block block) {
+        return block.getType() == Material.CARVED_PUMPKIN || block.getType() == Material.JACK_O_LANTERN;
+    }
+
+    private boolean eraseGolemIfArmsMatch(Block body, Block head, BlockFace bf) {
+        for (BlockFace bf2 : CARDINALS) {
+            Block arm1 = body.getRelative(bf2);
+            Block arm2 = body.getRelative(bf2.getOppositeFace());
+            if (arm1.getType() == Material.IRON_BLOCK && arm2.getType() == Material.IRON_BLOCK
+                    && arm1.getRelative(bf.getOppositeFace()).isEmpty()
+                    && arm2.getRelative(bf.getOppositeFace()).isEmpty()) {
+                addon.getBlockLimitListener().removeBlock(body);
+                addon.getBlockLimitListener().removeBlock(arm1);
+                addon.getBlockLimitListener().removeBlock(arm2);
+                addon.getBlockLimitListener().removeBlock(head);
+                body.setType(Material.AIR);
+                arm1.setType(Material.AIR);
+                arm2.setType(Material.AIR);
+                head.setType(Material.AIR);
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -323,48 +327,49 @@ public class EntityLimitListener implements Listener {
      */
     private void detectWither(Location location) {
         Block legs = location.getBlock();
-        // Erase legs
         addon.getBlockLimitListener().removeBlock(legs);
         legs.setType(Material.AIR);
-        // Look around for possible constructions
         for (BlockFace bf : CARDINALS) {
             Block body = legs.getRelative(bf);
             if (isWither(body)) {
-                // Check for head
                 Block head = body.getRelative(bf);
-                if (head.getType().equals(Material.WITHER_SKELETON_SKULL) || head.getType().equals(Material.WITHER_SKELETON_WALL_SKULL)) {
-                    // Check for arms the rule is that they must be opposite and have nothing "beneath" them
-                    for (BlockFace bf2 : CARDINALS) {
-                        Block arm1 = body.getRelative(bf2);
-                        Block arm2 = body.getRelative(bf2.getOppositeFace());
-                        Block head2 = arm1.getRelative(bf);
-                        Block head3 = arm2.getRelative(bf);
-                        if (isWither(arm1)
-                                && isWither(arm2)
-                                && arm1.getRelative(bf.getOppositeFace()).isEmpty()
-                                && arm2.getRelative(bf.getOppositeFace()).isEmpty()
-                                && (head2.getType().equals(Material.WITHER_SKELETON_SKULL) || head2.getType().equals(Material.WITHER_SKELETON_WALL_SKULL))
-                                && (head3.getType().equals(Material.WITHER_SKELETON_SKULL) || head3.getType().equals(Material.WITHER_SKELETON_WALL_SKULL))
-                        ) {
-                            // Erase!
-                            addon.getBlockLimitListener().removeBlock(body);
-                            addon.getBlockLimitListener().removeBlock(arm1);
-                            addon.getBlockLimitListener().removeBlock(arm2);
-                            addon.getBlockLimitListener().removeBlock(head);
-                            addon.getBlockLimitListener().removeBlock(head2);
-                            addon.getBlockLimitListener().removeBlock(head3);
-                            body.setType(Material.AIR);
-                            arm1.setType(Material.AIR);
-                            arm2.setType(Material.AIR);
-                            head.setType(Material.AIR);
-                            head2.setType(Material.AIR);
-                            head3.setType(Material.AIR);
-                            return;
-                        }
-                    }
+                if (isWitherHead(head) && eraseWitherIfArmsMatch(body, head, bf)) {
+                    return;
                 }
             }
         }
+    }
+
+    private boolean isWitherHead(Block block) {
+        return block.getType().equals(Material.WITHER_SKELETON_SKULL) || block.getType().equals(Material.WITHER_SKELETON_WALL_SKULL);
+    }
+
+    private boolean eraseWitherIfArmsMatch(Block body, Block head, BlockFace bf) {
+        for (BlockFace bf2 : CARDINALS) {
+            Block arm1 = body.getRelative(bf2);
+            Block arm2 = body.getRelative(bf2.getOppositeFace());
+            Block head2 = arm1.getRelative(bf);
+            Block head3 = arm2.getRelative(bf);
+            if (isWither(arm1) && isWither(arm2)
+                    && arm1.getRelative(bf.getOppositeFace()).isEmpty()
+                    && arm2.getRelative(bf.getOppositeFace()).isEmpty()
+                    && isWitherHead(head2) && isWitherHead(head3)) {
+                addon.getBlockLimitListener().removeBlock(body);
+                addon.getBlockLimitListener().removeBlock(arm1);
+                addon.getBlockLimitListener().removeBlock(arm2);
+                addon.getBlockLimitListener().removeBlock(head);
+                addon.getBlockLimitListener().removeBlock(head2);
+                addon.getBlockLimitListener().removeBlock(head3);
+                body.setType(Material.AIR);
+                arm1.setType(Material.AIR);
+                arm2.setType(Material.AIR);
+                head.setType(Material.AIR);
+                head2.setType(Material.AIR);
+                head3.setType(Material.AIR);
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -432,25 +437,15 @@ public class EntityLimitListener implements Listener {
         if (ibc != null) {
             // Get the limit amount for this type
             limitAmount = ibc.getEntityLimit(entity.getType());
-            // Handle entity groups
-            List<EntityGroup> groupdefs = addon.getSettings().getGroupLimits().getOrDefault(entity.getType(),
-                    new ArrayList<>());
-            groupdefs.forEach(def -> {
-                int limit = ibc.getEntityGroupLimit(def.getName());
-                if (limit >= 0)
-                    groupsLimits.put(def, limit);
-            });
+            // Handle entity groups from island settings
+            collectIslandGroupLimits(ibc, entity, groupsLimits);
         }
         // If no island settings then try global settings
         if (limitAmount < 0 && addon.getSettings().getLimits().containsKey(entity.getType())) {
             limitAmount = addon.getSettings().getLimits().get(entity.getType());
         }
-        // Group limits
-        if (addon.getSettings().getGroupLimits().containsKey(entity.getType())) {
-            addon.getSettings().getGroupLimits().getOrDefault(entity.getType(), new ArrayList<>()).stream()
-                    .filter(group -> !groupsLimits.containsKey(group) || groupsLimits.get(group) > group.getLimit())
-                    .forEach(group -> groupsLimits.put(group, group.getLimit()));
-        }
+        // Apply global group limits where not already set by island settings
+        applyGlobalGroupLimits(entity, groupsLimits);
         if (limitAmount < 0 && groupsLimits.isEmpty()) {
             return new AtLimitResult();
         }
@@ -465,7 +460,31 @@ public class EntityLimitListener implements Listener {
                 return new AtLimitResult(entity.getType(), max);
             }
         }
-        // Group limits
+        // Update group limits from island-specific overrides
+        updateGroupLimitsFromIbc(ibc, groupsLimits);
+        // Now do the group limits
+        return checkGroupLimits(island, entity, ibc, groupsLimits);
+    }
+
+    private void collectIslandGroupLimits(IslandBlockCount ibc, Entity entity, Map<EntityGroup, Integer> groupsLimits) {
+        List<EntityGroup> groupdefs = addon.getSettings().getGroupLimits().getOrDefault(entity.getType(),
+                new ArrayList<>());
+        groupdefs.forEach(def -> {
+            int limit = ibc.getEntityGroupLimit(def.getName());
+            if (limit >= 0)
+                groupsLimits.put(def, limit);
+        });
+    }
+
+    private void applyGlobalGroupLimits(Entity entity, Map<EntityGroup, Integer> groupsLimits) {
+        if (addon.getSettings().getGroupLimits().containsKey(entity.getType())) {
+            addon.getSettings().getGroupLimits().getOrDefault(entity.getType(), new ArrayList<>()).stream()
+                    .filter(group -> !groupsLimits.containsKey(group) || groupsLimits.get(group) > group.getLimit())
+                    .forEach(group -> groupsLimits.put(group, group.getLimit()));
+        }
+    }
+
+    private void updateGroupLimitsFromIbc(@Nullable IslandBlockCount ibc, Map<EntityGroup, Integer> groupsLimits) {
         if (ibc != null) {
             Map<String, EntityGroup> groupbyname = groupsLimits.keySet().stream()
                     .collect(Collectors.toMap(EntityGroup::getName, e -> e));
@@ -473,17 +492,17 @@ public class EntityLimitListener implements Listener {
                     .filter(e -> groupbyname.containsKey(e.getKey()))
                     .forEach(e -> groupsLimits.put(groupbyname.get(e.getKey()), e.getValue()));
         }
-        // Now do the group limits
+    }
+
+    private AtLimitResult checkGroupLimits(Island island, Entity entity, @Nullable IslandBlockCount ibc,
+            Map<EntityGroup, Integer> groupsLimits) {
         for (Map.Entry<EntityGroup, Integer> group : groupsLimits.entrySet()) { //do not use lambda
             if (group.getValue() < 0)
                 continue;
-            //            int count = (int) ent.getWorld().getEntities().stream()
-            //                    .filter(e -> group.getKey().contains(e.getType()))
-            //                    .filter(e -> island.inIslandSpace(e.getLocation())).count();
             int count = (int) entity.getWorld().getNearbyEntities(island.getBoundingBox()).stream()
                     .filter(e -> group.getKey().contains(e.getType()))
                     .count();
-            int max = group.getValue() + +(ibc == null ? 0 : ibc.getEntityGroupLimitOffset(group.getKey().getName()));
+            int max = group.getValue() + (ibc == null ? 0 : ibc.getEntityGroupLimitOffset(group.getKey().getName()));
             if (count >= max) {
                 return new AtLimitResult(group.getKey(), max);
             }

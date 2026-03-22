@@ -9,6 +9,8 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.BooleanSupplier;
+import java.util.function.LongSupplier;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -298,26 +300,26 @@ public class RecountCalculator {
         // All done.
     }
 
-    public void scanIsland(Pipeliner pipeliner) {
+    public void scanIsland(LongSupplier startTime, Runnable onRemove, BooleanSupplier isCancelled, Runnable recurse) {
         // Scan the next chunk
         scanNextChunk().thenAccept(r -> {
             if (!Bukkit.isPrimaryThread()) {
                 addon.getPlugin().logError("scanChunk not on Primary Thread!");
             }
             // Timeout check
-            if (System.currentTimeMillis() - pipeliner.getInProcessQueue().get(this) > CALCULATION_TIMEOUT * 60000) {
+            if (System.currentTimeMillis() - startTime.getAsLong() > CALCULATION_TIMEOUT * 60000) {
                 // Done
-                pipeliner.getInProcessQueue().remove(this);
+                onRemove.run();
                 getR().complete(new Results(Result.TIMEOUT));
                 addon.logError("Level calculation timed out after " + CALCULATION_TIMEOUT + "m for island: " + getIsland());
                 return;
             }
-            if (Boolean.TRUE.equals(r) && !pipeliner.getTask().isCancelled()) {
+            if (Boolean.TRUE.equals(r) && !isCancelled.getAsBoolean()) {
                 // scanNextChunk returns true if there are more chunks to scan
-                scanIsland(pipeliner);
+                recurse.run();
             } else {
                 // Done
-                pipeliner.getInProcessQueue().remove(this);
+                onRemove.run();
                 // Chunk finished
                 // This was the last chunk
                 handleStackedBlocks();

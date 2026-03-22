@@ -1,10 +1,10 @@
 package world.bentobox.limits;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -24,7 +24,6 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.logging.Logger;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.UnsafeValues;
 import org.bukkit.World;
@@ -34,19 +33,19 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.eclipse.jdt.annotation.NonNull;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.mockito.stubbing.Answer;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
-import org.powermock.reflect.Whitebox;
 
 import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.Settings;
@@ -69,8 +68,8 @@ import world.bentobox.limits.mocks.ServerMocks;
  *
  */
 @SuppressWarnings("deprecation")
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({Bukkit.class, BentoBox.class, User.class})
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class LimitsTest {
     private static File jFile;
     @Mock
@@ -105,10 +104,12 @@ public class LimitsTest {
     @Mock
     private PluginManager pim;
 
-    
+
     private Limits addon;
 
-    @BeforeClass
+    private MockedStatic<BentoBox> mockedBentoBox;
+
+    @BeforeAll
     public static void beforeClass() throws Exception {
         cleanUp();
         // Make the addon jar
@@ -134,11 +135,13 @@ public class LimitsTest {
     /**
      * @throws java.lang.Exception
      */
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         Server server = ServerMocks.newServer();
+
         // Set up plugin
-        Whitebox.setInternalState(BentoBox.class, "instance", plugin);
+        mockedBentoBox = Mockito.mockStatic(BentoBox.class);
+        mockedBentoBox.when(BentoBox::getInstance).thenReturn(plugin);
         when(plugin.getLogger()).thenReturn(Logger.getAnonymousLogger());
 
         // The database type has to be created one line before the thenReturn() to work!
@@ -175,11 +178,16 @@ public class LimitsTest {
         // Return the reference (USE THIS IN THE FUTURE)
         when(user.getTranslation(Mockito.anyString())).thenAnswer((Answer<String>) invocation -> invocation.getArgument(0, String.class));
 
-        // Server
-        PowerMockito.mockStatic(Bukkit.class);
-        when(Bukkit.getServer()).thenReturn(server);
-        when(Bukkit.getLogger()).thenReturn(Logger.getAnonymousLogger());
-        when(Bukkit.getPluginManager()).thenReturn(mock(PluginManager.class));
+        // Server - stub via the Server mock instead of mockStatic(Bukkit.class)
+        when(server.getPluginManager()).thenReturn(pim);
+        when(server.getScheduler()).thenReturn(scheduler);
+        ItemMeta meta = mock(ItemMeta.class);
+        ItemFactory itemFactory = mock(ItemFactory.class);
+        when(itemFactory.getItemMeta(any())).thenReturn(meta);
+        when(server.getItemFactory()).thenReturn(itemFactory);
+        UnsafeValues unsafe = mock(UnsafeValues.class);
+        when(unsafe.getDataVersion()).thenReturn(777);
+        when(server.getUnsafe()).thenReturn(unsafe);
 
         // Addon
         addon = new Limits();
@@ -204,25 +212,13 @@ public class LimitsTest {
         // Admin command
         Optional<CompositeCommand> opAdminCmd = Optional.of(adminCmd);
         when(gameMode.getAdminCommand()).thenReturn(opAdminCmd);
-        
+
         // Perm prefix
         when(gameMode.getPermissionPrefix()).thenReturn("bskyblock.");
 
         // Flags manager
         when(plugin.getFlagsManager()).thenReturn(fm);
         when(fm.getFlags()).thenReturn(Collections.emptyList());
-
-
-        // Bukkit
-        when(Bukkit.getScheduler()).thenReturn(scheduler);
-        ItemMeta meta = mock(ItemMeta.class);
-        ItemFactory itemFactory = mock(ItemFactory.class);
-        when(itemFactory.getItemMeta(any())).thenReturn(meta);
-        when(Bukkit.getItemFactory()).thenReturn(itemFactory);
-        UnsafeValues unsafe = mock(UnsafeValues.class);
-        when(unsafe.getDataVersion()).thenReturn(777);
-        when(Bukkit.getUnsafe()).thenReturn(unsafe);
-        when(Bukkit.getPluginManager()).thenReturn(pim);
 
         // placeholders
         when(plugin.getPlaceholdersManager()).thenReturn(phm);
@@ -233,19 +229,22 @@ public class LimitsTest {
         when(island.getWorld()).thenReturn(world);
         when(island.getOwner()).thenReturn(uuid);
     }
-    
+
     /**
      * @throws java.lang.Exception
      */
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
+        if (mockedBentoBox != null) {
+            mockedBentoBox.close();
+        }
         ServerMocks.unsetBukkitServer();
         User.clearUsers();
         Mockito.framework().clearInlineMocks();
         deleteAll(new File("database"));
     }
 
-    @AfterClass
+    @AfterAll
     public static void cleanUp() throws Exception {
         new File("addon.jar").delete();
         new File("config.yml").delete();
@@ -269,7 +268,7 @@ public class LimitsTest {
         addon.onEnable();
         File f = new File("config.yml");
         assertTrue(f.exists());
-        
+
     }
 
     /**

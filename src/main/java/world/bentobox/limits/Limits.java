@@ -35,6 +35,7 @@ import world.bentobox.limits.objects.IslandBlockCount;
 public class Limits extends Addon {
 
     private static final String LIMIT_NOT_SET = "Limit not set";
+    private static final String ISLAND_PLACEHOLDER = "_island_";
     private Settings settings;
     private List<GameModeAddon> gameModes = new ArrayList<>();
     private BlockLimitsListener blockLimitListener;
@@ -185,25 +186,25 @@ public class Limits extends Addon {
      */
     private void registerCountAndLimitPlaceholders(NamespacedKey m, GameModeAddon gm) {
         getPlugin().getPlaceholdersManager().registerPlaceholder(this,
-                gm.getDescription().getName().toLowerCase() + "_island_" + m.toString().toLowerCase() + "_count",
+                gm.getDescription().getName().toLowerCase() + ISLAND_PLACEHOLDER + m.toString().toLowerCase() + "_count",
                 user -> String.valueOf(getCount(user, m, gm)));
         getPlugin().getPlaceholdersManager().registerPlaceholder(this,
-                gm.getDescription().getName().toLowerCase() + "_island_" + m.toString().toLowerCase() + "_limit",
+                gm.getDescription().getName().toLowerCase() + ISLAND_PLACEHOLDER + m.toString().toLowerCase() + "_limit",
                 user -> getLimit(user, m, gm));
         getPlugin().getPlaceholdersManager().registerPlaceholder(this,
-                gm.getDescription().getName().toLowerCase() + "_island_" + m.toString().toLowerCase() + "_base_limit",
+                gm.getDescription().getName().toLowerCase() + ISLAND_PLACEHOLDER + m.toString().toLowerCase() + "_base_limit",
                 user -> getBaseLimit(user, m, gm));
     }
 
     private void registerCountAndLimitPlaceholders(EntityType e, GameModeAddon gm) {
         getPlugin().getPlaceholdersManager().registerPlaceholder(this,
-                gm.getDescription().getName().toLowerCase() + "_island_" + e.toString().toLowerCase() + "_limit",
+                gm.getDescription().getName().toLowerCase() + ISLAND_PLACEHOLDER + e.toString().toLowerCase() + "_limit",
                 user -> getLimit(user, e, gm));
         getPlugin().getPlaceholdersManager().registerPlaceholder(this,
-                gm.getDescription().getName().toLowerCase() + "_island_" + e.toString().toLowerCase() + "_base_limit",
+                gm.getDescription().getName().toLowerCase() + ISLAND_PLACEHOLDER + e.toString().toLowerCase() + "_base_limit",
                 user -> getBaseLimit(user, e, gm));
         getPlugin().getPlaceholdersManager().registerPlaceholder(this,
-                gm.getDescription().getName().toLowerCase() + "_island_" + e.toString().toLowerCase() + "_count",
+                gm.getDescription().getName().toLowerCase() + ISLAND_PLACEHOLDER + e.toString().toLowerCase() + "_count",
                 user -> String.valueOf(getCount(user, e, gm)));
     }
 

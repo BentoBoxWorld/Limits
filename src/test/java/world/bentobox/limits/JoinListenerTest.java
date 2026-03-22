@@ -17,25 +17,25 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.Server;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.plugin.PluginManager;
 import org.eclipse.jdt.annotation.Nullable;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import world.bentobox.bentobox.api.addons.AddonDescription;
 import world.bentobox.bentobox.api.addons.GameModeAddon;
@@ -52,8 +52,8 @@ import world.bentobox.limits.objects.IslandBlockCount;
  * @author tastybento
  *
  */
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({ Bukkit.class })
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class JoinListenerTest {
 
     @Mock
@@ -80,9 +80,9 @@ public class JoinListenerTest {
     private PluginManager pim;
     private @Nullable UUID uuid = UUID.randomUUID();
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        ServerMocks.newServer();
+        Server server = ServerMocks.newServer();
         jl = new JoinListener(addon);
         // Setup addon
         when(addon.getGameModes()).thenReturn(Collections.singletonList(bskyblock));
@@ -113,17 +113,16 @@ public class JoinListenerTest {
         when(addon.getBlockLimitListener()).thenReturn(bll);
         when(bll.getIsland(anyString())).thenReturn(ibc);
 
-        // bukkit
-        PowerMockito.mockStatic(Bukkit.class);
+        // Bukkit - stub via Server mock instead of mockStatic
         // default is that owner is online
         when(owner.isOnline()).thenReturn(true);
         when(owner.getPlayer()).thenReturn(player);
-        when(Bukkit.getOfflinePlayer(any(UUID.class))).thenReturn(owner);
-        when(Bukkit.getPluginManager()).thenReturn(pim);
+        when(server.getOfflinePlayer(any(UUID.class))).thenReturn(owner);
+        when(server.getPluginManager()).thenReturn(pim);
 
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         ServerMocks.unsetBukkitServer();
     }

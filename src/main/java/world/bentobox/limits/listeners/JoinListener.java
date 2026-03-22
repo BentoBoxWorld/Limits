@@ -200,7 +200,24 @@ public class JoinListener implements Listener {
                 islandBlockCount.setEntityLimit(entityType, newLimit);
             }
         }
+    }
 
+    private void applyAmbiguousLimit(@NonNull IslandBlockCount islandBlockCount, EntityType entityType, Material material, int limitValue) {
+        if (material != null && material.isBlock()) {
+            int newLimit = Math.max(islandBlockCount.getBlockLimit(material.getKey()), limitValue);
+            logIfEnabled("Setting block limit " + material + " " + newLimit);
+            islandBlockCount.setBlockLimit(material.getKey(), newLimit);
+        } else if (entityType != null) {
+            int newLimit = Math.max(islandBlockCount.getEntityLimit(entityType), limitValue);
+            logIfEnabled("Setting entity limit " + entityType + " " + newLimit);
+            islandBlockCount.setEntityLimit(entityType, newLimit);
+        }
+    }
+
+    private void logIfEnabled(String message) {
+        if (addon.getSettings().isLogLimitsOnJoin()) {
+            addon.log(message);
+        }
     }
 
     /**
