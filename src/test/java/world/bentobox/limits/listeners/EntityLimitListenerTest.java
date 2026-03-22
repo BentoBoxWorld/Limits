@@ -1,8 +1,8 @@
 package world.bentobox.limits.listeners;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -19,21 +18,24 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.Settings;
 import world.bentobox.limits.listeners.EntityLimitListener.AtLimitResult;
+import world.bentobox.limits.mocks.ServerMocks;
 import world.bentobox.limits.objects.IslandBlockCount;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest( Bukkit.class )
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class EntityLimitListenerTest {
     @Mock
     private Limits addon;
@@ -52,8 +54,10 @@ public class EntityLimitListenerTest {
     private IslandBlockCount ibc;
 
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
+        ServerMocks.newServer();
+
         // Entity
         when(ent.getType()).thenReturn(EntityType.ENDERMAN);
         when(ent.getLocation()).thenReturn(location);
@@ -82,6 +86,11 @@ public class EntityLimitListenerTest {
         when(world.getNearbyEntities(any())).thenReturn(collection);
 
         ell = new EntityLimitListener(addon);
+    }
+
+    @AfterEach
+    public void tearDown() {
+        ServerMocks.unsetBukkitServer();
     }
 
     /**
