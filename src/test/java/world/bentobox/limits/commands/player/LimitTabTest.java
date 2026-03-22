@@ -1,7 +1,7 @@
 package world.bentobox.limits.commands.player;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -9,29 +9,30 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.managers.IslandWorldManager;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.Settings;
+import world.bentobox.limits.mocks.ServerMocks;
 import world.bentobox.limits.objects.IslandBlockCount;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest( Bukkit.class )
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class LimitTabTest {
 
     @Mock
@@ -54,8 +55,10 @@ public class LimitTabTest {
     @Mock
     private Settings settings;
 
-    @Before
+    @BeforeEach
     public void setUp() {
+        ServerMocks.newServer();
+
         // Island
         when(island.getWorld()).thenReturn(world);
         // Addon
@@ -77,12 +80,13 @@ public class LimitTabTest {
         lp = new LimitTab(addon, new IslandBlockCount("", ""), Collections.emptyMap(), island, world, null, LimitTab.SORT_BY.A2Z);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
+        ServerMocks.unsetBukkitServer();
     }
 
     @Test
-    @Ignore
+    @Disabled
     public void testShowLimits() {
         fail("Not yet implemented");
     }
