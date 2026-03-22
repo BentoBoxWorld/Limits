@@ -49,11 +49,11 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <!-- Non-minecraft related dependencies -->
         <powermock.version>2.0.9</powermock.version>
         <!-- More visible way how to change dependency versions -->
-        <spigot.version>1.21.8-R0.1-SNAPSHOT</spigot.version>
+        <spigot.version>1.21.11-R0.1-SNAPSHOT</spigot.version>
         <bentobox.version>2.7.1-SNAPSHOT</bentobox.version>
         <!-- Revision variable removes warning about dynamic version -->
         <revision>${build.version}-SNAPSHOT</revision>
@@ -160,13 +160,11 @@
             <version>${bentobox.version}</version>
             <scope>provided</scope>
         </dependency>
-        <!-- Paper API - optional, for Paper-specific events like ShulkerDuplicateEvent.
-             Must be a version compiled for Java 17 (1.20.4 and earlier); Paper 1.20.6+
-             targets Java 21, incompatible with this project's release 17 setting. -->
+        <!-- Paper API - optional, for Paper-specific events like ShulkerDuplicateEvent. -->
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>1.20.4-R0.1-SNAPSHOT</version>
+            <version>1.21.4-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
@@ -295,7 +293,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.7.0</version>
+                <version>3.13.0</version>
                 <configuration>
                     <release>${java.version}</release>
                 </configuration>
