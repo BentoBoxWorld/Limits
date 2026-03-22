@@ -142,6 +142,10 @@ public class BlockLimitsListener implements Listener {
             if (key.contains(":")) {
                 // Config already has a full namespaced key
                 nsKey = NamespacedKey.fromString(key.toLowerCase(Locale.ROOT));
+                if (nsKey == null) {
+                    Bukkit.getLogger().warning("Invalid namespaced key in config, skipping: " + key);
+                    continue;
+                }
             } else {
                 // Assume "minecraft" namespace if none provided
                 nsKey = new NamespacedKey(NamespacedKey.MINECRAFT, key.toLowerCase(Locale.ROOT));
