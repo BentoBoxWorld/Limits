@@ -129,11 +129,7 @@ public class JoinListenerTest {
     @AfterEach
     public void tearDown() {
         mockedBukkit.close();
-<<<<<<< develop
-        ServerMocks.unsetBukkitServer();
-=======
         MockBukkit.unmock();
->>>>>>> master
     }
 
     /**
