@@ -55,7 +55,11 @@
         <junit.version>5.12.1</junit.version>
         <byte-buddy.version>1.17.5</byte-buddy.version>
         <!-- More visible way how to change dependency versions -->
+<<<<<<< develop
         <spigot.version>1.21.11-R0.1-SNAPSHOT</spigot.version>
+=======
+        <paper.version>1.21.11-R0.1-SNAPSHOT</paper.version>
+>>>>>>> master
         <bentobox.version>2.7.1-SNAPSHOT</bentobox.version>
         <!-- Revision variable removes warning about dynamic version -->
         <revision>${build.version}-SNAPSHOT</revision>
@@ -111,9 +115,13 @@
     </profiles>
 
     <repositories>
+        <!-- jitpack first so MockBukkit snapshots resolve without hitting other repos -->
         <repository>
-            <id>spigot-repo</id>
-            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots</url>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
         </repository>
         <repository>
             <id>bentoboxworld</id>
@@ -130,11 +138,23 @@
     </repositories>
 
     <dependencies>
-        <!-- Spigot API -->
         <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>spigot-api</artifactId>
-            <version>${spigot.version}</version>
+            <groupId>com.github.MockBukkit</groupId>
+            <artifactId>MockBukkit</artifactId>
+            <version>v1.21-SNAPSHOT</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.junit.jupiter</groupId>
+                    <artifactId>junit-jupiter-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!-- Paper API -->
+        <dependency>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+            <version>${paper.version}</version>
             <scope>provided</scope>
         </dependency>
         <!-- JUnit 5 -->
@@ -176,6 +196,7 @@
             <version>${bentobox.version}</version>
             <scope>provided</scope>
         </dependency>
+<<<<<<< develop
         <!-- Paper API - optional, for Paper-specific events like ShulkerDuplicateEvent. -->
         <dependency>
             <groupId>io.papermc.paper</groupId>
@@ -184,6 +205,8 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
+=======
+>>>>>>> master
     </dependencies>
 
     <build>
@@ -227,6 +250,7 @@
                 <configuration>
                     <argLine>
                         ${argLine}
+                        -XX:+EnableDynamicAgentLoading
                         --add-opens java.base/java.lang=ALL-UNNAMED
                         --add-opens java.base/java.math=ALL-UNNAMED
                         --add-opens java.base/java.io=ALL-UNNAMED
@@ -309,9 +333,18 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+<<<<<<< develop
                 <version>3.13.0</version>
+=======
+                <version>3.14.1</version>
+>>>>>>> master
                 <configuration>
                     <release>${java.version}</release>
+                    <fork>true</fork>
+                    <compilerArgs>
+                        <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
+                        <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
         </plugins>

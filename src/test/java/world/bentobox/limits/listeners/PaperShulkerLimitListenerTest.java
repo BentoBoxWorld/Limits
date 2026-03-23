@@ -27,7 +27,7 @@ import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.managers.IslandsManager;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.listeners.EntityLimitListener.AtLimitResult;
-import world.bentobox.limits.mocks.ServerMocks;
+import org.mockbukkit.mockbukkit.MockBukkit;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -54,7 +54,7 @@ public class PaperShulkerLimitListenerTest {
 
     @BeforeEach
     void setUp() {
-        ServerMocks.newServer();
+        MockBukkit.mock();
 
         when(event.getEntity()).thenReturn(shulker);
         when(shulker.getWorld()).thenReturn(world);
@@ -69,7 +69,7 @@ public class PaperShulkerLimitListenerTest {
 
     @AfterEach
     void tearDown() {
-        ServerMocks.unsetBukkitServer();
+        MockBukkit.unmock();
     }
 
     @Test
