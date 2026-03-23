@@ -31,7 +31,7 @@ import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.Settings;
 import world.bentobox.limits.listeners.EntityLimitListener.AtLimitResult;
-import world.bentobox.limits.mocks.ServerMocks;
+import org.mockbukkit.mockbukkit.MockBukkit;
 import world.bentobox.limits.objects.IslandBlockCount;
 
 @ExtendWith(MockitoExtension.class)
@@ -56,7 +56,7 @@ public class EntityLimitListenerTest {
 
     @BeforeEach
     public void setUp() throws Exception {
-        ServerMocks.newServer();
+        MockBukkit.mock();
 
         // Entity
         when(ent.getType()).thenReturn(EntityType.ENDERMAN);
@@ -90,7 +90,7 @@ public class EntityLimitListenerTest {
 
     @AfterEach
     public void tearDown() {
-        ServerMocks.unsetBukkitServer();
+        MockBukkit.unmock();
     }
 
     /**

@@ -17,10 +17,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.Server;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -32,6 +32,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -45,7 +46,7 @@ import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.managers.IslandsManager;
 import world.bentobox.limits.listeners.BlockLimitsListener;
 import world.bentobox.limits.listeners.JoinListener;
-import world.bentobox.limits.mocks.ServerMocks;
+import org.mockbukkit.mockbukkit.MockBukkit;
 import world.bentobox.limits.objects.IslandBlockCount;
 
 /**
@@ -80,9 +81,11 @@ public class JoinListenerTest {
     private PluginManager pim;
     private @Nullable UUID uuid = UUID.randomUUID();
 
+    private MockedStatic<Bukkit> mockedBukkit;
+
     @BeforeEach
     public void setUp() {
-        Server server = ServerMocks.newServer();
+        MockBukkit.mock();
         jl = new JoinListener(addon);
         // Setup addon
         when(addon.getGameModes()).thenReturn(Collections.singletonList(bskyblock));
@@ -113,18 +116,20 @@ public class JoinListenerTest {
         when(addon.getBlockLimitListener()).thenReturn(bll);
         when(bll.getIsland(anyString())).thenReturn(ibc);
 
-        // Bukkit - stub via Server mock instead of mockStatic
+        // bukkit
+        mockedBukkit = Mockito.mockStatic(Bukkit.class);
         // default is that owner is online
         when(owner.isOnline()).thenReturn(true);
         when(owner.getPlayer()).thenReturn(player);
-        when(server.getOfflinePlayer(any(UUID.class))).thenReturn(owner);
-        when(server.getPluginManager()).thenReturn(pim);
+        mockedBukkit.when(() -> Bukkit.getOfflinePlayer(any(UUID.class))).thenReturn(owner);
+        mockedBukkit.when(() -> Bukkit.getPluginManager()).thenReturn(pim);
 
     }
 
     @AfterEach
     public void tearDown() {
-        ServerMocks.unsetBukkitServer();
+        mockedBukkit.close();
+        MockBukkit.unmock();
     }
 
     /**

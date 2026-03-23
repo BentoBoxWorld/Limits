@@ -40,7 +40,7 @@ import world.bentobox.bentobox.Settings;
 import world.bentobox.bentobox.database.Database;
 import world.bentobox.bentobox.database.DatabaseSetup.DatabaseType;
 import world.bentobox.limits.Limits;
-import world.bentobox.limits.mocks.ServerMocks;
+import org.mockbukkit.mockbukkit.MockBukkit;
 import world.bentobox.limits.objects.IslandBlockCount;
 
 @ExtendWith(MockitoExtension.class)
@@ -67,7 +67,7 @@ public class BlockLimitsListenerTest {
     @SuppressWarnings("unchecked")
     @BeforeEach
     public void setUp() throws Exception {
-        ServerMocks.newServer();
+        MockBukkit.mock();
 
         // Set up BentoBox static mock so Database class can initialize
         mockedBentoBox = Mockito.mockStatic(BentoBox.class);
@@ -100,7 +100,7 @@ public class BlockLimitsListenerTest {
         if (mockedBentoBox != null) {
             mockedBentoBox.close();
         }
-        ServerMocks.unsetBukkitServer();
+        MockBukkit.unmock();
     }
 
     // --- fixMaterial tests ---

@@ -129,7 +129,10 @@ public class IslandBlockCount implements DataObject {
      * @return the blockLimits
      */
     public Map<NamespacedKey, Integer> getBlockLimits() {
-        return Objects.requireNonNullElse(blockLimits, new HashMap<>());
+        if (blockLimits == null) {
+            blockLimits = new HashMap<>();
+        }
+        return blockLimits;
     }
 
     /**
@@ -276,12 +279,17 @@ public class IslandBlockCount implements DataObject {
      * @param material - material
      */
     public void remove(NamespacedKey material) {
-         // Otherwise, decrement/remove individual block
+        // Check if this material is currently tracked
+        boolean existed = getBlockCounts().containsKey(material);
+        // Otherwise, decrement/remove individual block
         getBlockCounts().computeIfPresent(material, (m, count) -> {
             int newCount = count - 1;
             return (newCount > 0) ? newCount : null; // null removes the entry
         });
-
+        // Mark this object as changed only if a modification actually occurred
+        if (existed) {
+            setChanged();
+        }
     }
 
     /**

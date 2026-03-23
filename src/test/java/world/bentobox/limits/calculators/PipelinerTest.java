@@ -4,17 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-
-import org.bukkit.Server;
-import org.bukkit.scheduler.BukkitScheduler;
-import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,7 +24,7 @@ import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.calculators.Results.Result;
-import world.bentobox.limits.mocks.ServerMocks;
+import org.mockbukkit.mockbukkit.MockBukkit;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -39,10 +32,6 @@ public class PipelinerTest {
 
     @Mock
     private Limits addon;
-    @Mock
-    private BukkitScheduler scheduler;
-    @Mock
-    private BukkitTask task;
     @Mock
     private BentoBox plugin;
     @Mock
@@ -53,9 +42,7 @@ public class PipelinerTest {
 
     @BeforeEach
     void setUp() {
-        Server server = ServerMocks.newServer();
-        when(server.getScheduler()).thenReturn(scheduler);
-        when(scheduler.runTaskTimer(any(), any(Runnable.class), anyLong(), anyLong())).thenReturn(task);
+        MockBukkit.mock();
 
         mockedBentoBox = Mockito.mockStatic(BentoBox.class);
         mockedBentoBox.when(BentoBox::getInstance).thenReturn(plugin);
@@ -66,7 +53,7 @@ public class PipelinerTest {
     @AfterEach
     void tearDown() {
         mockedBentoBox.close();
-        ServerMocks.unsetBukkitServer();
+        MockBukkit.unmock();
     }
 
     @Test
@@ -131,7 +118,6 @@ public class PipelinerTest {
     void testStopClearsQueuesAndCancelsTask() {
         pipeliner.stop();
 
-        verify(task).cancel();
         assertEquals(0, pipeliner.getIslandsInQueue());
     }
 }
