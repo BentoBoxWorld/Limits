@@ -288,10 +288,17 @@ public class BlockLimitsListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockFormEvent e) {
-        // Remove the old block state count (e.g., COPPER_CHEST before oxidation)
+        // EntityBlockFormEvent extends BlockFormEvent; skip here to avoid double-processing
+        if (e instanceof EntityBlockFormEvent) {
+            return;
+        }
+        // Remove the old block state count
         process(e.getBlock(), false);
-        // Add the new block state count (e.g., EXPOSED_COPPER_CHEST after oxidation)
-        process(e.getBlock(), e.getNewState().getBlockData(), true);
+        // Add the new block state count; cancel if the new state exceeds its limit
+        if (process(e.getBlock(), e.getNewState().getBlockData(), true) > -1) {
+            e.setCancelled(true);
+            process(e.getBlock(), true); // Restore old count
+        }
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
@@ -301,7 +308,13 @@ public class BlockLimitsListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(EntityBlockFormEvent e) {
-        process(e.getBlock(), true);
+        // Remove the old block state count
+        process(e.getBlock(), false);
+        // Add the new block state count; cancel if the new state exceeds its limit
+        if (process(e.getBlock(), e.getNewState().getBlockData(), true) > -1) {
+            e.setCancelled(true);
+            process(e.getBlock(), true); // Restore old count
+        }
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
@@ -327,6 +340,11 @@ public class BlockLimitsListener implements Listener {
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(EntityChangeBlockEvent e) {
         process(e.getBlock(), false);
+        // Track new block state when entity changes a block to a non-AIR material
+        // (e.g., copper golem creation transforming a copper block into a copper chest)
+        if (e.getTo() != Material.AIR) {
+            process(e.getBlock(), e.getBlockData(), true);
+        }
         if (e.getBlock().getType().equals(Material.FARMLAND)) {
             process(e.getBlock().getRelative(BlockFace.UP), false);
         }
@@ -357,6 +375,8 @@ public class BlockLimitsListener implements Listener {
             return Material.REDSTONE_TORCH.getKey();
         } else if (mat == Material.WALL_TORCH) {
             return Material.TORCH.getKey();
+        } else if (mat == Material.COPPER_WALL_TORCH) {
+            return Material.COPPER_TORCH.getKey();
         } else if (mat == Material.ZOMBIE_WALL_HEAD) {
             return Material.ZOMBIE_HEAD.getKey();
         } else if (mat == Material.CREEPER_WALL_HEAD) {
@@ -374,6 +394,11 @@ public class BlockLimitsListener implements Listener {
             } else {
                 return Material.STICKY_PISTON.getKey();
             }
+        } else if (mat == Material.EXPOSED_COPPER_CHEST || mat == Material.WEATHERED_COPPER_CHEST
+                || mat == Material.OXIDIZED_COPPER_CHEST || mat == Material.WAXED_COPPER_CHEST
+                || mat == Material.WAXED_EXPOSED_COPPER_CHEST || mat == Material.WAXED_WEATHERED_COPPER_CHEST
+                || mat == Material.WAXED_OXIDIZED_COPPER_CHEST) {
+            return Material.COPPER_CHEST.getKey();
         }
         return mat.getKey();
     }

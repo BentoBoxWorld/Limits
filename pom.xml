@@ -55,11 +55,7 @@
         <junit.version>5.12.1</junit.version>
         <byte-buddy.version>1.17.5</byte-buddy.version>
         <!-- More visible way how to change dependency versions -->
-<<<<<<< develop
-        <spigot.version>1.21.11-R0.1-SNAPSHOT</spigot.version>
-=======
         <paper.version>1.21.11-R0.1-SNAPSHOT</paper.version>
->>>>>>> master
         <bentobox.version>2.7.1-SNAPSHOT</bentobox.version>
         <!-- Revision variable removes warning about dynamic version -->
         <revision>${build.version}-SNAPSHOT</revision>
@@ -196,17 +192,6 @@
             <version>${bentobox.version}</version>
             <scope>provided</scope>
         </dependency>
-<<<<<<< develop
-        <!-- Paper API - optional, for Paper-specific events like ShulkerDuplicateEvent. -->
-        <dependency>
-            <groupId>io.papermc.paper</groupId>
-            <artifactId>paper-api</artifactId>
-            <version>1.21.4-R0.1-SNAPSHOT</version>
-            <scope>provided</scope>
-            <optional>true</optional>
-        </dependency>
-=======
->>>>>>> master
     </dependencies>
 
     <build>
@@ -333,11 +318,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-<<<<<<< develop
-                <version>3.13.0</version>
-=======
                 <version>3.14.1</version>
->>>>>>> master
                 <configuration>
                     <release>${java.version}</release>
                     <fork>true</fork>

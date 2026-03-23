@@ -170,6 +170,69 @@ public class BlockLimitsListenerTest {
         assertEquals(Material.STONE.getKey(), listener.fixMaterial(blockData));
     }
 
+    @Test
+    public void testFixMaterialCopperWallTorch() {
+        BlockData blockData = mock(BlockData.class);
+        when(blockData.getMaterial()).thenReturn(Material.COPPER_WALL_TORCH);
+        assertEquals(Material.COPPER_TORCH.getKey(), listener.fixMaterial(blockData));
+    }
+
+    @Test
+    public void testFixMaterialExposedCopperChest() {
+        BlockData blockData = mock(BlockData.class);
+        when(blockData.getMaterial()).thenReturn(Material.EXPOSED_COPPER_CHEST);
+        assertEquals(Material.COPPER_CHEST.getKey(), listener.fixMaterial(blockData));
+    }
+
+    @Test
+    public void testFixMaterialWeatheredCopperChest() {
+        BlockData blockData = mock(BlockData.class);
+        when(blockData.getMaterial()).thenReturn(Material.WEATHERED_COPPER_CHEST);
+        assertEquals(Material.COPPER_CHEST.getKey(), listener.fixMaterial(blockData));
+    }
+
+    @Test
+    public void testFixMaterialOxidizedCopperChest() {
+        BlockData blockData = mock(BlockData.class);
+        when(blockData.getMaterial()).thenReturn(Material.OXIDIZED_COPPER_CHEST);
+        assertEquals(Material.COPPER_CHEST.getKey(), listener.fixMaterial(blockData));
+    }
+
+    @Test
+    public void testFixMaterialWaxedCopperChest() {
+        BlockData blockData = mock(BlockData.class);
+        when(blockData.getMaterial()).thenReturn(Material.WAXED_COPPER_CHEST);
+        assertEquals(Material.COPPER_CHEST.getKey(), listener.fixMaterial(blockData));
+    }
+
+    @Test
+    public void testFixMaterialWaxedExposedCopperChest() {
+        BlockData blockData = mock(BlockData.class);
+        when(blockData.getMaterial()).thenReturn(Material.WAXED_EXPOSED_COPPER_CHEST);
+        assertEquals(Material.COPPER_CHEST.getKey(), listener.fixMaterial(blockData));
+    }
+
+    @Test
+    public void testFixMaterialWaxedWeatheredCopperChest() {
+        BlockData blockData = mock(BlockData.class);
+        when(blockData.getMaterial()).thenReturn(Material.WAXED_WEATHERED_COPPER_CHEST);
+        assertEquals(Material.COPPER_CHEST.getKey(), listener.fixMaterial(blockData));
+    }
+
+    @Test
+    public void testFixMaterialWaxedOxidizedCopperChest() {
+        BlockData blockData = mock(BlockData.class);
+        when(blockData.getMaterial()).thenReturn(Material.WAXED_OXIDIZED_COPPER_CHEST);
+        assertEquals(Material.COPPER_CHEST.getKey(), listener.fixMaterial(blockData));
+    }
+
+    @Test
+    public void testFixMaterialCopperChestUnchanged() {
+        BlockData blockData = mock(BlockData.class);
+        when(blockData.getMaterial()).thenReturn(Material.COPPER_CHEST);
+        assertEquals(Material.COPPER_CHEST.getKey(), listener.fixMaterial(blockData));
+    }
+
     // --- setIsland / getIsland tests ---
 
     @Test
