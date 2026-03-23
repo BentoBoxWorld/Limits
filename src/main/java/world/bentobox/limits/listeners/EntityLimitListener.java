@@ -125,7 +125,7 @@ public class EntityLimitListener implements Listener {
             return;
         }
         // Some checks can be done async, some not
-        if (creatureSpawnEvent.getSpawnReason().equals(SpawnReason.BUILD_SNOWMAN) || creatureSpawnEvent.getSpawnReason().equals(SpawnReason.BUILD_IRONGOLEM)) {
+        if (creatureSpawnEvent.getSpawnReason().equals(SpawnReason.BUILD_SNOWMAN) || creatureSpawnEvent.getSpawnReason().equals(SpawnReason.BUILD_IRONGOLEM) || creatureSpawnEvent.getSpawnReason().equals(SpawnReason.BUILD_COPPERGOLEM)) {
             checkLimit(creatureSpawnEvent, creatureSpawnEvent.getEntity(), creatureSpawnEvent.getSpawnReason(), addon.getSettings().isAsyncGolums());
         } else {
             // Check limit sync
