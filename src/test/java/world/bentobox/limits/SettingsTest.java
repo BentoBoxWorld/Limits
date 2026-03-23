@@ -26,7 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-import world.bentobox.limits.mocks.ServerMocks;
+import org.mockbukkit.mockbukkit.MockBukkit;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -40,7 +40,7 @@ public class SettingsTest {
 
     @BeforeEach
     public void setUp() throws Exception {
-        ServerMocks.newServer();
+        MockBukkit.mock();
 
         config = new YamlConfiguration();
         config.load("src/main/resources/config.yml");
@@ -53,7 +53,7 @@ public class SettingsTest {
 
     @AfterEach
     public void tearDown() {
-        ServerMocks.unsetBukkitServer();
+        MockBukkit.unmock();
     }
 
     @Test

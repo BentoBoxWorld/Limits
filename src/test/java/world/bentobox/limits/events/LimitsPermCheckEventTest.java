@@ -18,7 +18,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import world.bentobox.limits.EntityGroup;
-import world.bentobox.limits.mocks.ServerMocks;
+import org.mockbukkit.mockbukkit.MockBukkit;
 import world.bentobox.limits.objects.IslandBlockCount;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,7 +34,7 @@ public class LimitsPermCheckEventTest {
 
     @BeforeEach
     public void setUp() {
-        ServerMocks.newServer();
+        MockBukkit.mock();
         ibc = new IslandBlockCount("island1", "BSkyBlock");
         entityGroup = new EntityGroup("monsters", Set.of(EntityType.ZOMBIE), 10, Material.ZOMBIE_HEAD);
         event = new LimitsPermCheckEvent(player, "island1", ibc, entityGroup, EntityType.ZOMBIE, Material.STONE, 42);
@@ -42,7 +42,7 @@ public class LimitsPermCheckEventTest {
 
     @AfterEach
     public void tearDown() {
-        ServerMocks.unsetBukkitServer();
+        MockBukkit.unmock();
     }
 
     @Test

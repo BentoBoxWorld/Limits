@@ -28,7 +28,7 @@ import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.managers.IslandWorldManager;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.Settings;
-import world.bentobox.limits.mocks.ServerMocks;
+import org.mockbukkit.mockbukkit.MockBukkit;
 import world.bentobox.limits.objects.IslandBlockCount;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,7 +57,7 @@ public class LimitTabTest {
 
     @BeforeEach
     public void setUp() {
-        ServerMocks.newServer();
+        MockBukkit.mock();
 
         // Island
         when(island.getWorld()).thenReturn(world);
@@ -82,7 +82,7 @@ public class LimitTabTest {
 
     @AfterEach
     public void tearDown() {
-        ServerMocks.unsetBukkitServer();
+        MockBukkit.unmock();
     }
 
     @Test
