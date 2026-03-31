@@ -34,6 +34,7 @@ import org.bukkit.block.data.type.TechnicalPiston;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.ExplosionResult;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -42,10 +43,12 @@ import org.bukkit.event.block.BlockFadeEvent;
 import org.bukkit.event.block.BlockFormEvent;
 import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockMultiPlaceEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.block.EntityBlockFormEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -608,6 +611,175 @@ public class BlockLimitsListenerTest {
 
         // No island count should be created since the handler skipped processing
         verify(islandsManager, never()).getIslandAt(any(Location.class));
+    }
+
+    // --- Block cascade tests ---
+
+    @Test
+    public void testBlockBreakSugarCaneCascade() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.SUGAR_CANE.getKey());
+        ibc.add(Material.SUGAR_CANE.getKey());
+        ibc.add(Material.SUGAR_CANE.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        when(world.getMaxHeight()).thenReturn(320);
+
+        Block bottomBlock = mockBlock(Material.SUGAR_CANE, new Location(world, 100, 65, 100));
+        when(bottomBlock.getY()).thenReturn(65);
+        Block midBlock = mockBlock(Material.SUGAR_CANE, new Location(world, 100, 66, 100));
+        when(midBlock.getY()).thenReturn(66);
+        Block topBlock = mockBlock(Material.SUGAR_CANE, new Location(world, 100, 67, 100));
+        when(topBlock.getY()).thenReturn(67);
+
+        // Wire the chain: bottom → mid → top → air (default from mockBlock)
+        when(bottomBlock.getRelative(BlockFace.UP)).thenReturn(midBlock);
+        when(midBlock.getRelative(BlockFace.UP)).thenReturn(topBlock);
+        // topBlock.getRelative(UP) already returns airBlock from mockBlock helper
+
+        BlockBreakEvent event = new BlockBreakEvent(bottomBlock, player);
+        listener.onBlock(event);
+
+        assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.SUGAR_CANE.getKey()));
+    }
+
+    @Test
+    public void testBlockBreakBambooCascade() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.BAMBOO.getKey());
+        ibc.add(Material.BAMBOO.getKey());
+        ibc.add(Material.BAMBOO.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        when(world.getMaxHeight()).thenReturn(320);
+
+        Block bottomBlock = mockBlock(Material.BAMBOO, new Location(world, 100, 65, 100));
+        when(bottomBlock.getY()).thenReturn(65);
+        Block midBlock = mockBlock(Material.BAMBOO, new Location(world, 100, 66, 100));
+        when(midBlock.getY()).thenReturn(66);
+        Block topBlock = mockBlock(Material.BAMBOO, new Location(world, 100, 67, 100));
+        when(topBlock.getY()).thenReturn(67);
+
+        when(bottomBlock.getRelative(BlockFace.UP)).thenReturn(midBlock);
+        when(midBlock.getRelative(BlockFace.UP)).thenReturn(topBlock);
+
+        BlockBreakEvent event = new BlockBreakEvent(bottomBlock, player);
+        listener.onBlock(event);
+
+        assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.BAMBOO.getKey()));
+    }
+
+    @Test
+    public void testBlockBreakRedstoneOnTopRemoved() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.STONE.getKey());
+        ibc.add(Material.REDSTONE_WIRE.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block stoneBlock = mockBlock(Material.STONE, blockLocation);
+        Block redstoneBlock = mockBlock(Material.REDSTONE_WIRE, new Location(world, 100, 66, 100));
+        when(stoneBlock.getRelative(BlockFace.UP)).thenReturn(redstoneBlock);
+
+        BlockBreakEvent event = new BlockBreakEvent(stoneBlock, player);
+        listener.onBlock(event);
+
+        assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.STONE.getKey()));
+        assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.REDSTONE_WIRE.getKey()));
+    }
+
+    @Test
+    public void testBlockBreakRedstoneWallTorchOnSideRemoved() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.STONE.getKey());
+        // fixMaterial normalises REDSTONE_WALL_TORCH → REDSTONE_TORCH
+        ibc.add(Material.REDSTONE_TORCH.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block stoneBlock = mockBlock(Material.STONE, blockLocation);
+        Block wallTorchBlock = mockBlock(Material.REDSTONE_WALL_TORCH, new Location(world, 101, 65, 100));
+        when(stoneBlock.getRelative(BlockFace.EAST)).thenReturn(wallTorchBlock);
+
+        BlockBreakEvent event = new BlockBreakEvent(stoneBlock, player);
+        listener.onBlock(event);
+
+        assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.STONE.getKey()));
+        assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.REDSTONE_TORCH.getKey()));
+    }
+
+    // --- Center block test ---
+
+    @Test
+    public void testBlockPlaceCenterBlockIgnored() {
+        // Make the block location equal to the island center
+        when(island.getCenter()).thenReturn(blockLocation);
+
+        Block block = mockBlock(Material.STONE, blockLocation);
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block, new ItemStack(Material.STONE), player, true, EquipmentSlot.HAND);
+
+        listener.onBlock(event);
+
+        // Center block is ignored, so no island count entry should be created
+        assertNull(listener.getIsland("test-island-id"));
+    }
+
+    // --- Turtle egg physical interaction test ---
+
+    @Test
+    public void testTurtleEggPhysicalBreakDecrementsCount() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.TURTLE_EGG.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.TURTLE_EGG, blockLocation);
+        PlayerInteractEvent event = new PlayerInteractEvent(player, Action.PHYSICAL, null, block, BlockFace.UP);
+
+        listener.onTurtleEggBreak(event);
+
+        assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.TURTLE_EGG.getKey()));
+    }
+
+    // --- Explosion tests ---
+
+    @Test
+    public void testBlockExplodeDecrementsBatch() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.STONE.getKey());
+        ibc.add(Material.STONE.getKey());
+        ibc.add(Material.STONE.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        List<Block> blocks = List.of(
+                mockBlock(Material.STONE, new Location(world, 100, 65, 100)),
+                mockBlock(Material.STONE, new Location(world, 101, 65, 100)),
+                mockBlock(Material.STONE, new Location(world, 102, 65, 100)));
+        Block sourceBlock = mockBlock(Material.AIR, blockLocation);
+        BlockState blockState = mock(BlockState.class);
+        BlockExplodeEvent event = new BlockExplodeEvent(sourceBlock, blockState, blocks, 1.0f, ExplosionResult.DESTROY);
+
+        listener.onBlock(event);
+
+        assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.STONE.getKey()));
+    }
+
+    @Test
+    public void testEntityExplodeDecrementsBatch() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.STONE.getKey());
+        ibc.add(Material.STONE.getKey());
+        ibc.add(Material.STONE.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        List<Block> blocks = List.of(
+                mockBlock(Material.STONE, new Location(world, 100, 65, 100)),
+                mockBlock(Material.STONE, new Location(world, 101, 65, 100)),
+                mockBlock(Material.STONE, new Location(world, 102, 65, 100)));
+        Entity entity = mock(Entity.class);
+        EntityExplodeEvent event = new EntityExplodeEvent(entity, blockLocation, blocks, 1.0f, ExplosionResult.DESTROY);
+
+        listener.onBlock(event);
+
+        assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.STONE.getKey()));
     }
 
     // --- IslandDeleteEvent tests ---
