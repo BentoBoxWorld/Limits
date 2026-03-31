@@ -5,10 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.bukkit.Location;
@@ -28,6 +30,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import world.bentobox.bentobox.database.objects.Island;
+import world.bentobox.bentobox.managers.IslandsManager;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.Settings;
 import world.bentobox.limits.listeners.EntityLimitListener.AtLimitResult;
@@ -48,6 +51,8 @@ public class EntityLimitListenerTest {
     private BlockLimitsListener bll;
     @Mock
     private World world;
+    @Mock
+    private IslandsManager islandsManager;
     private List<Entity> collection;
     @Mock
     private Location location;
@@ -84,6 +89,14 @@ public class EntityLimitListenerTest {
         collection.add(ent);
         collection.add(ent);
         when(world.getNearbyEntities(any())).thenReturn(collection);
+
+        // Enable game mode world and islands manager for event handler tests
+        when(addon.inGameModeWorld(world)).thenReturn(true);
+        when(addon.getIslands()).thenReturn(islandsManager);
+        when(islandsManager.getIslandAt(any(Location.class))).thenReturn(Optional.of(island));
+        when(island.getUniqueId()).thenReturn("test-island-id");
+        when(island.isSpawn()).thenReturn(false);
+        when(addon.getGameModeName(world)).thenReturn("BSkyBlock");
 
         ell = new EntityLimitListener(addon);
     }
@@ -151,5 +164,15 @@ public class EntityLimitListenerTest {
 
     }
 
+    // --- helper methods ---
+
+    private LivingEntity mockEntity(EntityType type, Location location) {
+        LivingEntity entity = mock(LivingEntity.class);
+        when(entity.getType()).thenReturn(type);
+        when(entity.getLocation()).thenReturn(location);
+        when(entity.getWorld()).thenReturn(world);
+        when(entity.getUniqueId()).thenReturn(UUID.randomUUID());
+        return entity;
+    }
 
 }

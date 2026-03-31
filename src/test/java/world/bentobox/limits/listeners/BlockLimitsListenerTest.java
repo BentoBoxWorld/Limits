@@ -14,11 +14,14 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Logger;
 
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.TechnicalPiston;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -39,6 +42,8 @@ import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.Settings;
 import world.bentobox.bentobox.database.Database;
 import world.bentobox.bentobox.database.DatabaseSetup.DatabaseType;
+import world.bentobox.bentobox.database.objects.Island;
+import world.bentobox.bentobox.managers.IslandsManager;
 import world.bentobox.limits.Limits;
 import org.mockbukkit.mockbukkit.MockBukkit;
 import world.bentobox.limits.objects.IslandBlockCount;
@@ -59,10 +64,18 @@ public class BlockLimitsListenerTest {
     @Mock
     private Settings pluginSettings;
 
+    @Mock
+    private IslandsManager islandsManager;
+
+    @Mock
+    private Island island;
+
     private BlockLimitsListener listener;
     private MockedConstruction<Database> mockedDb;
     private MockedStatic<BentoBox> mockedBentoBox;
     private FileConfiguration config;
+    private Location blockLocation;
+    private Location centerLocation;
 
     @SuppressWarnings("unchecked")
     @BeforeEach
@@ -84,6 +97,20 @@ public class BlockLimitsListenerTest {
         doAnswer(invocation -> null).when(addon).logError(anyString());
         when(addon.isCoveredGameMode(anyString())).thenReturn(true);
         when(addon.inGameModeWorld(any(World.class))).thenReturn(false);
+        // Override to true for our test world so event handlers don't bail early
+        when(addon.inGameModeWorld(world)).thenReturn(true);
+
+        // Islands manager
+        when(addon.getIslands()).thenReturn(islandsManager);
+        when(islandsManager.getIslandAt(any(Location.class))).thenReturn(Optional.of(island));
+        when(island.getUniqueId()).thenReturn("test-island-id");
+
+        // Block and center locations (distinct so center-block check doesn't skip)
+        blockLocation = new Location(world, 100, 65, 100);
+        centerLocation = new Location(world, 0, 65, 0);
+        when(island.getCenter()).thenReturn(centerLocation);
+
+        when(addon.getGameModeName(world)).thenReturn("BSkyBlock");
 
         mockedDb = Mockito.mockConstruction(Database.class, (mock, context) -> {
             when(mock.loadObjects()).thenReturn(Collections.emptyList());
@@ -271,6 +298,19 @@ public class BlockLimitsListenerTest {
         Map<NamespacedKey, Integer> limits = listener.getMaterialLimits(world, islandId);
         // Island-specific limit should override the default
         assertEquals(25, limits.get(Material.HOPPER.getKey()));
+    }
+
+    // --- helper methods ---
+
+    private Block mockBlock(Material material, Location location) {
+        Block block = mock(Block.class);
+        BlockData blockData = mock(BlockData.class);
+        when(block.getType()).thenReturn(material);
+        when(block.getLocation()).thenReturn(location);
+        when(block.getWorld()).thenReturn(world);
+        when(block.getBlockData()).thenReturn(blockData);
+        when(blockData.getMaterial()).thenReturn(material);
+        return block;
     }
 
     // --- save tests ---
