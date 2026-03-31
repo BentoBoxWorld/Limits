@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -15,11 +17,21 @@ import java.util.UUID;
 
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Chicken;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
+import org.bukkit.event.entity.EntityBreedEvent;
+import org.bukkit.event.hanging.HangingPlaceEvent;
+import org.bukkit.entity.Hanging;
+import org.bukkit.inventory.EquipmentSlot;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -82,6 +94,7 @@ public class EntityLimitListenerTest {
         when(addon.getSettings()).thenReturn(settings);
 
         // World
+        when(location.getWorld()).thenReturn(world);
         when(ent.getWorld()).thenReturn(world);
         collection = new ArrayList<>();
         collection.add(ent);
@@ -162,6 +175,134 @@ public class EntityLimitListenerTest {
         assertEquals(EntityType.ENDERMAN, result.getTypelimit().getKey());
         assertEquals(Integer.valueOf(6), result.getTypelimit().getValue());
 
+    }
+
+    // --- CreatureSpawnEvent tests ---
+
+    @Test
+    public void testCreatureSpawnShoulderEntityIgnored() {
+        LivingEntity chicken = mockEntity(EntityType.CHICKEN, location);
+        CreatureSpawnEvent event = new CreatureSpawnEvent(chicken, SpawnReason.SHOULDER_ENTITY);
+
+        ell.onCreatureSpawn(event);
+
+        assertFalse(event.isCancelled());
+    }
+
+    @Test
+    public void testCreatureSpawnBreedingNonVillagerIgnored() {
+        LivingEntity cow = mockEntity(EntityType.COW, location);
+        CreatureSpawnEvent event = new CreatureSpawnEvent(cow, SpawnReason.BREEDING);
+
+        ell.onCreatureSpawn(event);
+
+        assertFalse(event.isCancelled());
+    }
+
+    @Test
+    public void testCreatureSpawnOutsideGameModeWorldIgnored() {
+        when(addon.inGameModeWorld(world)).thenReturn(false);
+
+        LivingEntity chicken = mockEntity(EntityType.CHICKEN, location);
+        CreatureSpawnEvent event = new CreatureSpawnEvent(chicken, SpawnReason.NATURAL);
+
+        ell.onCreatureSpawn(event);
+
+        assertFalse(event.isCancelled());
+        verify(islandsManager, never()).getIslandAt(any(Location.class));
+    }
+
+    @Test
+    public void testCreatureSpawnOnSpawnIslandAllowed() {
+        when(island.isSpawn()).thenReturn(true);
+
+        // Put CHICKEN at its limit (10 in config) by adding 10 chickens
+        LivingEntity chicken = mockEntity(EntityType.CHICKEN, location);
+        List<Entity> chickens = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            chickens.add(mockEntity(EntityType.CHICKEN, location));
+        }
+        when(world.getNearbyEntities(any())).thenReturn(chickens);
+
+        CreatureSpawnEvent event = new CreatureSpawnEvent(chicken, SpawnReason.NATURAL);
+
+        ell.onCreatureSpawn(event);
+
+        assertFalse(event.isCancelled());
+    }
+
+    @Test
+    public void testSpawnerSpawnReasonNoPlayerNotification() {
+        // Put CHICKEN at limit so it gets cancelled
+        LivingEntity chicken = mockEntity(EntityType.CHICKEN, location);
+        List<Entity> chickens = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            chickens.add(mockEntity(EntityType.CHICKEN, location));
+        }
+        when(world.getNearbyEntities(any())).thenReturn(chickens);
+
+        CreatureSpawnEvent event = new CreatureSpawnEvent(chicken, SpawnReason.SPAWNER);
+
+        ell.onCreatureSpawn(event);
+
+        assertTrue(event.isCancelled());
+        // tellPlayers returns early for SPAWNER reason, so no player messages
+        // (no exception from missing User/notification mocks confirms this)
+    }
+
+    // --- HangingPlaceEvent tests ---
+
+    @Test
+    public void testHangingPlaceNullPlayerIgnored() {
+        Hanging hanging = mock(Hanging.class);
+        when(hanging.getLocation()).thenReturn(location);
+        when(hanging.getWorld()).thenReturn(world);
+        Block block = mock(Block.class);
+        when(block.getWorld()).thenReturn(world);
+        HangingPlaceEvent event = new HangingPlaceEvent(hanging, null, block, BlockFace.SOUTH, EquipmentSlot.HAND, null);
+
+        ell.onBlock(event);
+
+        assertFalse(event.isCancelled());
+    }
+
+    // --- EntityBreedEvent tests ---
+
+    @Test
+    public void testBreedingOpPlayerBypasses() {
+        // Create an op player as breeder
+        Player opPlayer = mock(Player.class);
+        when(opPlayer.isOp()).thenReturn(true);
+
+        // Create child, father, mother as Chicken mocks (implements Breedable)
+        Chicken child = mock(Chicken.class);
+        when(child.getType()).thenReturn(EntityType.CHICKEN);
+        when(child.getWorld()).thenReturn(world);
+        when(child.getLocation()).thenReturn(location);
+        when(child.getUniqueId()).thenReturn(UUID.randomUUID());
+
+        Chicken father = mock(Chicken.class);
+        when(father.getType()).thenReturn(EntityType.CHICKEN);
+        when(father.getWorld()).thenReturn(world);
+        when(father.getLocation()).thenReturn(location);
+        when(father.getUniqueId()).thenReturn(UUID.randomUUID());
+
+        Chicken mother = mock(Chicken.class);
+        when(mother.getType()).thenReturn(EntityType.CHICKEN);
+        when(mother.getWorld()).thenReturn(world);
+        when(mother.getLocation()).thenReturn(location);
+        when(mother.getUniqueId()).thenReturn(UUID.randomUUID());
+
+        // Set CHICKEN limit to 0 so any entity would be over limit
+        ibc.setEntityLimit(EntityType.CHICKEN, 0);
+
+        EntityBreedEvent event = new EntityBreedEvent(child, mother, father, opPlayer, null, 0);
+
+        ell.onBreed(event);
+
+        // Op player bypasses — setBreed(false) should NOT be called
+        verify(father, never()).setBreed(false);
+        verify(mother, never()).setBreed(false);
     }
 
     // --- helper methods ---
