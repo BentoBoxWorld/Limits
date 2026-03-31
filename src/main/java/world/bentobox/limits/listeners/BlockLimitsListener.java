@@ -339,13 +339,25 @@ public class BlockLimitsListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(EntityChangeBlockEvent e) {
-        process(e.getBlock(), false);
-        // Track new block state when entity changes a block to a non-AIR material
-        // (e.g., copper golem creation transforming a copper block into a copper chest)
+        // First, if the entity is changing the block to a non-AIR material,
+        // attempt to add the new block state and enforce limits.
         if (e.getTo() != Material.AIR) {
-            process(e.getBlock(), e.getBlockData(), true);
+            int limit = process(e.getBlock(), e.getBlockData(), true);
+            // If a non-negative value is returned, the limit would be exceeded.
+            // Cancel the event and keep the existing block/counts unchanged.
+            if (limit > -1) {
+                e.setCancelled(true);
+                return;
+            }
         }
-        if (e.getBlock().getType().equals(Material.FARMLAND)) {
+
+        // At this point either the block is being removed (to AIR) or the new
+        // state was accepted. Now remove the old block from the counts.
+        process(e.getBlock(), false);
+
+        // If the block was farmland and the change is allowed, also remove the
+        // block above (e.g., crops) from the counts.
+        if (!e.isCancelled() && e.getBlock().getType().equals(Material.FARMLAND)) {
             process(e.getBlock().getRelative(BlockFace.UP), false);
         }
     }
