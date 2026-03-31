@@ -1,6 +1,7 @@
 package world.bentobox.limits.listeners;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -13,6 +14,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Logger;
@@ -22,10 +24,20 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.TechnicalPiston;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockMultiPlaceEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +52,10 @@ import org.mockito.quality.Strictness;
 
 import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.Settings;
+import world.bentobox.bentobox.api.user.User;
+import world.bentobox.bentobox.api.user.Notifier;
+import world.bentobox.bentobox.managers.LocalesManager;
+import world.bentobox.bentobox.managers.PlaceholdersManager;
 import world.bentobox.bentobox.database.Database;
 import world.bentobox.bentobox.database.DatabaseSetup.DatabaseType;
 import world.bentobox.bentobox.database.objects.Island;
@@ -69,6 +85,9 @@ public class BlockLimitsListenerTest {
 
     @Mock
     private Island island;
+
+    @Mock
+    private Player player;
 
     private BlockLimitsListener listener;
     private MockedConstruction<Database> mockedDb;
@@ -112,6 +131,17 @@ public class BlockLimitsListenerTest {
 
         when(addon.getGameModeName(world)).thenReturn("BSkyBlock");
 
+        // User and locales setup for event notification
+        User.setPlugin(plugin);
+        LocalesManager localesManager = mock(LocalesManager.class);
+        when(localesManager.get(any(), anyString())).thenReturn("limit hit");
+        when(plugin.getLocalesManager()).thenReturn(localesManager);
+        PlaceholdersManager placeholdersManager = mock(PlaceholdersManager.class);
+        when(placeholdersManager.replacePlaceholders(any(Player.class), anyString())).thenAnswer(inv -> inv.getArgument(1));
+        when(plugin.getPlaceholdersManager()).thenReturn(placeholdersManager);
+        Notifier notifier = mock(Notifier.class);
+        when(plugin.getNotifier()).thenReturn(notifier);
+
         mockedDb = Mockito.mockConstruction(Database.class, (mock, context) -> {
             when(mock.loadObjects()).thenReturn(Collections.emptyList());
         });
@@ -121,6 +151,7 @@ public class BlockLimitsListenerTest {
 
     @AfterEach
     public void tearDown() {
+        User.clearUsers();
         if (mockedDb != null) {
             mockedDb.close();
         }
@@ -310,7 +341,166 @@ public class BlockLimitsListenerTest {
         when(block.getWorld()).thenReturn(world);
         when(block.getBlockData()).thenReturn(blockData);
         when(blockData.getMaterial()).thenReturn(material);
+        when(block.hasMetadata("blockbreakevent-ignore")).thenReturn(false);
+        // Stub getRelative for all faces to return an AIR block (avoids NPE in handleBreak)
+        Block airBlock = mock(Block.class);
+        when(airBlock.getType()).thenReturn(Material.AIR);
+        when(block.getRelative(any(BlockFace.class))).thenReturn(airBlock);
         return block;
+    }
+
+    // --- BlockPlaceEvent tests ---
+
+    @Test
+    public void testBlockPlaceIncrementsCount() {
+        Block block = mockBlock(Material.STONE, blockLocation);
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block, new ItemStack(Material.STONE), player, true, EquipmentSlot.HAND);
+
+        listener.onBlock(event);
+
+        IslandBlockCount ibc = listener.getIsland("test-island-id");
+        assertNotNull(ibc);
+        assertEquals(1, ibc.getBlockCount(Material.STONE.getKey()));
+    }
+
+    @Test
+    public void testBlockPlaceAtLimitCancelsEvent() {
+        // Pre-populate island with 10 HOPPERs (default config limit is 10)
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        for (int i = 0; i < 10; i++) {
+            ibc.add(Material.HOPPER.getKey());
+        }
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.HOPPER, blockLocation);
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block, new ItemStack(Material.HOPPER), player, true, EquipmentSlot.HAND);
+
+        listener.onBlock(event);
+
+        assertTrue(event.isCancelled());
+    }
+
+    @Test
+    public void testBlockPlaceUnlimitedMaterialAllowed() {
+        Block block = mockBlock(Material.DIRT, blockLocation);
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block, new ItemStack(Material.DIRT), player, true, EquipmentSlot.HAND);
+
+        listener.onBlock(event);
+
+        assertFalse(event.isCancelled());
+    }
+
+    @Test
+    public void testBlockPlaceDoNotCountWaterBlock() {
+        Block block = mockBlock(Material.WATER, blockLocation);
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block, new ItemStack(Material.WATER_BUCKET), player, true, EquipmentSlot.HAND);
+
+        listener.onBlock(event);
+
+        // WATER is in the DO_NOT_COUNT list, so no island count should be created
+        assertNull(listener.getIsland("test-island-id"));
+    }
+
+    @Test
+    public void testBlockPlaceOutsideGameModeWorldIgnored() {
+        when(addon.inGameModeWorld(world)).thenReturn(false);
+
+        Block block = mockBlock(Material.STONE, blockLocation);
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block, new ItemStack(Material.STONE), player, true, EquipmentSlot.HAND);
+
+        listener.onBlock(event);
+
+        assertNull(listener.getIsland("test-island-id"));
+    }
+
+    // --- BlockBreakEvent tests ---
+
+    @Test
+    public void testBlockBreakDecrementsCount() {
+        // Pre-populate with 3 STONE
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.STONE.getKey());
+        ibc.add(Material.STONE.getKey());
+        ibc.add(Material.STONE.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.STONE, blockLocation);
+        BlockBreakEvent event = new BlockBreakEvent(block, player);
+
+        listener.onBlock(event);
+
+        assertEquals(2, listener.getIsland("test-island-id").getBlockCount(Material.STONE.getKey()));
+    }
+
+    @Test
+    public void testBlockBreakCountNeverGoesNegative() {
+        // Start with 0 STONE (no pre-population)
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.STONE, blockLocation);
+        BlockBreakEvent event = new BlockBreakEvent(block, player);
+
+        listener.onBlock(event);
+
+        assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.STONE.getKey()));
+    }
+
+    @Test
+    public void testBlockBreakWithMetadataIgnoreFlagSkipped() {
+        // Pre-populate with 1 STONE
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.STONE.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.STONE, blockLocation);
+        when(block.hasMetadata("blockbreakevent-ignore")).thenReturn(true);
+        BlockBreakEvent event = new BlockBreakEvent(block, player);
+
+        listener.onBlock(event);
+
+        // Count should remain unchanged because the metadata flag caused the handler to skip
+        assertEquals(1, listener.getIsland("test-island-id").getBlockCount(Material.STONE.getKey()));
+    }
+
+    // --- BlockMultiPlaceEvent tests ---
+
+    @Test
+    public void testBlockMultiPlaceAtLimitCancels() {
+        // Set limit for OAK_PLANKS to 1 via island-specific limit
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.setBlockLimit(Material.OAK_PLANKS.getKey(), 1);
+        ibc.add(Material.OAK_PLANKS.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.OAK_PLANKS, blockLocation);
+        BlockState state = mock(BlockState.class);
+        when(state.getBlock()).thenReturn(block);
+        List<BlockState> states = List.of(state);
+        Block clicked = mockBlock(Material.DIRT, blockLocation);
+        BlockMultiPlaceEvent event = new BlockMultiPlaceEvent(states, clicked, new ItemStack(Material.OAK_PLANKS), player, true);
+
+        listener.onBlock(event);
+
+        assertTrue(event.isCancelled());
+    }
+
+    // --- PlayerInteractEvent tests ---
+
+    @Test
+    public void testTurtleEggNonPhysicalActionIgnored() {
+        Block block = mockBlock(Material.TURTLE_EGG, blockLocation);
+        PlayerInteractEvent event = new PlayerInteractEvent(player, Action.LEFT_CLICK_BLOCK, null, block, BlockFace.UP);
+
+        listener.onTurtleEggBreak(event);
+
+        // Non-PHYSICAL action should be ignored — no island count should be created
+        assertNull(listener.getIsland("test-island-id"));
     }
 
     // --- save tests ---
