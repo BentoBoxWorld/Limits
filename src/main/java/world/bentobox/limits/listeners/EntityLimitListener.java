@@ -125,7 +125,7 @@ public class EntityLimitListener implements Listener {
             return;
         }
         // Some checks can be done async, some not
-        if (creatureSpawnEvent.getSpawnReason().equals(SpawnReason.BUILD_SNOWMAN) || creatureSpawnEvent.getSpawnReason().equals(SpawnReason.BUILD_IRONGOLEM) || creatureSpawnEvent.getSpawnReason().equals(SpawnReason.BUILD_COPPERGOLEM)) {
+        if (creatureSpawnEvent.getSpawnReason().equals(SpawnReason.BUILD_SNOWMAN) || creatureSpawnEvent.getSpawnReason().equals(SpawnReason.BUILD_IRONGOLEM) ) {
             checkLimit(creatureSpawnEvent, creatureSpawnEvent.getEntity(), creatureSpawnEvent.getSpawnReason(), addon.getSettings().isAsyncGolums());
         } else {
             // Check limit sync
@@ -227,12 +227,11 @@ public class EntityLimitListener implements Listener {
      * @param location Location to spawn
      */
     private void preSpawn(EntityType entityType, SpawnReason spawnReason, Location location) {
-
         // Check for entities that need cleanup
         switch (spawnReason) {
             case BUILD_IRONGOLEM -> detectIronGolem(location);
             case BUILD_SNOWMAN -> detectSnowman(location);
-            case BUILD_WITHER -> {
+            case BUILD_WITHER -> { // Not used right now
                 detectWither(location);
             }
             default -> throw new IllegalArgumentException("Unexpected value: " + spawnReason);
