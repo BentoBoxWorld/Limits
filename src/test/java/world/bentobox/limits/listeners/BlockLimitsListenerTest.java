@@ -15,7 +15,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.lang.reflect.Field;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -48,6 +50,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.block.EntityBlockFormEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -780,6 +783,192 @@ public class BlockLimitsListenerTest {
         listener.onBlock(event);
 
         assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.STONE.getKey()));
+    }
+
+    // --- EntityChangeBlockEvent tests ---
+
+    @Test
+    public void testEntityChangeBlockToAirDecrements() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.STONE.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.STONE, blockLocation);
+        BlockData airData = mock(BlockData.class);
+        when(airData.getMaterial()).thenReturn(Material.AIR);
+        Entity entity = mock(Entity.class);
+        EntityChangeBlockEvent event = new EntityChangeBlockEvent(entity, block, airData);
+
+        listener.onBlock(event);
+
+        assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.STONE.getKey()));
+    }
+
+    // --- BlockFromToEvent liquid destroys redstone test ---
+
+    @Test
+    public void testBlockFromToLiquidDestroysRedstone() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.REDSTONE_WIRE.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block sourceBlock = mockBlock(Material.WATER, blockLocation);
+        when(sourceBlock.isLiquid()).thenReturn(true);
+        Block toBlock = mockBlock(Material.REDSTONE_WIRE, new Location(world, 101, 65, 100));
+        BlockFromToEvent event = new BlockFromToEvent(sourceBlock, toBlock);
+
+        listener.onBlock(event);
+
+        assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.REDSTONE_WIRE.getKey()));
+    }
+
+    // --- Limit hierarchy tests ---
+
+    @Test
+    public void testIslandLimitTakesPrecedenceOverWorldLimit() throws Exception {
+        // Set world limit for COBBLESTONE = 5
+        Field worldLimitField = BlockLimitsListener.class.getDeclaredField("worldLimitMap");
+        worldLimitField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Map<World, Map<NamespacedKey, Integer>> worldLimitMap =
+                (Map<World, Map<NamespacedKey, Integer>>) worldLimitField.get(listener);
+        Map<NamespacedKey, Integer> worldLimits = new HashMap<>();
+        worldLimits.put(Material.COBBLESTONE.getKey(), 5);
+        worldLimitMap.put(world, worldLimits);
+
+        // Set island-specific limit for COBBLESTONE = 2, pre-populate with 2
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.setBlockLimit(Material.COBBLESTONE.getKey(), 2);
+        ibc.add(Material.COBBLESTONE.getKey());
+        ibc.add(Material.COBBLESTONE.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.COBBLESTONE, blockLocation);
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block, new ItemStack(Material.COBBLESTONE), player, true, EquipmentSlot.HAND);
+
+        listener.onBlock(event);
+
+        assertTrue(event.isCancelled());
+    }
+
+    @Test
+    public void testWorldLimitTakesPrecedenceOverDefaultLimit() throws Exception {
+        // Set default limit for COBBLESTONE = 10
+        Field defaultLimitField = BlockLimitsListener.class.getDeclaredField("defaultLimitMap");
+        defaultLimitField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Map<NamespacedKey, Integer> defaultLimitMap =
+                (Map<NamespacedKey, Integer>) defaultLimitField.get(listener);
+        defaultLimitMap.put(Material.COBBLESTONE.getKey(), 10);
+
+        // Set world limit for COBBLESTONE = 3
+        Field worldLimitField = BlockLimitsListener.class.getDeclaredField("worldLimitMap");
+        worldLimitField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Map<World, Map<NamespacedKey, Integer>> worldLimitMap =
+                (Map<World, Map<NamespacedKey, Integer>>) worldLimitField.get(listener);
+        Map<NamespacedKey, Integer> worldLimits = new HashMap<>();
+        worldLimits.put(Material.COBBLESTONE.getKey(), 3);
+        worldLimitMap.put(world, worldLimits);
+
+        // No island-specific limit; pre-populate with 3
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.COBBLESTONE.getKey());
+        ibc.add(Material.COBBLESTONE.getKey());
+        ibc.add(Material.COBBLESTONE.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.COBBLESTONE, blockLocation);
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block, new ItemStack(Material.COBBLESTONE), player, true, EquipmentSlot.HAND);
+
+        listener.onBlock(event);
+
+        assertTrue(event.isCancelled());
+    }
+
+    @Test
+    public void testDefaultLimitAppliedWhenNoIslandOrWorldLimit() throws Exception {
+        // Set default limit for COBBLESTONE = 2
+        Field defaultLimitField = BlockLimitsListener.class.getDeclaredField("defaultLimitMap");
+        defaultLimitField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Map<NamespacedKey, Integer> defaultLimitMap =
+                (Map<NamespacedKey, Integer>) defaultLimitField.get(listener);
+        defaultLimitMap.put(Material.COBBLESTONE.getKey(), 2);
+
+        // No island or world limit; pre-populate with 2
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.COBBLESTONE.getKey());
+        ibc.add(Material.COBBLESTONE.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.COBBLESTONE, blockLocation);
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block, new ItemStack(Material.COBBLESTONE), player, true, EquipmentSlot.HAND);
+
+        listener.onBlock(event);
+
+        assertTrue(event.isCancelled());
+    }
+
+    @Test
+    public void testIslandOffsetIncreasesEffectiveLimit() throws Exception {
+        // Set default limit for COBBLESTONE = 2
+        Field defaultLimitField = BlockLimitsListener.class.getDeclaredField("defaultLimitMap");
+        defaultLimitField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Map<NamespacedKey, Integer> defaultLimitMap =
+                (Map<NamespacedKey, Integer>) defaultLimitField.get(listener);
+        defaultLimitMap.put(Material.COBBLESTONE.getKey(), 2);
+
+        // Set island offset = +3 (effective limit = 5); pre-populate with 4
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.setBlockLimitsOffset(Material.COBBLESTONE.getKey(), 3);
+        ibc.add(Material.COBBLESTONE.getKey());
+        ibc.add(Material.COBBLESTONE.getKey());
+        ibc.add(Material.COBBLESTONE.getKey());
+        ibc.add(Material.COBBLESTONE.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.COBBLESTONE, blockLocation);
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block, new ItemStack(Material.COBBLESTONE), player, true, EquipmentSlot.HAND);
+
+        listener.onBlock(event);
+
+        assertFalse(event.isCancelled());
+    }
+
+    // --- Batch save tests ---
+
+    @Test
+    public void testBatchSaveTriggersAfterThreshold() {
+        // CHANGE_LIMIT = 9, so the 10th change triggers a save
+        for (int i = 0; i < 10; i++) {
+            Block block = mockBlock(Material.STONE, blockLocation);
+            BlockState replacedState = mock(BlockState.class);
+            BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block, new ItemStack(Material.STONE), player, true, EquipmentSlot.HAND);
+            listener.onBlock(event);
+        }
+
+        Database<?> dbMock = mockedDb.constructed().get(0);
+        verify(dbMock, atLeastOnce()).saveObjectAsync(any());
+    }
+
+    @Test
+    public void testNoSaveBeforeThresholdReached() {
+        // Fire 9 events (CHANGE_LIMIT = 9, save triggers when > 9, i.e. on 10th)
+        for (int i = 0; i < 9; i++) {
+            Block block = mockBlock(Material.STONE, blockLocation);
+            BlockState replacedState = mock(BlockState.class);
+            BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block, new ItemStack(Material.STONE), player, true, EquipmentSlot.HAND);
+            listener.onBlock(event);
+        }
+
+        Database<?> dbMock = mockedDb.constructed().get(0);
+        verify(dbMock, never()).saveObjectAsync(any());
     }
 
     // --- IslandDeleteEvent tests ---
