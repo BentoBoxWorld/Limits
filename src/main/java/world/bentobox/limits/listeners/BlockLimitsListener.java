@@ -288,8 +288,8 @@ public class BlockLimitsListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockFormEvent e) {
-        // EntityBlockFormEvent extends BlockFormEvent; skip here to avoid double-processing
-        if (e instanceof EntityBlockFormEvent) {
+        // EntityBlockFormEvent and BlockSpreadEvent extend BlockFormEvent; skip here to avoid double-processing
+        if (e instanceof EntityBlockFormEvent || e instanceof BlockSpreadEvent) {
             return;
         }
         // Remove the old block state count
