@@ -7,9 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -17,6 +19,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.logging.Logger;
 
 import org.bukkit.Location;
@@ -31,10 +34,18 @@ import org.bukkit.block.data.type.TechnicalPiston;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockBurnEvent;
+import org.bukkit.event.block.BlockFadeEvent;
+import org.bukkit.event.block.BlockFormEvent;
+import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockMultiPlaceEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.block.BlockSpreadEvent;
+import org.bukkit.event.block.EntityBlockFormEvent;
+import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -52,8 +63,9 @@ import org.mockito.quality.Strictness;
 
 import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.Settings;
-import world.bentobox.bentobox.api.user.User;
+import world.bentobox.bentobox.api.events.island.IslandDeleteEvent;
 import world.bentobox.bentobox.api.user.Notifier;
+import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.managers.LocalesManager;
 import world.bentobox.bentobox.managers.PlaceholdersManager;
 import world.bentobox.bentobox.database.Database;
@@ -501,6 +513,135 @@ public class BlockLimitsListenerTest {
 
         // Non-PHYSICAL action should be ignored — no island count should be created
         assertNull(listener.getIsland("test-island-id"));
+    }
+
+    // --- BlockBurnEvent / BlockFadeEvent / LeavesDecayEvent tests ---
+
+    @Test
+    public void testBlockBurnDecrementsCount() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.OAK_PLANKS.getKey());
+        ibc.add(Material.OAK_PLANKS.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.OAK_PLANKS, blockLocation);
+        BlockBurnEvent event = new BlockBurnEvent(block, null);
+
+        listener.onBlock(event);
+
+        assertEquals(1, listener.getIsland("test-island-id").getBlockCount(Material.OAK_PLANKS.getKey()));
+    }
+
+    @Test
+    public void testBlockFadeDecrementsCount() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.SAND.getKey());
+        ibc.add(Material.SAND.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.SAND, blockLocation);
+        BlockState newState = mock(BlockState.class);
+        BlockFadeEvent event = new BlockFadeEvent(block, newState);
+
+        listener.onBlock(event);
+
+        assertEquals(1, listener.getIsland("test-island-id").getBlockCount(Material.SAND.getKey()));
+    }
+
+    @Test
+    public void testLeavesDecayDecrementsCount() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.OAK_LEAVES.getKey());
+        ibc.add(Material.OAK_LEAVES.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.OAK_LEAVES, blockLocation);
+        LeavesDecayEvent event = new LeavesDecayEvent(block);
+
+        listener.onBlock(event);
+
+        assertEquals(1, listener.getIsland("test-island-id").getBlockCount(Material.OAK_LEAVES.getKey()));
+    }
+
+    // --- BlockSpreadEvent tests ---
+
+    @Test
+    public void testBlockSpreadIncrementsCount() {
+        Block block = mockBlock(Material.GRASS_BLOCK, blockLocation);
+        Block source = mockBlock(Material.GRASS_BLOCK, new Location(world, 101, 65, 100));
+        BlockState newState = mock(BlockState.class);
+        BlockSpreadEvent event = new BlockSpreadEvent(block, source, newState);
+
+        listener.onBlock(event);
+
+        IslandBlockCount ibc = listener.getIsland("test-island-id");
+        assertNotNull(ibc);
+        assertEquals(1, ibc.getBlockCount(Material.GRASS_BLOCK.getKey()));
+    }
+
+    // --- BlockFromToEvent tests ---
+
+    @Test
+    public void testBlockFromToNonLiquidIgnored() {
+        Block sourceBlock = mockBlock(Material.STONE, blockLocation);
+        when(sourceBlock.isLiquid()).thenReturn(false);
+        Block toBlock = mockBlock(Material.REDSTONE_WIRE, new Location(world, 101, 65, 100));
+        BlockFromToEvent event = new BlockFromToEvent(sourceBlock, toBlock);
+
+        listener.onBlock(event);
+
+        // Non-liquid source means handler skips — no island count should be created
+        assertNull(listener.getIsland("test-island-id"));
+    }
+
+    // --- BlockFormEvent / EntityBlockFormEvent tests ---
+
+    @Test
+    public void testBlockFormIgnoresEntityBlockFormEvent() {
+        Block block = mockBlock(Material.STONE, blockLocation);
+        BlockState newState = mock(BlockState.class);
+        Entity entity = mock(Entity.class);
+        EntityBlockFormEvent event = new EntityBlockFormEvent(entity, block, newState);
+
+        // Call the BlockFormEvent handler — it should return early for EntityBlockFormEvent
+        listener.onBlock((BlockFormEvent) event);
+
+        // No island count should be created since the handler skipped processing
+        verify(islandsManager, never()).getIslandAt(any(Location.class));
+    }
+
+    // --- IslandDeleteEvent tests ---
+
+    @Test
+    public void testIslandDeleteRemovesFromMaps() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        listener.setIsland("test-island-id", ibc);
+        assertNotNull(listener.getIsland("test-island-id"));
+
+        Island deleteIsland = mock(Island.class);
+        when(deleteIsland.getUniqueId()).thenReturn("test-island-id");
+        IslandDeleteEvent event = new IslandDeleteEvent(deleteIsland, UUID.randomUUID(), false, blockLocation);
+
+        listener.onIslandDelete(event);
+
+        assertNull(listener.getIsland("test-island-id"));
+    }
+
+    @Test
+    public void testIslandDeleteCallsDatabaseDelete() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        listener.setIsland("test-island-id", ibc);
+
+        Database<?> dbMock = mockedDb.constructed().get(0);
+        when(dbMock.objectExists("test-island-id")).thenReturn(true);
+
+        Island deleteIsland = mock(Island.class);
+        when(deleteIsland.getUniqueId()).thenReturn("test-island-id");
+        IslandDeleteEvent event = new IslandDeleteEvent(deleteIsland, UUID.randomUUID(), false, blockLocation);
+
+        listener.onIslandDelete(event);
+
+        verify(dbMock).deleteID(eq("test-island-id"));
     }
 
     // --- save tests ---
