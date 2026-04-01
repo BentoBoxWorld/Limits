@@ -44,6 +44,7 @@ import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockFadeEvent;
 import org.bukkit.event.block.BlockFormEvent;
 import org.bukkit.event.block.BlockFromToEvent;
+import org.bukkit.event.block.BlockGrowEvent;
 import org.bukkit.event.block.BlockMultiPlaceEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
@@ -614,6 +615,186 @@ public class BlockLimitsListenerTest {
 
         // No island count should be created since the handler skipped processing
         verify(islandsManager, never()).getIslandAt(any(Location.class));
+    }
+
+    // --- Block state transition tests ---
+
+    @Test
+    public void testBlockFormStateTransition() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.COBBLESTONE.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.COBBLESTONE, blockLocation);
+        BlockState newState = mock(BlockState.class);
+        BlockData newBlockData = mock(BlockData.class);
+        when(newBlockData.getMaterial()).thenReturn(Material.STONE);
+        when(newState.getBlockData()).thenReturn(newBlockData);
+
+        BlockFormEvent event = new BlockFormEvent(block, newState);
+        listener.onBlock(event);
+
+        assertFalse(event.isCancelled());
+        assertEquals(0, ibc.getBlockCount(Material.COBBLESTONE.getKey()));
+        assertEquals(1, ibc.getBlockCount(Material.STONE.getKey()));
+    }
+
+    @Test
+    public void testBlockFormAtLimitCancelsAndRestoresOld() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.COBBLESTONE.getKey());
+        ibc.setBlockLimit(Material.STONE.getKey(), 1);
+        ibc.add(Material.STONE.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.COBBLESTONE, blockLocation);
+        BlockState newState = mock(BlockState.class);
+        BlockData newBlockData = mock(BlockData.class);
+        when(newBlockData.getMaterial()).thenReturn(Material.STONE);
+        when(newState.getBlockData()).thenReturn(newBlockData);
+
+        BlockFormEvent event = new BlockFormEvent(block, newState);
+        listener.onBlock(event);
+
+        assertTrue(event.isCancelled());
+        assertEquals(1, ibc.getBlockCount(Material.COBBLESTONE.getKey()));
+        assertEquals(1, ibc.getBlockCount(Material.STONE.getKey()));
+    }
+
+    @Test
+    public void testEntityBlockFormStateTransition() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.COBBLESTONE.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.COBBLESTONE, blockLocation);
+        Entity entity = mock(Entity.class);
+        BlockState newState = mock(BlockState.class);
+        BlockData newBlockData = mock(BlockData.class);
+        when(newBlockData.getMaterial()).thenReturn(Material.STONE);
+        when(newState.getBlockData()).thenReturn(newBlockData);
+
+        EntityBlockFormEvent event = new EntityBlockFormEvent(entity, block, newState);
+        listener.onBlock(event);
+
+        assertFalse(event.isCancelled());
+        assertEquals(0, ibc.getBlockCount(Material.COBBLESTONE.getKey()));
+        assertEquals(1, ibc.getBlockCount(Material.STONE.getKey()));
+    }
+
+    // --- BlockGrowEvent tests ---
+
+    @Test
+    public void testBlockGrowIncrementsNewAndRemovesOld() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.DIRT.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.DIRT, blockLocation);
+        Block newBlock = mockBlock(Material.GRASS_BLOCK, blockLocation);
+        BlockState newState = mock(BlockState.class);
+        when(newState.getBlock()).thenReturn(newBlock);
+
+        BlockGrowEvent event = new BlockGrowEvent(block, newState);
+        listener.onBlock(event);
+
+        assertFalse(event.isCancelled());
+        assertEquals(0, ibc.getBlockCount(Material.DIRT.getKey()));
+        assertEquals(1, ibc.getBlockCount(Material.GRASS_BLOCK.getKey()));
+    }
+
+    @Test
+    public void testBlockGrowAtLimitCancelsAndRestoresBlockData() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.DIRT.getKey());
+        ibc.setBlockLimit(Material.GRASS_BLOCK.getKey(), 0);
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.DIRT, blockLocation);
+        Block newBlock = mockBlock(Material.GRASS_BLOCK, blockLocation);
+        BlockState newState = mock(BlockState.class);
+        when(newState.getBlock()).thenReturn(newBlock);
+
+        // Stub world.getBlockAt for the restore call
+        Block worldBlock = mock(Block.class);
+        when(world.getBlockAt(blockLocation)).thenReturn(worldBlock);
+
+        BlockGrowEvent event = new BlockGrowEvent(block, newState);
+        listener.onBlock(event);
+
+        assertTrue(event.isCancelled());
+        assertEquals(1, ibc.getBlockCount(Material.DIRT.getKey()));
+        assertEquals(0, ibc.getBlockCount(Material.GRASS_BLOCK.getKey()));
+        verify(worldBlock).setBlockData(block.getBlockData());
+    }
+
+    // --- EntityChangeBlockEvent state transition tests ---
+
+    @Test
+    public void testEntityChangeBlockToNonAirAddsNewRemovesOld() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.DIRT.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.DIRT, blockLocation);
+        Entity entity = mock(Entity.class);
+        BlockData toBlockData = mock(BlockData.class);
+        when(toBlockData.getMaterial()).thenReturn(Material.COBBLESTONE);
+        when(toBlockData.clone()).thenReturn(toBlockData);
+
+        EntityChangeBlockEvent event = new EntityChangeBlockEvent(entity, block, toBlockData);
+        listener.onBlock(event);
+
+        assertFalse(event.isCancelled());
+        assertEquals(0, ibc.getBlockCount(Material.DIRT.getKey()));
+        assertEquals(1, ibc.getBlockCount(Material.COBBLESTONE.getKey()));
+    }
+
+    @Test
+    public void testEntityChangeBlockToNonAirAtLimitCancels() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.DIRT.getKey());
+        ibc.setBlockLimit(Material.COBBLESTONE.getKey(), 1);
+        ibc.add(Material.COBBLESTONE.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.DIRT, blockLocation);
+        Entity entity = mock(Entity.class);
+        BlockData toBlockData = mock(BlockData.class);
+        when(toBlockData.getMaterial()).thenReturn(Material.COBBLESTONE);
+        when(toBlockData.clone()).thenReturn(toBlockData);
+
+        EntityChangeBlockEvent event = new EntityChangeBlockEvent(entity, block, toBlockData);
+        listener.onBlock(event);
+
+        assertTrue(event.isCancelled());
+        assertEquals(1, ibc.getBlockCount(Material.DIRT.getKey()));
+        assertEquals(1, ibc.getBlockCount(Material.COBBLESTONE.getKey()));
+    }
+
+    @Test
+    public void testEntityChangeBlockFarmlandRemovesCropAbove() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Material.FARMLAND.getKey());
+        ibc.add(Material.OAK_PLANKS.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.FARMLAND, blockLocation);
+        Block cropAbove = mockBlock(Material.OAK_PLANKS, new Location(world, 100, 66, 100));
+        when(block.getRelative(BlockFace.UP)).thenReturn(cropAbove);
+
+        Entity entity = mock(Entity.class);
+        BlockData toBlockData = mock(BlockData.class);
+        when(toBlockData.getMaterial()).thenReturn(Material.DIRT);
+        when(toBlockData.clone()).thenReturn(toBlockData);
+
+        EntityChangeBlockEvent event = new EntityChangeBlockEvent(entity, block, toBlockData);
+        listener.onBlock(event);
+
+        assertFalse(event.isCancelled());
+        assertEquals(0, ibc.getBlockCount(Material.FARMLAND.getKey()));
+        assertEquals(0, ibc.getBlockCount(Material.OAK_PLANKS.getKey()));
+        assertEquals(1, ibc.getBlockCount(Material.DIRT.getKey()));
     }
 
     // --- Block cascade tests ---

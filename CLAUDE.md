@@ -82,4 +82,67 @@ Two cancellable events are fired so other plugins can intercept limit applicatio
 
 ### Testing
 
-Tests use JUnit 4 + Mockito + PowerMock. The `ServerMocks` utility class in `src/test/java/.../mocks/` sets up Bukkit server mocks. Tests are named `*Test.java` and mirror the main source package structure.
+Tests use **JUnit 5 + Mockito 5 + MockBukkit**. Tests are named `*Test.java` and mirror the main source package structure.
+
+#### Test Infrastructure Setup
+
+Both `BlockLimitsListenerTest` and `EntityLimitListenerTest` use `@ExtendWith(MockitoExtension.class)` with `@MockitoSettings(strictness = Strictness.LENIENT)`.
+
+**MockBukkit**: `MockBukkit.mock()` in `@BeforeEach`, `MockBukkit.unmock()` in `@AfterEach`. Provides a mock Bukkit server environment.
+
+**BentoBox mocks required for block event tests** (notification path when limits are hit):
+- `User.setPlugin(plugin)` in setUp, `User.clearUsers()` in tearDown
+- `LocalesManager` → `plugin.getLocalesManager()`
+- `PlaceholdersManager` → `plugin.getPlaceholdersManager()`
+- `Notifier` → `plugin.getNotifier()`
+
+**BentoBox mocks required for entity event tests** (permission checks):
+- `BentoBox` → `addon.getPlugin()`
+- `IslandWorldManager` → `bentoBox.getIWM()` with `getPermissionPrefix(world)` returning e.g. `"bskyblock."`
+- Same User/Locales/Placeholders/Notifier chain as block tests
+
+**Island infrastructure** (needed for any event handler that calls `process()`):
+- `IslandsManager` → `addon.getIslands()`
+- `islandsManager.getIslandAt(any(Location.class))` → `Optional.of(island)`
+- `islandsManager.getProtectedIslandAt(any(Location.class))` → `Optional.of(island)` (for vehicle events)
+- `island.getUniqueId()` → fixed string like `"test-island-id"`
+- `addon.inGameModeWorld(world)` → `true` (override the default `false`)
+- `addon.getGameModeName(world)` → `"BSkyBlock"`
+- `island.getCenter()` → a location distinct from test block locations (center-block check)
+
+**Database mock**: `Mockito.mockConstruction(Database.class, ...)` to intercept `new Database<>()` in the `BlockLimitsListener` constructor.
+
+#### Key Test Helpers
+
+`BlockLimitsListenerTest.mockBlock(Material, Location)` — creates a fully-stubbed `Block` mock with:
+- `getType()`, `getLocation()`, `getWorld()`, `getBlockData()` (with `getMaterial()`)
+- `hasMetadata("blockbreakevent-ignore")` → `false`
+- `getRelative(any(BlockFace.class))` → an AIR block (override specific faces as needed)
+
+`EntityLimitListenerTest.mockEntity(EntityType, Location)` — creates a `LivingEntity` mock with type, location, world, and random UUID.
+
+#### Paper API Gotcha: `BlockData.clone()`
+
+Paper API's `EntityChangeBlockEvent.getBlockData()` internally calls `BlockData.clone()`. When creating `EntityChangeBlockEvent` with a mock `BlockData`, you **must** stub `clone()`:
+```java
+when(toBlockData.clone()).thenReturn(toBlockData);
+```
+Without this, `getBlockData()` returns null and `fixMaterial()` throws NPE.
+
+#### Mock Location World
+
+The `@Mock Location location` field must have `when(location.getWorld()).thenReturn(world)` stubbed. Event handlers like `onCreatureSpawn` call `event.getLocation().getWorld()` which delegates to `entity.getLocation().getWorld()`. Without this stub, `addon.inGameModeWorld(null)` returns `false` and the handler exits early.
+
+#### Testing Limit Hierarchy
+
+`BlockLimitsListener`'s private `worldLimitMap` and `defaultLimitMap` can be accessed via reflection to set up world-specific and default limits for tests:
+```java
+Field worldLimitField = BlockLimitsListener.class.getDeclaredField("worldLimitMap");
+worldLimitField.setAccessible(true);
+```
+
+`Settings.getGroupLimits()` returns a mutable map — entity group limits can be added directly for tests.
+
+#### Testing Debounce (`justSpawned`)
+
+`EntityLimitListener`'s private `justSpawned` list (deduplicates entity spawns) can be accessed via reflection to test debounce behavior.
