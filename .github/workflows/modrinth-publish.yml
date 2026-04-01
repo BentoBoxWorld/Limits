@@ -4,6 +4,12 @@ name: Publish to Modrinth
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish (e.g. 1.28.0)'
+        required: true
+        type: string
 
 jobs:
   publish:
@@ -55,10 +61,10 @@ jobs:
           token: ${{ secrets.MODRINTH_TOKEN }}
           project: ${{ secrets.MODRINTH_PROJECT_ID }}
 
-          # Use the GitHub release tag as the version number (e.g. "1.28.0")
-          version: ${{ github.event.release.tag_name }}
+          # Use the release tag, or the manually supplied tag when triggered via workflow_dispatch
+          version: ${{ github.event.release.tag_name || inputs.tag }}
 
-          # Use the GitHub release body as the changelog
+          # Use the GitHub release body as the changelog (empty when run manually)
           changelog: ${{ github.event.release.body }}
 
           # Release channel — auto-detected from version string:
@@ -84,4 +90,4 @@ jobs:
 
           # Path to the built JAR — Maven produces Limits-<version>.jar in target/
           # Note: glob patterns are not supported; use the release tag directly.
-          files: target/Limits-${{ github.event.release.tag_name }}.jar
+          files: target/Limits-${{ github.event.release.tag_name || inputs.tag }}.jar
