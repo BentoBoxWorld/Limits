@@ -83,4 +83,5 @@ jobs:
             1.21.11
 
           # Path to the built JAR — Maven produces Limits-<version>.jar in target/
-          files: target/Limits-*.jar
+          # Note: glob patterns are not supported; use the release tag directly.
+          files: target/Limits-${{ github.event.release.tag_name }}.jar
