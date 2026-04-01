@@ -73,13 +73,13 @@ jobs:
           # channel: release
 
           # Limits is a Paper addon
-          loaders: |
+          loaders: |-
             paper
             purpur
 
           # Minecraft versions this release supports.
           # Update this list when you start supporting newer or older MC versions.
-          game-versions: |
+          game-versions: |-
             1.21.5
             1.21.6
             1.21.7
