@@ -10,9 +10,11 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Location;
@@ -31,7 +33,12 @@ import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityBreedEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.entity.Hanging;
+import org.bukkit.entity.Minecart;
+import org.bukkit.entity.Painting;
+import org.bukkit.entity.Villager;
+import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.Material;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,8 +48,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import world.bentobox.bentobox.BentoBox;
+import world.bentobox.bentobox.api.user.Notifier;
+import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
+import world.bentobox.bentobox.managers.IslandWorldManager;
 import world.bentobox.bentobox.managers.IslandsManager;
+import world.bentobox.bentobox.managers.LocalesManager;
+import world.bentobox.bentobox.managers.PlaceholdersManager;
+import world.bentobox.limits.EntityGroup;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.Settings;
 import world.bentobox.limits.listeners.EntityLimitListener.AtLimitResult;
@@ -107,15 +121,35 @@ public class EntityLimitListenerTest {
         when(addon.inGameModeWorld(world)).thenReturn(true);
         when(addon.getIslands()).thenReturn(islandsManager);
         when(islandsManager.getIslandAt(any(Location.class))).thenReturn(Optional.of(island));
+        when(islandsManager.getProtectedIslandAt(any(Location.class))).thenReturn(Optional.of(island));
         when(island.getUniqueId()).thenReturn("test-island-id");
         when(island.isSpawn()).thenReturn(false);
         when(addon.getGameModeName(world)).thenReturn("BSkyBlock");
+
+        // Plugin/IWM for permission checks in hanging/breed events
+        BentoBox bentoBox = mock(BentoBox.class);
+        when(addon.getPlugin()).thenReturn(bentoBox);
+        IslandWorldManager iwm = mock(IslandWorldManager.class);
+        when(bentoBox.getIWM()).thenReturn(iwm);
+        when(iwm.getPermissionPrefix(any(World.class))).thenReturn("bskyblock.");
+
+        // User setup for notification in hanging place events
+        User.setPlugin(bentoBox);
+        LocalesManager localesManager = mock(LocalesManager.class);
+        when(localesManager.get(any(), anyString())).thenReturn("limit hit");
+        when(bentoBox.getLocalesManager()).thenReturn(localesManager);
+        PlaceholdersManager placeholdersManager = mock(PlaceholdersManager.class);
+        when(placeholdersManager.replacePlaceholders(any(Player.class), anyString())).thenAnswer(inv -> inv.getArgument(1));
+        when(bentoBox.getPlaceholdersManager()).thenReturn(placeholdersManager);
+        Notifier notifier = mock(Notifier.class);
+        when(bentoBox.getNotifier()).thenReturn(notifier);
 
         ell = new EntityLimitListener(addon);
     }
 
     @AfterEach
     public void tearDown() {
+        User.clearUsers();
         MockBukkit.unmock();
     }
 
@@ -303,6 +337,228 @@ public class EntityLimitListenerTest {
         // Op player bypasses — setBreed(false) should NOT be called
         verify(father, never()).setBreed(false);
         verify(mother, never()).setBreed(false);
+    }
+
+    // --- CreatureSpawn at-limit tests ---
+
+    @Test
+    public void testCreatureSpawnAtLimitCancels() {
+        // Set island-specific CHICKEN limit to 1, pre-fill with 1
+        ibc.setEntityLimit(EntityType.CHICKEN, 1);
+        LivingEntity chicken = mockEntity(EntityType.CHICKEN, location);
+        List<Entity> chickens = new ArrayList<>();
+        chickens.add(mockEntity(EntityType.CHICKEN, location));
+        when(world.getNearbyEntities(any())).thenReturn(chickens);
+
+        CreatureSpawnEvent event = new CreatureSpawnEvent(chicken, SpawnReason.NATURAL);
+
+        ell.onCreatureSpawn(event);
+
+        assertTrue(event.isCancelled());
+    }
+
+    @Test
+    public void testCreatureSpawnBreedingVillagerProcessed() {
+        // Set island-specific VILLAGER limit to 1, pre-fill with 1
+        ibc.setEntityLimit(EntityType.VILLAGER, 1);
+        LivingEntity villager = mock(Villager.class);
+        when(villager.getType()).thenReturn(EntityType.VILLAGER);
+        when(villager.getLocation()).thenReturn(location);
+        when(villager.getWorld()).thenReturn(world);
+        when(villager.getUniqueId()).thenReturn(UUID.randomUUID());
+        List<Entity> villagers = new ArrayList<>();
+        villagers.add(villager);
+        when(world.getNearbyEntities(any())).thenReturn(villagers);
+
+        CreatureSpawnEvent event = new CreatureSpawnEvent(villager, SpawnReason.BREEDING);
+
+        ell.onCreatureSpawn(event);
+
+        assertTrue(event.isCancelled());
+    }
+
+    @Test
+    public void testCreatureSpawnDebounceSkipsSecond() throws Exception {
+        // Access justSpawned list via reflection
+        Field justSpawnedField = EntityLimitListener.class.getDeclaredField("justSpawned");
+        justSpawnedField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        List<UUID> justSpawned = (List<UUID>) justSpawnedField.get(ell);
+
+        // Set CHICKEN at limit
+        ibc.setEntityLimit(EntityType.CHICKEN, 1);
+        LivingEntity chicken = mockEntity(EntityType.CHICKEN, location);
+        List<Entity> chickens = new ArrayList<>();
+        chickens.add(mockEntity(EntityType.CHICKEN, location));
+        when(world.getNearbyEntities(any())).thenReturn(chickens);
+
+        // Add entity UUID to justSpawned (debounce)
+        justSpawned.add(chicken.getUniqueId());
+
+        CreatureSpawnEvent event = new CreatureSpawnEvent(chicken, SpawnReason.NATURAL);
+
+        ell.onCreatureSpawn(event);
+
+        assertFalse(event.isCancelled());
+    }
+
+    // --- VehicleCreateEvent tests ---
+
+    @Test
+    public void testVehicleCreateAtLimitCancels() {
+        // Set island-specific MINECART limit to 1, pre-fill with 1
+        ibc.setEntityLimit(EntityType.MINECART, 1);
+        Minecart minecart = mock(Minecart.class);
+        when(minecart.getType()).thenReturn(EntityType.MINECART);
+        when(minecart.getLocation()).thenReturn(location);
+        when(minecart.getWorld()).thenReturn(world);
+        when(minecart.getUniqueId()).thenReturn(UUID.randomUUID());
+
+        List<Entity> minecarts = new ArrayList<>();
+        minecarts.add(minecart);
+        when(world.getNearbyEntities(any())).thenReturn(minecarts);
+
+        VehicleCreateEvent event = new VehicleCreateEvent(minecart);
+
+        ell.onMinecart(event);
+
+        assertTrue(event.isCancelled());
+    }
+
+    @Test
+    public void testVehicleCreateDebounceSkipsSecond() throws Exception {
+        Field justSpawnedField = EntityLimitListener.class.getDeclaredField("justSpawned");
+        justSpawnedField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        List<UUID> justSpawned = (List<UUID>) justSpawnedField.get(ell);
+
+        ibc.setEntityLimit(EntityType.MINECART, 1);
+        Minecart minecart = mock(Minecart.class);
+        when(minecart.getType()).thenReturn(EntityType.MINECART);
+        when(minecart.getLocation()).thenReturn(location);
+        when(minecart.getWorld()).thenReturn(world);
+        UUID minecartUuid = UUID.randomUUID();
+        when(minecart.getUniqueId()).thenReturn(minecartUuid);
+
+        List<Entity> minecarts = new ArrayList<>();
+        minecarts.add(minecart);
+        when(world.getNearbyEntities(any())).thenReturn(minecarts);
+
+        // Add to justSpawned (debounce)
+        justSpawned.add(minecartUuid);
+
+        VehicleCreateEvent event = new VehicleCreateEvent(minecart);
+
+        ell.onMinecart(event);
+
+        assertFalse(event.isCancelled());
+    }
+
+    // --- HangingPlaceEvent at-limit and bypass tests ---
+
+    @Test
+    public void testHangingPlaceAtLimitCancels() {
+        // Set island-specific PAINTING limit to 1, pre-fill with 1
+        ibc.setEntityLimit(EntityType.PAINTING, 1);
+        Painting painting = mock(Painting.class);
+        when(painting.getType()).thenReturn(EntityType.PAINTING);
+        when(painting.getLocation()).thenReturn(location);
+        when(painting.getWorld()).thenReturn(world);
+        when(painting.getUniqueId()).thenReturn(UUID.randomUUID());
+
+        List<Entity> paintings = new ArrayList<>();
+        paintings.add(painting);
+        when(world.getNearbyEntities(any())).thenReturn(paintings);
+
+        Player player = mock(Player.class);
+        when(player.isOp()).thenReturn(false);
+        when(player.hasPermission(anyString())).thenReturn(false);
+
+        Block block = mock(Block.class);
+        when(block.getWorld()).thenReturn(world);
+        HangingPlaceEvent event = new HangingPlaceEvent(painting, player, block, BlockFace.SOUTH, EquipmentSlot.HAND, null);
+
+        ell.onBlock(event);
+
+        assertTrue(event.isCancelled());
+    }
+
+    @Test
+    public void testHangingPlaceOpPlayerBypasses() {
+        // Set island-specific PAINTING limit to 1, pre-fill with 1
+        ibc.setEntityLimit(EntityType.PAINTING, 1);
+        Painting painting = mock(Painting.class);
+        when(painting.getType()).thenReturn(EntityType.PAINTING);
+        when(painting.getLocation()).thenReturn(location);
+        when(painting.getWorld()).thenReturn(world);
+        when(painting.getUniqueId()).thenReturn(UUID.randomUUID());
+
+        List<Entity> paintings = new ArrayList<>();
+        paintings.add(painting);
+        when(world.getNearbyEntities(any())).thenReturn(paintings);
+
+        Player opPlayer = mock(Player.class);
+        when(opPlayer.isOp()).thenReturn(true);
+
+        Block block = mock(Block.class);
+        when(block.getWorld()).thenReturn(world);
+        HangingPlaceEvent event = new HangingPlaceEvent(painting, opPlayer, block, BlockFace.SOUTH, EquipmentSlot.HAND, null);
+
+        ell.onBlock(event);
+
+        assertFalse(event.isCancelled());
+    }
+
+    // --- Entity group limit tests ---
+
+    @Test
+    public void testEntityGroupLimitBlocksSpawnWhenGroupFull() {
+        // Create a custom group "testanimals" covering CHICKEN and COW with limit 2
+        EntityGroup testGroup = new EntityGroup("testanimals", Set.of(EntityType.CHICKEN, EntityType.COW), 2, Material.BARRIER);
+        Settings settings = addon.getSettings();
+        settings.getGroupLimits().put(EntityType.CHICKEN, new ArrayList<>(List.of(testGroup)));
+        settings.getGroupLimits().put(EntityType.COW, new ArrayList<>(List.of(testGroup)));
+
+        // Pre-fill with 2 entities in the group (1 CHICKEN + 1 COW)
+        LivingEntity chickenEntity = mockEntity(EntityType.CHICKEN, location);
+        LivingEntity cowEntity = mockEntity(EntityType.COW, location);
+        List<Entity> entities = new ArrayList<>();
+        entities.add(chickenEntity);
+        entities.add(cowEntity);
+        when(world.getNearbyEntities(any())).thenReturn(entities);
+
+        // Try to spawn another CHICKEN
+        LivingEntity newChicken = mockEntity(EntityType.CHICKEN, location);
+        CreatureSpawnEvent event = new CreatureSpawnEvent(newChicken, SpawnReason.NATURAL);
+
+        ell.onCreatureSpawn(event);
+
+        assertTrue(event.isCancelled());
+    }
+
+    @Test
+    public void testEntityGroupLimitAllowsSpawnWhenGroupUnderLimit() {
+        // Create a custom group "testanimals" covering CHICKEN and COW with limit 3
+        EntityGroup testGroup = new EntityGroup("testanimals", Set.of(EntityType.CHICKEN, EntityType.COW), 3, Material.BARRIER);
+        Settings settings = addon.getSettings();
+        settings.getGroupLimits().put(EntityType.CHICKEN, new ArrayList<>(List.of(testGroup)));
+        settings.getGroupLimits().put(EntityType.COW, new ArrayList<>(List.of(testGroup)));
+
+        // Pre-fill with 2 entities in the group (under limit of 3)
+        LivingEntity chickenEntity = mockEntity(EntityType.CHICKEN, location);
+        LivingEntity cowEntity = mockEntity(EntityType.COW, location);
+        List<Entity> entities = new ArrayList<>();
+        entities.add(chickenEntity);
+        entities.add(cowEntity);
+        when(world.getNearbyEntities(any())).thenReturn(entities);
+
+        // Try to spawn a COW (group count = 2, limit = 3 → allowed)
+        LivingEntity newCow = mockEntity(EntityType.COW, location);
+        CreatureSpawnEvent event = new CreatureSpawnEvent(newCow, SpawnReason.NATURAL);
+
+        ell.onCreatureSpawn(event);
+
+        assertFalse(event.isCancelled());
     }
 
     // --- helper methods ---
