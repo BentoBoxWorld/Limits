@@ -179,7 +179,7 @@ public class LimitTab implements Tab {
         for (Entry<NamespacedKey, Integer> en : matLimits.entrySet()) {
             PanelItemBuilder pib = new PanelItemBuilder();
             pib.name(user.getTranslation("island.limits.panel.block-name-syntax", TextVariables.NAME,
-                    Util.prettifyText(en.getKey().toString())));
+                    Util.prettifyText(en.getKey().getKey())));
             // Adjust icon
             Material mat = Registry.MATERIAL.get(B2M.getOrDefault(en.getKey(), en.getKey()));
             pib.icon(Objects.requireNonNullElse(mat, Material.PAPER));

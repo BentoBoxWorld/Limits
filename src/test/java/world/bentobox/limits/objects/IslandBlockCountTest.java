@@ -13,6 +13,9 @@ import org.junit.jupiter.api.Test;
 
 import org.mockbukkit.mockbukkit.MockBukkit;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 public class IslandBlockCountTest {
 
     private IslandBlockCount ibc;
@@ -181,5 +184,77 @@ public class IslandBlockCountTest {
     public void testSetAndGetUniqueId() {
         ibc.setUniqueId("island2");
         assertEquals("island2", ibc.getUniqueId());
+    }
+
+    /**
+     * Mirrors BentoBox's {@code AbstractJSONDatabaseHandler} configuration.
+     */
+    private static Gson buildBentoboxGson() {
+        return new GsonBuilder()
+                .excludeFieldsWithoutExposeAnnotation()
+                .enableComplexMapKeySerialization()
+                .setPrettyPrinting()
+                .disableHtmlEscaping()
+                .create();
+    }
+
+    @Test
+    public void testReadLegacyJsonWithBareMaterialNames() {
+        // This is the on-disk shape produced by versions of Limits where
+        // blockCounts was Map<Material, Integer>. Pre-1d0a3b7 databases look
+        // exactly like this and must still load.
+        String legacy = """
+                {
+                  "uniqueId": "AOneBlockabc",
+                  "gameMode": "AOneBlock",
+                  "blockCounts": {
+                    "POLISHED_DIORITE": 11,
+                    "DIRT": 459,
+                    "OAK_LOG": 8
+                  },
+                  "blockLimits": {},
+                  "entityLimits": {},
+                  "entityGroupLimits": {}
+                }
+                """;
+        IslandBlockCount loaded = buildBentoboxGson().fromJson(legacy, IslandBlockCount.class);
+        assertEquals("AOneBlockabc", loaded.getUniqueId());
+        assertEquals(11, loaded.getBlockCount(NamespacedKey.minecraft("polished_diorite")));
+        assertEquals(459, loaded.getBlockCount(NamespacedKey.minecraft("dirt")));
+        assertEquals(8, loaded.getBlockCount(NamespacedKey.minecraft("oak_log")));
+    }
+
+    @Test
+    public void testReadJsonWithNamespacedStringKeys() {
+        // This is the format the new adapter writes; it must round-trip.
+        String json = """
+                {
+                  "uniqueId": "i",
+                  "gameMode": "BSkyBlock",
+                  "blockCounts": {
+                    "minecraft:dirt": 12,
+                    "myaddon:custom_block": 3
+                  }
+                }
+                """;
+        IslandBlockCount loaded = buildBentoboxGson().fromJson(json, IslandBlockCount.class);
+        assertEquals(12, loaded.getBlockCount(NamespacedKey.minecraft("dirt")));
+        assertEquals(3, loaded.getBlockCount(new NamespacedKey("myaddon", "custom_block")));
+    }
+
+    @Test
+    public void testWriteRoundTripWithNamespacedKeys() {
+        ibc.add(stoneKey);
+        ibc.add(stoneKey);
+        ibc.setBlockLimit(NamespacedKey.minecraft("hopper"), 20);
+        ibc.setBlockLimitsOffset(NamespacedKey.minecraft("hopper"), 5);
+
+        Gson gson = buildBentoboxGson();
+        String json = gson.toJson(ibc);
+        IslandBlockCount loaded = gson.fromJson(json, IslandBlockCount.class);
+
+        assertEquals(2, loaded.getBlockCount(stoneKey));
+        assertEquals(20, loaded.getBlockLimit(NamespacedKey.minecraft("hopper")));
+        assertEquals(5, loaded.getBlockLimitOffset(NamespacedKey.minecraft("hopper")));
     }
 }

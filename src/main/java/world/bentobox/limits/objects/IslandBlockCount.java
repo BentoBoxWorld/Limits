@@ -9,6 +9,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.entity.EntityType;
 
 import com.google.gson.annotations.Expose;
+import com.google.gson.annotations.JsonAdapter;
 
 import world.bentobox.bentobox.database.objects.DataObject;
 import world.bentobox.bentobox.database.objects.Table;
@@ -21,15 +22,18 @@ import world.bentobox.bentobox.database.objects.Table;
 public class IslandBlockCount implements DataObject {
 
     @Expose
+    @JsonAdapter(NamespacedKeyMapAdapter.class)
     private Map<NamespacedKey, Integer> blockCounts = new HashMap<>();
 
     /**
      * Permission based limits
      */
     @Expose
+    @JsonAdapter(NamespacedKeyMapAdapter.class)
     private Map<NamespacedKey, Integer> blockLimits = new HashMap<>();
-    
+
     @Expose
+    @JsonAdapter(NamespacedKeyMapAdapter.class)
     private Map<NamespacedKey, Integer> blockLimitsOffset = new HashMap<>();
 
     private boolean changed;
