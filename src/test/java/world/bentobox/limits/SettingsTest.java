@@ -103,6 +103,18 @@ public class SettingsTest {
     }
 
     @Test
+    public void testAutoRefreshDefaultsOneHour() {
+        assertEquals(3600, settings.getAutoRefreshSeconds());
+    }
+
+    @Test
+    public void testAutoRefreshCanBeOverridden() {
+        config.set("auto-refresh-seconds", 120);
+        Settings s = new Settings(addon);
+        assertEquals(120, s.getAutoRefreshSeconds());
+    }
+
+    @Test
     public void testGetGeneralEmpty() {
         // Default config.yml does not have ANIMALS or MOBS entries in entitylimits
         Map<Settings.GeneralGroup, Integer> general = settings.getGeneral();

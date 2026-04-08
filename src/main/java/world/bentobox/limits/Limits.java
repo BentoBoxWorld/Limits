@@ -44,6 +44,9 @@ public class Limits extends Addon {
 
     @Override
     public void onDisable() {
+        if (joinListener != null) {
+            joinListener.stopAutoRefreshTask();
+        }
         if (blockLimitListener != null) {
             blockLimitListener.save();
         }
@@ -74,6 +77,7 @@ public class Limits extends Addon {
         registerListener(blockLimitListener);
         joinListener = new JoinListener(this);
         registerListener(joinListener);
+        joinListener.startAutoRefreshTask();
         EntityLimitListener entityLimitListener = new EntityLimitListener(this);
         registerListener(entityLimitListener);
         // Register Paper-specific listener for shulker duplication limiting if running on Paper.

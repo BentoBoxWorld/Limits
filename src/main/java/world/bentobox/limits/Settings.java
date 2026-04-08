@@ -29,6 +29,7 @@ public class Settings {
     private final List<String> gameModes;
     private final boolean logLimitsOnJoin;
     private final boolean asyncGolums;
+    private final int autoRefreshSeconds;
     private static final List<EntityType> DISALLOWED = Arrays.asList(
             EntityType.TNT,
             EntityType.EVOKER_FANGS,
@@ -84,6 +85,8 @@ public class Settings {
         logLimitsOnJoin = addon.getConfig().getBoolean("log-limits-on-join", true);
         // Async Golums
         asyncGolums = addon.getConfig().getBoolean("async-golums", true);
+        // Auto refresh interval for permission limits/audit task in seconds. 0 disables it.
+        autoRefreshSeconds = Math.max(0, addon.getConfig().getInt("auto-refresh-seconds", 3600));
 
         addon.log("Entity limits:");
         limits.entrySet().stream().map(e -> "Limit " + e.getKey().toString() + " to " + e.getValue()).forEach(addon::log);
@@ -173,6 +176,13 @@ public class Settings {
      */
     public boolean isAsyncGolums() {
         return asyncGolums;
+    }
+
+    /**
+     * @return auto-refresh interval in seconds. 0 means disabled.
+     */
+    public int getAutoRefreshSeconds() {
+        return autoRefreshSeconds;
     }
 
     /**

@@ -166,6 +166,7 @@ public class OffsetCommand extends CompositeCommand
             {
                 islandData.setBlockLimitsOffset(material.getKey(), offset);
                 islandData.setChanged();
+                this.addon.getBlockLimitListener().setIsland(island.getUniqueId(), islandData);
 
                 user.sendMessage("admin.limits.offset.set.success",
                     TextVariables.NUMBER, String.valueOf(offset),
@@ -175,6 +176,7 @@ public class OffsetCommand extends CompositeCommand
             {
                 islandData.setEntityLimitsOffset(entityType, offset);
                 islandData.setChanged();
+                this.addon.getBlockLimitListener().setIsland(island.getUniqueId(), islandData);
 
                 user.sendMessage("admin.limits.offset.set.success",
                     TextVariables.NUMBER, String.valueOf(offset),
@@ -281,6 +283,7 @@ public class OffsetCommand extends CompositeCommand
 
                 islandData.setBlockLimitsOffset(material.getKey(), offset);
                 islandData.setChanged();
+                this.addon.getBlockLimitListener().setIsland(island.getUniqueId(), islandData);
 
                 user.sendMessage("admin.limits.offset.add.success",
                     TextVariables.NUMBER, String.valueOf(offset),
@@ -292,6 +295,7 @@ public class OffsetCommand extends CompositeCommand
 
                 islandData.setEntityLimitsOffset(entityType, offset);
                 islandData.setChanged();
+                this.addon.getBlockLimitListener().setIsland(island.getUniqueId(), islandData);
 
                 user.sendMessage("admin.limits.offset.add.success",
                     TextVariables.NUMBER, String.valueOf(offset),
@@ -398,6 +402,7 @@ public class OffsetCommand extends CompositeCommand
 
                 islandData.setBlockLimitsOffset(material.getKey(), offset);
                 islandData.setChanged();
+                this.addon.getBlockLimitListener().setIsland(island.getUniqueId(), islandData);
 
                 user.sendMessage("admin.limits.offset.remove.success",
                     TextVariables.NUMBER, String.valueOf(offset),
@@ -409,6 +414,7 @@ public class OffsetCommand extends CompositeCommand
 
                 islandData.setEntityLimitsOffset(entityType, offset);
                 islandData.setChanged();
+                this.addon.getBlockLimitListener().setIsland(island.getUniqueId(), islandData);
 
                 user.sendMessage("admin.limits.offset.remove.success",
                     TextVariables.NUMBER, String.valueOf(offset),
@@ -504,6 +510,7 @@ public class OffsetCommand extends CompositeCommand
             {
                 islandData.setBlockLimitsOffset(material.getKey(), 0);
                 islandData.setChanged();
+                this.addon.getBlockLimitListener().setIsland(island.getUniqueId(), islandData);
 
                 user.sendMessage("admin.limits.offset.reset.success",
                     TextVariables.NAME, material.name());
@@ -512,6 +519,7 @@ public class OffsetCommand extends CompositeCommand
             {
                 islandData.setEntityLimitsOffset(entityType, 0);
                 islandData.setChanged();
+                this.addon.getBlockLimitListener().setIsland(island.getUniqueId(), islandData);
 
                 user.sendMessage("admin.limits.offset.reset.success",
                     TextVariables.NAME, entityType.name());

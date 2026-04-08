@@ -95,10 +95,10 @@ public class RecountCalculator {
         }
     }
 
-    private void checkBlock(BlockData b) {
+    private void checkBlock(World scanWorld, BlockData b) {
         NamespacedKey md = bll.fixMaterial(b);
         // md is limited
-        if (bll.getMaterialLimits(world, island.getUniqueId()).containsKey(md)) {
+        if (bll.getMaterialLimits(scanWorld, island.getUniqueId()).containsKey(md)) {
             results.mdCount.add(md);
         }
     }
@@ -211,7 +211,7 @@ public class RecountCalculator {
                     if (Tag.SLABS.isTagged(blockData.getMaterial())) {
                         Slab slab = (Slab)blockData;
                         if (slab.getType().equals(Slab.Type.DOUBLE)) {
-                            checkBlock(blockData);
+                            checkBlock(chunk.getWorld(), blockData);
                         }
                     }
                     // Hook for Wild Stackers (Blocks Only) - this has to use the real chunk
@@ -221,7 +221,7 @@ public class RecountCalculator {
                     }
                      */
                     // Add the value of the block's material
-                    checkBlock(blockData);
+                    checkBlock(chunk.getWorld(), blockData);
                 }
             }
         }

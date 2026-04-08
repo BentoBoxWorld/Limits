@@ -21,6 +21,11 @@ cooldown: 120
 # Log limits on join (to console)
 log-limits-on-join: true
 
+# Auto refresh interval (seconds) for rechecking owner permission limits and auditing
+# islands that are currently over their configured limits.
+# Set to 0 to disable scheduled auto refresh.
+auto-refresh-seconds: 3600
+
 # Use async checks for snowmen and iron golums. Set to false if you see problems.
 async-golums: true
 

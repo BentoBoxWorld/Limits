@@ -1,14 +1,20 @@
 package world.bentobox.limits.listeners;
 
 import java.util.Arrays;
+import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -16,16 +22,20 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.permissions.PermissionAttachmentInfo;
+import org.bukkit.scheduler.BukkitTask;
 import org.eclipse.jdt.annotation.NonNull;
 
+import world.bentobox.bentobox.api.addons.GameModeAddon;
 import world.bentobox.bentobox.api.events.island.IslandEvent;
 import world.bentobox.bentobox.api.events.island.IslandEvent.Reason;
 import world.bentobox.bentobox.api.events.team.TeamSetownerEvent;
 import world.bentobox.bentobox.database.objects.Island;
+import world.bentobox.bentobox.managers.IslandWorldManager;
 import world.bentobox.limits.EntityGroup;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.events.LimitsJoinPermCheckEvent;
 import world.bentobox.limits.events.LimitsPermCheckEvent;
+import world.bentobox.limits.listeners.BlockLimitsListener;
 import world.bentobox.limits.objects.IslandBlockCount;
 
 /**
@@ -39,6 +49,7 @@ import world.bentobox.limits.objects.IslandBlockCount;
 public class JoinListener implements Listener {
 
     private final Limits addon;
+    private BukkitTask autoRefreshTask;
 
     /**
      * Constructs the listener.
@@ -46,6 +57,156 @@ public class JoinListener implements Listener {
      */
     public JoinListener(Limits addon) {
         this.addon = addon;
+    }
+
+    /**
+     * Starts periodic permission refresh and limit-breach audit.
+     */
+    public void startAutoRefreshTask() {
+        if (autoRefreshTask != null) {
+            return;
+        }
+        int refreshSeconds = addon.getSettings().getAutoRefreshSeconds();
+        if (refreshSeconds <= 0) {
+            addon.log("Limits auto-refresh is disabled (auto-refresh-seconds <= 0).");
+            return;
+        }
+        long intervalTicks = Math.max(20L, refreshSeconds * 20L);
+        autoRefreshTask = Bukkit.getScheduler().runTaskTimer(addon.getPlugin(),
+                this::refreshOnlineOwnerLimitsAndAudit,
+                intervalTicks,
+                intervalTicks);
+        addon.log("Limits auto-refresh enabled: every " + refreshSeconds + " seconds.");
+    }
+
+    /**
+     * Stops periodic refresh task.
+     */
+    public void stopAutoRefreshTask() {
+        if (autoRefreshTask != null) {
+            autoRefreshTask.cancel();
+            autoRefreshTask = null;
+        }
+    }
+
+    private void refreshOnlineOwnerLimitsAndAudit() {
+        for (GameModeAddon gameMode : addon.getGameModes()) {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                refreshPlayerIslands(gameMode, player);
+            }
+        }
+    }
+
+    private void refreshPlayerIslands(GameModeAddon gameMode, Player player) {
+        addon.getIslands().getIslands(gameMode.getOverWorld(), player.getUniqueId()).stream()
+                .filter(island -> player.getUniqueId().equals(island.getOwner()))
+                .forEach(island -> {
+                    String islandId = island.getUniqueId();
+                    IslandBlockCount islandBlockCount = addon.getBlockLimitListener().getIsland(islandId);
+                    if (!joinEventCheck(player, islandId, islandBlockCount)) {
+                        checkPerms(player, gameMode.getPermissionPrefix() + "island.limit.", islandId,
+                                gameMode.getDescription().getName());
+                    }
+                    auditIslandLimitBreaches(island, player.getName());
+                });
+    }
+
+    private void auditIslandLimitBreaches(Island island, String ownerName) {
+        IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(island.getUniqueId());
+        if (ibc == null) {
+            return;
+        }
+        auditBlockLimitBreaches(island, ownerName, ibc);
+        Map<EntityType, Integer> entityCounts = countEntitiesInIslandSpace(island);
+        auditEntityLimitBreaches(island, ownerName, ibc, entityCounts);
+        auditEntityGroupLimitBreaches(island, ownerName, ibc, entityCounts);
+    }
+
+    private void auditBlockLimitBreaches(Island island, String ownerName, IslandBlockCount ibc) {
+        Map<NamespacedKey, Integer> materialLimits = addon.getBlockLimitListener()
+                .getMaterialLimits(island.getWorld(), island.getUniqueId());
+        materialLimits.forEach((material, limit) -> {
+            if (limit < 0) {
+                return;
+            }
+            int count = ibc.getBlockCount(material);
+            if (count > limit) {
+                warnLimitBreach(ownerName, island, "block", material.toString(), count, limit);
+            }
+        });
+    }
+
+    private void auditEntityLimitBreaches(Island island, String ownerName, IslandBlockCount ibc,
+            Map<EntityType, Integer> entityCounts) {
+        Set<EntityType> limitedTypes = new HashSet<>(addon.getSettings().getLimits().keySet());
+        limitedTypes.addAll(ibc.getEntityLimits().keySet());
+        for (EntityType type : limitedTypes) {
+            int baseLimit = ibc.getEntityLimit(type);
+            if (baseLimit < 0) {
+                baseLimit = addon.getSettings().getLimits().getOrDefault(type, -1);
+            }
+            if (baseLimit < 0) {
+                continue;
+            }
+            int limit = baseLimit + ibc.getEntityLimitOffset(type);
+            int count = entityCounts.getOrDefault(type, 0);
+            if (count > limit) {
+                warnLimitBreach(ownerName, island, "entity", type.name(), count, limit);
+            }
+        }
+    }
+
+    private void auditEntityGroupLimitBreaches(Island island, String ownerName, IslandBlockCount ibc,
+            Map<EntityType, Integer> entityCounts) {
+        for (EntityGroup group : addon.getSettings().getGroupLimitDefinitions()) {
+            int baseLimit = ibc.getEntityGroupLimit(group.getName());
+            if (baseLimit < 0) {
+                baseLimit = group.getLimit();
+            }
+            if (baseLimit < 0) {
+                continue;
+            }
+            int limit = baseLimit + ibc.getEntityGroupLimitOffset(group.getName());
+            int count = group.getTypes().stream().mapToInt(type -> entityCounts.getOrDefault(type, 0)).sum();
+            if (count > limit) {
+                warnLimitBreach(ownerName, island, "entity-group", group.getName(), count, limit);
+            }
+        }
+    }
+
+    private Map<EntityType, Integer> countEntitiesInIslandSpace(Island island) {
+        Map<EntityType, Integer> counts = new EnumMap<>(EntityType.class);
+        World world = island.getWorld();
+        collectEntityCounts(island, world, counts);
+        IslandWorldManager iwm = addon.getPlugin().getIWM();
+        if (iwm.isNetherIslands(world) && iwm.getNetherWorld(world) != null) {
+            collectEntityCounts(island, iwm.getNetherWorld(world), counts);
+        }
+        if (iwm.isEndIslands(world) && iwm.getEndWorld(world) != null) {
+            collectEntityCounts(island, iwm.getEndWorld(world), counts);
+        }
+        return counts;
+    }
+
+    private void collectEntityCounts(Island island, World world, Map<EntityType, Integer> counts) {
+        for (Entity entity : world.getEntities()) {
+            if (island.inIslandSpace(entity.getLocation())) {
+                counts.merge(entity.getType(), 1, Integer::sum);
+            }
+        }
+    }
+
+    private void warnLimitBreach(String ownerName, Island island, String type, String target, int count, int limit) {
+        Bukkit.getLogger().warning("[Limits] Auto-refresh detected " + type + " limit breach: island="
+                + island.getUniqueId()
+                + ", owner="
+                + ownerName
+                + ", target="
+                + target
+                + ", count="
+                + count
+                + ", limit="
+                + limit);
     }
 
     /**
@@ -312,12 +473,15 @@ public class JoinListener implements Listener {
     private void removeOwnerPerms(Island island) {
         World world = island.getWorld();
         if (addon.inGameModeWorld(world)) {
-            IslandBlockCount islandBlockCount = addon.getBlockLimitListener().getIsland(island.getUniqueId());
+            BlockLimitsListener blockLimitsListener = addon.getBlockLimitListener();
+            IslandBlockCount islandBlockCount = blockLimitsListener.getIsland(island.getUniqueId());
             if (islandBlockCount != null) {
                 // Just clear the maps. This preserves any actual block counts.
                 islandBlockCount.getBlockLimits().clear();
                 islandBlockCount.getEntityLimits().clear();
                 islandBlockCount.getEntityGroupLimits().clear();
+                islandBlockCount.setChanged();
+                blockLimitsListener.setIsland(island.getUniqueId(), islandBlockCount);
             }
         }
     }

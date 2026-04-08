@@ -3,7 +3,6 @@ package world.bentobox.limits.objects;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.EntityType;
@@ -77,7 +76,7 @@ public class IslandBlockCount implements DataObject {
      * Clear all island-specific entity group limits
      */
     public void clearEntityGroupLimits() {
-        entityGroupLimits.clear();
+        getEntityGroupLimits().clear();
         setChanged();
     }
 
@@ -85,7 +84,7 @@ public class IslandBlockCount implements DataObject {
      * Clear all island-specific entity type limits
      */
     public void clearEntityLimits() {
-        entityLimits.clear();
+        getEntityLimits().clear();
         setChanged();
     }
 
@@ -173,7 +172,10 @@ public class IslandBlockCount implements DataObject {
      * @return the entityGroupLimits
      */
     public Map<String, Integer> getEntityGroupLimits() {
-        return Objects.requireNonNullElse(entityGroupLimits, new HashMap<>());
+        if (entityGroupLimits == null) {
+            entityGroupLimits = new HashMap<>();
+        }
+        return entityGroupLimits;
     }
 
     /**
@@ -210,7 +212,10 @@ public class IslandBlockCount implements DataObject {
      * @return the entityLimits
      */
     public Map<EntityType, Integer> getEntityLimits() {
-        return Objects.requireNonNullElse(entityLimits, new EnumMap<>(EntityType.class));
+        if (entityLimits == null) {
+            entityLimits = new EnumMap<>(EntityType.class);
+        }
+        return entityLimits;
     }
 
     /**
