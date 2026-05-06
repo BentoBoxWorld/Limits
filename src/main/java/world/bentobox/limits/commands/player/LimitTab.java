@@ -25,7 +25,6 @@ import world.bentobox.bentobox.api.panels.PanelItem;
 import world.bentobox.bentobox.api.panels.Tab;
 import world.bentobox.bentobox.api.panels.builders.PanelItemBuilder;
 import world.bentobox.bentobox.api.user.User;
-import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Util;
 import world.bentobox.limits.EntityGroup;
 import world.bentobox.limits.Limits;
@@ -79,7 +78,7 @@ public class LimitTab implements Tab {
     private final Environment env;
     private final List<@Nullable PanelItem> result;
 
-    public LimitTab(Limits addon, IslandBlockCount ibc, Map<NamespacedKey, Integer> matLimits, Island island,
+    public LimitTab(Limits addon, IslandBlockCount ibc, Map<NamespacedKey, Integer> matLimits,
             World world, User user, Environment env) {
         this.addon = addon;
         this.world = world;

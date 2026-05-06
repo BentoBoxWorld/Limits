@@ -130,8 +130,8 @@ public class LimitTabTest {
 
         Map<NamespacedKey, Integer> matLimits = Map.of(hopper, 10);
 
-        LimitTab overworldTab = new LimitTab(addon, ibc, matLimits, island, world, user, Environment.NORMAL);
-        LimitTab netherTab = new LimitTab(addon, ibc, matLimits, island, world, user, Environment.NETHER);
+        LimitTab overworldTab = new LimitTab(addon, ibc, matLimits, world, user, Environment.NORMAL);
+        LimitTab netherTab = new LimitTab(addon, ibc, matLimits, world, user, Environment.NETHER);
 
         assertEquals("3", findCount(overworldTab, "hopper"), "3 hoppers visible in overworld tab");
         assertEquals("7", findCount(netherTab, "hopper"), "7 hoppers visible in nether tab");
@@ -145,8 +145,8 @@ public class LimitTabTest {
         when(settings.getLimits(Environment.NORMAL)).thenReturn(Map.of(EntityType.CHICKEN, 10));
         when(settings.getLimits(Environment.NETHER)).thenReturn(Map.of(EntityType.CHICKEN, 10));
 
-        LimitTab overworldTab = new LimitTab(addon, ibc, Collections.emptyMap(), island, world, user, Environment.NORMAL);
-        LimitTab netherTab = new LimitTab(addon, ibc, Collections.emptyMap(), island, world, user, Environment.NETHER);
+        LimitTab overworldTab = new LimitTab(addon, ibc, Collections.emptyMap(), world, user, Environment.NORMAL);
+        LimitTab netherTab = new LimitTab(addon, ibc, Collections.emptyMap(), world, user, Environment.NETHER);
 
         assertEquals("4", findCount(overworldTab, "chicken"));
         assertEquals("9", findCount(netherTab, "chicken"));
@@ -155,7 +155,7 @@ public class LimitTabTest {
     @Test
     void tabIconAndTitleReflectEnvironment() {
         IslandBlockCount ibc = new IslandBlockCount("island", "BSkyBlock");
-        LimitTab netherTab = new LimitTab(addon, ibc, Collections.emptyMap(), island, world, user, Environment.NETHER);
+        LimitTab netherTab = new LimitTab(addon, ibc, Collections.emptyMap(), world, user, Environment.NETHER);
         assertNotNull(netherTab.getIcon());
         assertEquals(Material.NETHERRACK, netherTab.getIcon().getItem().getType());
         assertTrue(netherTab.getName().contains("Nether"), "Title should contain 'Nether'; was: " + netherTab.getName());

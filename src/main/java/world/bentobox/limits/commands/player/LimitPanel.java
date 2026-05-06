@@ -82,7 +82,7 @@ public class LimitPanel {
                 && addon.getSettings().getGroupLimits(env).isEmpty()) {
             return slot;
         }
-        tpb.tab(slot, new LimitTab(addon, ibc, matLimits, island, envWorld, user, env));
+        tpb.tab(slot, new LimitTab(addon, ibc, matLimits, envWorld, user, env));
         return slot + 1;
     }
 }
