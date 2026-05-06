@@ -2,6 +2,7 @@ package world.bentobox.limits.commands.player;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,11 @@ import world.bentobox.limits.objects.IslandBlockCount;
  * @author tastybento
  */
 public class LimitTab implements Tab {
+
+    private static final String MAX_COLOR_KEY = "island.limits.max-color";
+    private static final String REGULAR_COLOR_KEY = "island.limits.regular-color";
+    private static final String BLOCK_LIMIT_SYNTAX_KEY = "island.limits.block-limit-syntax";
+    private static final String LIMIT_PLACEHOLDER = "[limit]";
 
     /** This maps the entity types to the icon that should be shown in the panel */
     private static final Map<EntityType, Material> E2M = ImmutableMap.<EntityType, Material>builder()
@@ -81,12 +87,12 @@ public class LimitTab implements Tab {
         this.env = env;
         result = new ArrayList<>();
         addMaterialIcons(ibc, matLimits);
-        addEntityLimits(ibc, island);
-        addEntityGroupLimits(ibc, island);
+        addEntityLimits(ibc);
+        addEntityGroupLimits(ibc);
         result.sort(Comparator.comparing(PanelItem::getName));
     }
 
-    private void addEntityGroupLimits(IslandBlockCount ibc, Island island) {
+    private void addEntityGroupLimits(IslandBlockCount ibc) {
         Map<String, Integer> envGroupLimits = new HashMap<>(addon.getSettings().getGroupLimits(env));
         Map<EntityGroup, Integer> groupMap = addon.getSettings().getGroupLimitDefinitions().stream()
                 .filter(g -> envGroupLimits.containsKey(g.getName()))
@@ -110,11 +116,11 @@ public class LimitTab implements Tab {
             String description = "(" + prettyNames(g) + ")\n";
             pib.icon(g.getIcon());
             int count = ibc == null ? 0 : sumGroupCount(ibc, g);
-            String color = count >= limit ? user.getTranslation("island.limits.max-color")
-                    : user.getTranslation("island.limits.regular-color");
-            description += color + user.getTranslation("island.limits.block-limit-syntax",
+            String color = count >= limit ? user.getTranslation(MAX_COLOR_KEY)
+                    : user.getTranslation(REGULAR_COLOR_KEY);
+            description += color + user.getTranslation(BLOCK_LIMIT_SYNTAX_KEY,
                     TextVariables.NUMBER, String.valueOf(count),
-                    "[limit]", String.valueOf(limit));
+                    LIMIT_PLACEHOLDER, String.valueOf(limit));
             pib.description(description);
             result.add(pib.build());
         });
@@ -129,8 +135,9 @@ public class LimitTab implements Tab {
         return total;
     }
 
-    private void addEntityLimits(IslandBlockCount ibc, Island island) {
-        Map<EntityType, Integer> map = new HashMap<>(addon.getSettings().getLimits(env));
+    private void addEntityLimits(IslandBlockCount ibc) {
+        Map<EntityType, Integer> map = new EnumMap<>(EntityType.class);
+        map.putAll(addon.getSettings().getLimits(env));
         if (ibc != null) {
             map.putAll(ibc.getEntityLimits(env));
             ibc.getEntityLimitsOffset(env).forEach((k, v) -> map.put(k, map.getOrDefault(k, 0) + v));
@@ -153,11 +160,11 @@ public class LimitTab implements Tab {
             }
             pib.icon(m);
             int count = ibc == null ? 0 : ibc.getEntityCount(env, k);
-            String color = count >= v ? user.getTranslation("island.limits.max-color")
-                    : user.getTranslation("island.limits.regular-color");
-            pib.description(color + user.getTranslation("island.limits.block-limit-syntax",
+            String color = count >= v ? user.getTranslation(MAX_COLOR_KEY)
+                    : user.getTranslation(REGULAR_COLOR_KEY);
+            pib.description(color + user.getTranslation(BLOCK_LIMIT_SYNTAX_KEY,
                     TextVariables.NUMBER, String.valueOf(count),
-                    "[limit]", String.valueOf(v)));
+                    LIMIT_PLACEHOLDER, String.valueOf(v)));
             result.add(pib.build());
         });
     }
@@ -172,11 +179,11 @@ public class LimitTab implements Tab {
 
             int count = ibc == null ? 0 : ibc.getBlockCount(env, en.getKey());
             int value = en.getValue();
-            String color = count >= value ? user.getTranslation("island.limits.max-color")
-                    : user.getTranslation("island.limits.regular-color");
-            pib.description(color + user.getTranslation("island.limits.block-limit-syntax",
+            String color = count >= value ? user.getTranslation(MAX_COLOR_KEY)
+                    : user.getTranslation(REGULAR_COLOR_KEY);
+            pib.description(color + user.getTranslation(BLOCK_LIMIT_SYNTAX_KEY,
                     TextVariables.NUMBER, String.valueOf(count),
-                    "[limit]", String.valueOf(value)));
+                    LIMIT_PLACEHOLDER, String.valueOf(value)));
             result.add(pib.build());
         }
     }

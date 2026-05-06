@@ -53,14 +53,14 @@ public class LimitPanel {
 
         // Always show overworld; show nether/end only if the gamemode generates and provides them.
         int slot = 0;
-        slot = addEnvTab(tpb, gm, overWorld, ibc, island, user, Environment.NORMAL, slot);
+        slot = addEnvTab(tpb, overWorld, ibc, island, user, Environment.NORMAL, slot);
         World netherWorld = gm.getNetherWorld();
         if (netherWorld != null && addon.getPlugin().getIWM().isNetherIslands(overWorld)) {
-            slot = addEnvTab(tpb, gm, netherWorld, ibc, island, user, Environment.NETHER, slot);
+            slot = addEnvTab(tpb, netherWorld, ibc, island, user, Environment.NETHER, slot);
         }
         World endWorld = gm.getEndWorld();
         if (endWorld != null && addon.getPlugin().getIWM().isEndIslands(overWorld)) {
-            slot = addEnvTab(tpb, gm, endWorld, ibc, island, user, Environment.THE_END, slot);
+            slot = addEnvTab(tpb, endWorld, ibc, island, user, Environment.THE_END, slot);
         }
 
         Map<NamespacedKey, Integer> overworldLimits = addon.getBlockLimitListener().getMaterialLimits(overWorld,
@@ -73,7 +73,7 @@ public class LimitPanel {
         tpb.build().openPanel();
     }
 
-    private int addEnvTab(TabbedPanelBuilder tpb, GameModeAddon gm, World envWorld, IslandBlockCount ibc, Island island,
+    private int addEnvTab(TabbedPanelBuilder tpb, World envWorld, IslandBlockCount ibc, Island island,
             User user, Environment env, int slot) {
         Map<NamespacedKey, Integer> matLimits = addon.getBlockLimitListener().getMaterialLimits(envWorld,
                 island.getUniqueId());
