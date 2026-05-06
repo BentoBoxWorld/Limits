@@ -19,7 +19,6 @@ import world.bentobox.bentobox.api.addons.Addon;
 import world.bentobox.bentobox.api.addons.GameModeAddon;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
-import world.bentobox.bentobox.managers.IslandWorldManager;
 import world.bentobox.limits.commands.admin.AdminCommand;
 import world.bentobox.limits.commands.player.PlayerCommand;
 import world.bentobox.limits.listeners.BlockLimitsListener;
@@ -41,7 +40,6 @@ public class Limits extends Addon {
     private List<GameModeAddon> gameModes = new ArrayList<>();
     private BlockLimitsListener blockLimitListener;
     private JoinListener joinListener;
-    private IslandWorldManager islandWorldManager;
 
     @Override
     public void onDisable() {
@@ -53,7 +51,6 @@ public class Limits extends Addon {
     @Override
     public void onEnable() {
         saveDefaultConfig();
-        this.islandWorldManager = getPlugin().getIWM();
         settings = new Settings(this);
         gameModes = getPlugin().getAddonsManager().getGameModeAddons().stream()
                 .filter(gm -> settings.getGameModes().contains(gm.getDescription().getName()))
