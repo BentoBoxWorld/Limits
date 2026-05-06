@@ -68,41 +68,44 @@ public class JoinListener implements Listener {
             if (!permissionInfo.getValue() || !permissionInfo.getPermission().startsWith(permissionPrefix)) {
                 continue;
             }
-            ParsedPerm parsed = parsePerm(permissionInfo, player.getName(), permissionPrefix);
-            if (parsed == null) continue;
-
-            // Try to match the key part to an EntityType, Material, or EntityGroup
-            EntityType entityType = matchEntityType(parsed.key);
-            Material material = matchMaterial(parsed.key);
-            EntityGroup entityGroup = matchEntityGroup(parsed.key);
-
-            if (entityGroup == null && entityType == null && material == null) {
-                logError(player.getName(), permissionInfo.getPermission(),
-                        parsed.key.toUpperCase(Locale.ENGLISH) + " is not a valid material or entity type/group.");
-                continue;
-            }
-
-            if (islandBlockCount == null) {
-                islandBlockCount = new IslandBlockCount(islandId, gameMode);
-            }
-            logIfEnabled("Setting login limit via perm for " + player.getName() + "...");
-
-            LimitsPermCheckEvent limitsPermCheckEvent = new LimitsPermCheckEvent(player, islandId, islandBlockCount,
-                    entityGroup, entityType, material, parsed.value);
-            Bukkit.getPluginManager().callEvent(limitsPermCheckEvent);
-            if (limitsPermCheckEvent.isCancelled()) {
-                addon.log("Permissions not set because another addon/plugin canceled setting.");
-                continue;
-            }
-            islandBlockCount = limitsPermCheckEvent.getIbc();
-            if (islandBlockCount == null) {
-                islandBlockCount = new IslandBlockCount(islandId, gameMode);
-            }
-            applyLimit(islandBlockCount, parsed.envs, limitsPermCheckEvent);
+            islandBlockCount = applyOnePerm(player, permissionInfo, permissionPrefix, islandId, gameMode,
+                    islandBlockCount);
         }
         if (islandBlockCount != null) {
             addon.getBlockLimitListener().setIsland(islandId, islandBlockCount);
         }
+    }
+
+    private IslandBlockCount applyOnePerm(Player player, PermissionAttachmentInfo permissionInfo,
+            String permissionPrefix, String islandId, String gameMode, IslandBlockCount current) {
+        ParsedPerm parsed = parsePerm(permissionInfo, player.getName(), permissionPrefix);
+        if (parsed == null) return current;
+
+        // Try to match the key part to an EntityType, Material, or EntityGroup
+        EntityType entityType = matchEntityType(parsed.key);
+        Material material = matchMaterial(parsed.key);
+        EntityGroup entityGroup = matchEntityGroup(parsed.key);
+
+        if (entityGroup == null && entityType == null && material == null) {
+            logError(player.getName(), permissionInfo.getPermission(),
+                    parsed.key.toUpperCase(Locale.ENGLISH) + " is not a valid material or entity type/group.");
+            return current;
+        }
+
+        IslandBlockCount ibc = current != null ? current : new IslandBlockCount(islandId, gameMode);
+        logIfEnabled("Setting login limit via perm for " + player.getName() + "...");
+
+        LimitsPermCheckEvent limitsPermCheckEvent = new LimitsPermCheckEvent(player, islandId, ibc, entityGroup,
+                entityType, material, parsed.value);
+        Bukkit.getPluginManager().callEvent(limitsPermCheckEvent);
+        if (limitsPermCheckEvent.isCancelled()) {
+            addon.log("Permissions not set because another addon/plugin canceled setting.");
+            return ibc;
+        }
+        IslandBlockCount finalIbc = limitsPermCheckEvent.getIbc() != null ? limitsPermCheckEvent.getIbc()
+                : new IslandBlockCount(islandId, gameMode);
+        applyLimit(finalIbc, parsed.envs, limitsPermCheckEvent);
+        return finalIbc;
     }
 
     /**

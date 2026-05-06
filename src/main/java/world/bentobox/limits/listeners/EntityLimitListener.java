@@ -442,44 +442,59 @@ public class EntityLimitListener implements Listener {
         @Nullable
         IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(island.getUniqueId());
 
-        // 1. Resolve effective per-type limit
-        int limitAmount = -1;
-        if (ibc != null) {
-            limitAmount = ibc.getEntityLimit(env, type);
-        }
-        if (limitAmount < 0) {
-            Integer cfg = addon.getSettings().getLimits(env).get(type);
-            if (cfg != null) limitAmount = cfg;
+        int limitAmount = resolveTypeLimit(ibc, env, type);
+        Map<EntityGroup, Integer> groupsLimits = resolveGroupLimits(ibc, env, type);
+
+        if (limitAmount < 0 && groupsLimits.isEmpty()) {
+            return new AtLimitResult();
         }
 
-        // 2. Build effective group-limits for this env, applying island and config overrides
+        AtLimitResult typeResult = checkTypeLimit(ibc, env, type, limitAmount);
+        if (typeResult.hit()) return typeResult;
+
+        return checkGroupLimits(ibc, env, groupsLimits);
+    }
+
+    private int resolveTypeLimit(@Nullable IslandBlockCount ibc, Environment env, EntityType type) {
+        int limit = ibc == null ? -1 : ibc.getEntityLimit(env, type);
+        if (limit < 0) {
+            Integer cfg = addon.getSettings().getLimits(env).get(type);
+            if (cfg != null) limit = cfg;
+        }
+        return limit;
+    }
+
+    private Map<EntityGroup, Integer> resolveGroupLimits(@Nullable IslandBlockCount ibc, Environment env,
+            EntityType type) {
         Map<EntityGroup, Integer> groupsLimits = new HashMap<>();
         List<EntityGroup> groupdefs = addon.getSettings().getGroupLimits().getOrDefault(type, Collections.emptyList());
         Map<String, Integer> envGroupCfg = addon.getSettings().getGroupLimits(env);
-        Map<String, Integer> islandGroupOverrides = ibc == null ? Collections.emptyMap() : ibc.getEntityGroupLimits(env);
+        Map<String, Integer> islandGroupOverrides = ibc == null ? Collections.emptyMap()
+                : ibc.getEntityGroupLimits(env);
         for (EntityGroup def : groupdefs) {
             int limit = islandGroupOverrides.getOrDefault(def.getName(), envGroupCfg.getOrDefault(def.getName(), -1));
             if (limit >= 0) {
                 groupsLimits.put(def, limit);
             }
         }
+        return groupsLimits;
+    }
 
-        if (limitAmount < 0 && groupsLimits.isEmpty()) {
-            return new AtLimitResult();
-        }
+    private AtLimitResult checkTypeLimit(@Nullable IslandBlockCount ibc, Environment env, EntityType type,
+            int limitAmount) {
+        if (limitAmount < 0) return new AtLimitResult();
+        int count = ibc == null ? 0 : ibc.getEntityCount(env, type);
+        int max = limitAmount + (ibc == null ? 0 : ibc.getEntityLimitOffset(env, type));
+        return count >= max ? new AtLimitResult(type, max) : new AtLimitResult();
+    }
 
-        // 3. Read counts from the IBC; use 0 if no IBC has been created yet
-        if (limitAmount >= 0) {
-            int count = ibc == null ? 0 : ibc.getEntityCount(env, type);
-            int max = limitAmount + (ibc == null ? 0 : ibc.getEntityLimitOffset(env, type));
-            if (count >= max) {
-                return new AtLimitResult(type, max);
-            }
-        }
+    private AtLimitResult checkGroupLimits(@Nullable IslandBlockCount ibc, Environment env,
+            Map<EntityGroup, Integer> groupsLimits) {
         for (Map.Entry<EntityGroup, Integer> group : groupsLimits.entrySet()) {
             if (group.getValue() < 0) continue;
             int count = sumGroupCount(ibc, env, group.getKey());
-            int max = group.getValue() + (ibc == null ? 0 : ibc.getEntityGroupLimitOffset(env, group.getKey().getName()));
+            int max = group.getValue()
+                    + (ibc == null ? 0 : ibc.getEntityGroupLimitOffset(env, group.getKey().getName()));
             if (count >= max) {
                 return new AtLimitResult(group.getKey(), max);
             }

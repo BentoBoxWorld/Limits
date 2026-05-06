@@ -143,29 +143,33 @@ public class RecountCalculator {
 
     private void scanAsync(Environment env, Chunk chunk) {
         ChunkSnapshot chunkSnapshot = chunk.getChunkSnapshot();
+        int minX = island.getMinProtectedX();
+        int maxX = minX + island.getProtectionRange() * 2;
+        int minZ = island.getMinProtectedZ();
+        int maxZ = minZ + island.getProtectionRange() * 2;
+        int chunkBaseX = chunkSnapshot.getX() * 16;
+        int chunkBaseZ = chunkSnapshot.getZ() * 16;
+        int minY = chunk.getWorld().getMinHeight();
+        int maxY = chunk.getWorld().getMaxHeight();
         for (int x = 0; x < 16; x++) {
-            if (chunkSnapshot.getX() * 16 + x < island.getMinProtectedX()
-                    || chunkSnapshot.getX() * 16 + x >= island.getMinProtectedX()
-                            + island.getProtectionRange() * 2) {
-                continue;
-            }
+            int absX = chunkBaseX + x;
+            if (absX < minX || absX >= maxX) continue;
             for (int z = 0; z < 16; z++) {
-                if (chunkSnapshot.getZ() * 16 + z < island.getMinProtectedZ()
-                        || chunkSnapshot.getZ() * 16 + z >= island.getMinProtectedZ()
-                                + island.getProtectionRange() * 2) {
-                    continue;
-                }
-                for (int y = chunk.getWorld().getMinHeight(); y < chunk.getWorld().getMaxHeight(); y++) {
-                    BlockData blockData = chunkSnapshot.getBlockData(x, y, z);
-                    if (Tag.SLABS.isTagged(blockData.getMaterial())) {
-                        Slab slab = (Slab) blockData;
-                        if (slab.getType().equals(Slab.Type.DOUBLE)) {
-                            checkBlock(env, blockData);
-                        }
-                    }
-                    checkBlock(env, blockData);
-                }
+                int absZ = chunkBaseZ + z;
+                if (absZ < minZ || absZ >= maxZ) continue;
+                scanColumn(env, chunkSnapshot, x, z, minY, maxY);
             }
+        }
+    }
+
+    private void scanColumn(Environment env, ChunkSnapshot chunkSnapshot, int x, int z, int minY, int maxY) {
+        for (int y = minY; y < maxY; y++) {
+            BlockData blockData = chunkSnapshot.getBlockData(x, y, z);
+            if (Tag.SLABS.isTagged(blockData.getMaterial())
+                    && ((Slab) blockData).getType().equals(Slab.Type.DOUBLE)) {
+                checkBlock(env, blockData);
+            }
+            checkBlock(env, blockData);
         }
     }
 
