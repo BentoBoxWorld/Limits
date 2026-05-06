@@ -102,8 +102,8 @@ public class JoinListener implements Listener {
             addon.log("Permissions not set because another addon/plugin canceled setting.");
             return ibc;
         }
-        IslandBlockCount finalIbc = limitsPermCheckEvent.getIbc() != null ? limitsPermCheckEvent.getIbc()
-                : new IslandBlockCount(islandId, gameMode);
+        IslandBlockCount eventIbc = limitsPermCheckEvent.getIbc();
+        IslandBlockCount finalIbc = eventIbc != null ? eventIbc : new IslandBlockCount(islandId, gameMode);
         applyLimit(finalIbc, parsed.envs, limitsPermCheckEvent);
         return finalIbc;
     }

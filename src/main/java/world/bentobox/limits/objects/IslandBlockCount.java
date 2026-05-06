@@ -142,7 +142,8 @@ public class IslandBlockCount implements DataObject {
     private static <K> Map<K, Integer> newInner(Map<K, Integer> sample) {
         Object first = sample.keySet().iterator().next();
         if (first instanceof EntityType) {
-            return (Map<K, Integer>) new EnumMap<EntityType, Integer>(EntityType.class);
+            Map<EntityType, Integer> enumMap = new EnumMap<>(EntityType.class);
+            return (Map<K, Integer>) enumMap;
         }
         return new HashMap<>();
     }
