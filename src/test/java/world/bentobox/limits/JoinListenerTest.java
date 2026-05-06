@@ -1,7 +1,9 @@
 package world.bentobox.limits;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -21,6 +23,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.World.Environment;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -277,7 +280,7 @@ public class JoinListenerTest {
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
         jl.onPlayerJoin(e);
         verify(addon).logError(
-                "Player tastybento has permission: 'bskyblock.island.limit.my.perm.for.game' but format must be 'bskyblock.island.limit.MATERIAL.NUMBER', 'bskyblock.island.limit.ENTITY-TYPE.NUMBER', or 'bskyblock.island.limit.ENTITY-GROUP.NUMBER' Ignoring...");
+                "Player tastybento has permission: 'bskyblock.island.limit.my.perm.for.game' but format must be 'bskyblock.island.limit.[ENV.]KEY.NUMBER' where ENV is overworld|nether|end and KEY is a material, entity type, or group name. Ignoring...");
     }
 
     /**
@@ -349,7 +352,7 @@ public class JoinListenerTest {
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
         jl.onPlayerJoin(e);
         verify(addon, never()).logError(anyString());
-        verify(ibc).setBlockLimit(eq(Material.STONE.getKey()), eq(24));
+        verify(ibc).setBlockLimit(eq(Environment.NORMAL), eq(Material.STONE.getKey()), eq(24));
     }
 
     /**
@@ -367,7 +370,7 @@ public class JoinListenerTest {
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
         jl.onPlayerJoin(e);
         verify(addon, never()).logError(anyString());
-        verify(ibc).setEntityLimit(eq(EntityType.BAT), eq(24));
+        verify(ibc).setEntityLimit(eq(Environment.NORMAL), eq(EntityType.BAT), eq(24));
     }
 
     /**
@@ -385,7 +388,7 @@ public class JoinListenerTest {
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
         jl.onPlayerJoin(e);
         verify(addon, never()).logError(anyString());
-        verify(ibc).setEntityGroupLimit(eq("friendly"), eq(24));
+        verify(ibc).setEntityGroupLimit(eq(Environment.NORMAL), eq("friendly"), eq(24));
     }
 
     /**
@@ -424,11 +427,11 @@ public class JoinListenerTest {
         PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
         jl.onPlayerJoin(e);
         verify(addon, never()).logError(anyString());
-        verify(ibc).setBlockLimit(eq(Material.STONE.getKey()), eq(24));
-        verify(ibc).setBlockLimit(eq(Material.SHORT_GRASS.getKey()), eq(14));
-        verify(ibc).setBlockLimit(eq(Material.DIRT.getKey()), eq(34));
-        verify(ibc).setEntityLimit(eq(EntityType.CHICKEN), eq(34));
-        verify(ibc).setEntityLimit(eq(EntityType.CAVE_SPIDER), eq(4));
+        verify(ibc).setBlockLimit(eq(Environment.NORMAL), eq(Material.STONE.getKey()), eq(24));
+        verify(ibc).setBlockLimit(eq(Environment.NORMAL), eq(Material.SHORT_GRASS.getKey()), eq(14));
+        verify(ibc).setBlockLimit(eq(Environment.NORMAL), eq(Material.DIRT.getKey()), eq(34));
+        verify(ibc).setEntityLimit(eq(Environment.NORMAL), eq(EntityType.CHICKEN), eq(34));
+        verify(ibc).setEntityLimit(eq(Environment.NORMAL), eq(EntityType.CAVE_SPIDER), eq(4));
     }
 
     /**
@@ -437,7 +440,7 @@ public class JoinListenerTest {
     @Test
     public void testOnPlayerJoinWithPermLimitsMultiPermsSameMaterial() {
         // IBC - set the block limit for STONE to be 25 already
-        when(ibc.getBlockLimit(any())).thenReturn(25);
+        when(ibc.getBlockLimit(any(Environment.class), any(NamespacedKey.class))).thenReturn(25);
         Set<PermissionAttachmentInfo> perms = new HashSet<>();
         PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
         when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.STONE.24");
@@ -456,9 +459,9 @@ public class JoinListenerTest {
         jl.onPlayerJoin(e);
         verify(addon, never()).logError(anyString());
         // Only the limit over 25 should be set
-        verify(ibc, never()).setBlockLimit(eq(Material.STONE.getKey()), eq(24));
-        verify(ibc, never()).setBlockLimit(eq(Material.STONE.getKey()), eq(14));
-        verify(ibc).setBlockLimit(eq(Material.STONE.getKey()), eq(34));
+        verify(ibc, never()).setBlockLimit(eq(Environment.NORMAL), eq(Material.STONE.getKey()), eq(24));
+        verify(ibc, never()).setBlockLimit(eq(Environment.NORMAL), eq(Material.STONE.getKey()), eq(14));
+        verify(ibc).setBlockLimit(eq(Environment.NORMAL), eq(Material.STONE.getKey()), eq(34));
     }
 
     /**
@@ -467,7 +470,7 @@ public class JoinListenerTest {
     @Test
     public void testOnPlayerJoinWithPermLimitsMultiPermsSameEntity() {
         // IBC - set the entity limit for BAT to be 25 already
-        when(ibc.getEntityLimit(any())).thenReturn(25);
+        when(ibc.getEntityLimit(any(Environment.class), any(EntityType.class))).thenReturn(25);
         Set<PermissionAttachmentInfo> perms = new HashSet<>();
         PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
         when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.BAT.24");
@@ -486,9 +489,9 @@ public class JoinListenerTest {
         jl.onPlayerJoin(e);
         verify(addon, never()).logError(anyString());
         // Only the limit over 25 should be set
-        verify(ibc, never()).setEntityLimit(eq(EntityType.BAT), eq(24));
-        verify(ibc, never()).setEntityLimit(eq(EntityType.BAT), eq(14));
-        verify(ibc).setEntityLimit(eq(EntityType.BAT), eq(34));
+        verify(ibc, never()).setEntityLimit(eq(Environment.NORMAL), eq(EntityType.BAT), eq(24));
+        verify(ibc, never()).setEntityLimit(eq(Environment.NORMAL), eq(EntityType.BAT), eq(14));
+        verify(ibc).setEntityLimit(eq(Environment.NORMAL), eq(EntityType.BAT), eq(34));
     }
 
     /**
@@ -520,16 +523,16 @@ public class JoinListenerTest {
      */
     @Test
     public void testOnUnregisterIslandInWorld() {
-        @SuppressWarnings("unchecked")
-        Map<NamespacedKey, Integer> map = mock(Map.class);
-        when(ibc.getBlockLimits()).thenReturn(map);
         when(addon.inGameModeWorld(any())).thenReturn(true);
+        when(addon.getBlockLimitListener()).thenReturn(bll);
+        when(bll.getIsland(island.getUniqueId())).thenReturn(ibc);
         IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.UNREGISTERED);
         jl.onUnregisterIsland(e);
         verify(island).getWorld();
         verify(addon).getBlockLimitListener();
-        verify(map).clear();
-
+        verify(ibc).clearAllBlockLimits();
+        verify(ibc).clearAllEntityLimits();
+        verify(ibc).clearAllEntityGroupLimits();
     }
 
     /**
@@ -540,7 +543,7 @@ public class JoinListenerTest {
         when(bll.getIsland(anyString())).thenReturn(null);
         @SuppressWarnings("unchecked")
         Map<NamespacedKey, Integer> map = mock(Map.class);
-        when(ibc.getBlockLimits()).thenReturn(map);
+        when(ibc.getBlockLimits(any(Environment.class))).thenReturn(map);
         when(addon.inGameModeWorld(any())).thenReturn(true);
         IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.UNREGISTERED);
         jl.onUnregisterIsland(e);
@@ -548,6 +551,73 @@ public class JoinListenerTest {
         verify(addon).getBlockLimitListener();
         verify(map, never()).clear();
 
+    }
+
+    /**
+     * 5-segment permission applies the limit independently to every standard env.
+     */
+    @Test
+    public void unprefixedPermAppliesToAllEnvs() {
+        Set<PermissionAttachmentInfo> perms = new HashSet<>();
+        PermissionAttachmentInfo p = mock(PermissionAttachmentInfo.class);
+        when(p.getPermission()).thenReturn("bskyblock.island.limit.STONE.24");
+        when(p.getValue()).thenReturn(true);
+        perms.add(p);
+        when(player.getEffectivePermissions()).thenReturn(perms);
+        jl.onPlayerJoin(new PlayerJoinEvent(player, "welcome"));
+        verify(ibc).setBlockLimit(eq(Environment.NORMAL), eq(Material.STONE.getKey()), eq(24));
+        verify(ibc).setBlockLimit(eq(Environment.NETHER), eq(Material.STONE.getKey()), eq(24));
+        verify(ibc).setBlockLimit(eq(Environment.THE_END), eq(Material.STONE.getKey()), eq(24));
+    }
+
+    /**
+     * 6-segment permission with `nether` env applies only to nether.
+     */
+    @Test
+    public void netherPrefixedPermAppliesToNetherOnly() {
+        Set<PermissionAttachmentInfo> perms = new HashSet<>();
+        PermissionAttachmentInfo p = mock(PermissionAttachmentInfo.class);
+        when(p.getPermission()).thenReturn("bskyblock.island.limit.nether.HOPPER.5");
+        when(p.getValue()).thenReturn(true);
+        perms.add(p);
+        when(player.getEffectivePermissions()).thenReturn(perms);
+        jl.onPlayerJoin(new PlayerJoinEvent(player, "welcome"));
+        verify(ibc).setBlockLimit(eq(Environment.NETHER), eq(Material.HOPPER.getKey()), eq(5));
+        verify(ibc, never()).setBlockLimit(eq(Environment.NORMAL), any(NamespacedKey.class), anyInt());
+        verify(ibc, never()).setBlockLimit(eq(Environment.THE_END), any(NamespacedKey.class), anyInt());
+    }
+
+    /**
+     * `end` and `overworld` aliases also work.
+     */
+    @Test
+    public void endPrefixedPermAppliesToEndOnly() {
+        Set<PermissionAttachmentInfo> perms = new HashSet<>();
+        PermissionAttachmentInfo p = mock(PermissionAttachmentInfo.class);
+        when(p.getPermission()).thenReturn("bskyblock.island.limit.end.ENDERMAN.50");
+        when(p.getValue()).thenReturn(true);
+        perms.add(p);
+        when(player.getEffectivePermissions()).thenReturn(perms);
+        jl.onPlayerJoin(new PlayerJoinEvent(player, "welcome"));
+        verify(ibc).setEntityLimit(eq(Environment.THE_END), eq(EntityType.ENDERMAN), eq(50));
+        verify(ibc, never()).setEntityLimit(eq(Environment.NORMAL), any(EntityType.class), anyInt());
+        verify(ibc, never()).setEntityLimit(eq(Environment.NETHER), any(EntityType.class), anyInt());
+    }
+
+    /**
+     * 6-segment permission with an unknown env token is rejected with a logged error.
+     */
+    @Test
+    public void unknownEnvPrefixIsRejected() {
+        Set<PermissionAttachmentInfo> perms = new HashSet<>();
+        PermissionAttachmentInfo p = mock(PermissionAttachmentInfo.class);
+        when(p.getPermission()).thenReturn("bskyblock.island.limit.aether.HOPPER.5");
+        when(p.getValue()).thenReturn(true);
+        perms.add(p);
+        when(player.getEffectivePermissions()).thenReturn(perms);
+        jl.onPlayerJoin(new PlayerJoinEvent(player, "welcome"));
+        verify(addon).logError(contains("'aether' is not a recognised environment"));
+        verify(ibc, never()).setBlockLimit(any(Environment.class), any(NamespacedKey.class), anyInt());
     }
 
 }

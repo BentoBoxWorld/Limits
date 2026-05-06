@@ -266,7 +266,7 @@ public class LimitsTest {
         assertNull(addon.getSettings());
         addon.onEnable();
         world.bentobox.limits.Settings set = addon.getSettings();
-        assertFalse(set.getLimits().isEmpty());
+        assertFalse(set.getLimits(org.bukkit.World.Environment.NORMAL).isEmpty());
     }
 
     /**

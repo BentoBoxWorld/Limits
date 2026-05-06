@@ -19,6 +19,7 @@ import java.util.UUID;
 
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.World.Environment;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -41,6 +42,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.Material;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -96,7 +98,12 @@ public class EntityLimitListenerTest {
         when(island.getUniqueId()).thenReturn(UUID.randomUUID().toString());
         when(island.inIslandSpace(any(Location.class))).thenReturn(true);
 
-        ibc = new IslandBlockCount("","");
+        ibc = new IslandBlockCount("test-island-id","BSkyBlock");
+        // Seed initial entity count for ENDERMAN to 4 (to match the 4 in collection)
+        ibc.incrementEntity(Environment.NORMAL, EntityType.ENDERMAN);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.ENDERMAN);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.ENDERMAN);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.ENDERMAN);
         when(bll.getIsland(anyString())).thenReturn(ibc);
         when(addon.getBlockLimitListener()).thenReturn(bll);
 
@@ -110,6 +117,7 @@ public class EntityLimitListenerTest {
         // World
         when(location.getWorld()).thenReturn(world);
         when(ent.getWorld()).thenReturn(world);
+        when(world.getEnvironment()).thenReturn(Environment.NORMAL);
         collection = new ArrayList<>();
         collection.add(ent);
         collection.add(ent);
@@ -167,7 +175,9 @@ public class EntityLimitListenerTest {
      */
     @Test
     public void testAtLimitAtLimit() {
-        collection.add(ent);
+        // The default limit for ENDERMAN is 5 (from config), and we have 4 already
+        // Adding one more puts us at the limit
+        ibc.incrementEntity(Environment.NORMAL, EntityType.ENDERMAN);
         AtLimitResult result = ell.atLimit(island, ent);
         assertTrue(result.hit());
         assertEquals(EntityType.ENDERMAN, result.getTypelimit().getKey());
@@ -180,7 +190,7 @@ public class EntityLimitListenerTest {
      */
     @Test
     public void testAtLimitUnderLimitIslandLimit() {
-        ibc.setEntityLimit(EntityType.ENDERMAN, 6);
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.ENDERMAN, 6);
         AtLimitResult result = ell.atLimit(island, ent);
         assertFalse(result.hit());
     }
@@ -190,8 +200,9 @@ public class EntityLimitListenerTest {
      */
     @Test
     public void testAtLimitAtLimitIslandLimitNotAtLimit() {
-        ibc.setEntityLimit(EntityType.ENDERMAN, 6);
-        collection.add(ent);
+        // Island limit of 6, we have 4 already, so 5th entity should not be at limit
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.ENDERMAN, 6);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.ENDERMAN);
         AtLimitResult result = ell.atLimit(island, ent);
         assertFalse(result.hit());
     }
@@ -201,9 +212,10 @@ public class EntityLimitListenerTest {
      */
     @Test
     public void testAtLimitAtLimitIslandLimit() {
-        ibc.setEntityLimit(EntityType.ENDERMAN, 6);
-        collection.add(ent);
-        collection.add(ent);
+        // Island limit of 6, we have 4, add 2 more to reach exactly 6
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.ENDERMAN, 6);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.ENDERMAN);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.ENDERMAN);
         AtLimitResult result = ell.atLimit(island, ent);
         assertTrue(result.hit());
         assertEquals(EntityType.ENDERMAN, result.getTypelimit().getKey());
@@ -267,13 +279,12 @@ public class EntityLimitListenerTest {
 
     @Test
     public void testSpawnerSpawnReasonNoPlayerNotification() {
-        // Put CHICKEN at limit so it gets cancelled
-        LivingEntity chicken = mockEntity(EntityType.CHICKEN, location);
-        List<Entity> chickens = new ArrayList<>();
+        // Put CHICKEN at limit (10 from config) so it gets cancelled
+        // Pre-fill with 10 chickens
         for (int i = 0; i < 10; i++) {
-            chickens.add(mockEntity(EntityType.CHICKEN, location));
+            ibc.incrementEntity(Environment.NORMAL, EntityType.CHICKEN);
         }
-        when(world.getNearbyEntities(any())).thenReturn(chickens);
+        LivingEntity chicken = mockEntity(EntityType.CHICKEN, location);
 
         CreatureSpawnEvent event = new CreatureSpawnEvent(chicken, SpawnReason.SPAWNER);
 
@@ -328,7 +339,7 @@ public class EntityLimitListenerTest {
         when(mother.getUniqueId()).thenReturn(UUID.randomUUID());
 
         // Set CHICKEN limit to 0 so any entity would be over limit
-        ibc.setEntityLimit(EntityType.CHICKEN, 0);
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.CHICKEN, 0);
 
         EntityBreedEvent event = new EntityBreedEvent(child, mother, father, opPlayer, null, 0);
 
@@ -344,11 +355,9 @@ public class EntityLimitListenerTest {
     @Test
     public void testCreatureSpawnAtLimitCancels() {
         // Set island-specific CHICKEN limit to 1, pre-fill with 1
-        ibc.setEntityLimit(EntityType.CHICKEN, 1);
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.CHICKEN, 1);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.CHICKEN);
         LivingEntity chicken = mockEntity(EntityType.CHICKEN, location);
-        List<Entity> chickens = new ArrayList<>();
-        chickens.add(mockEntity(EntityType.CHICKEN, location));
-        when(world.getNearbyEntities(any())).thenReturn(chickens);
 
         CreatureSpawnEvent event = new CreatureSpawnEvent(chicken, SpawnReason.NATURAL);
 
@@ -360,15 +369,13 @@ public class EntityLimitListenerTest {
     @Test
     public void testCreatureSpawnBreedingVillagerProcessed() {
         // Set island-specific VILLAGER limit to 1, pre-fill with 1
-        ibc.setEntityLimit(EntityType.VILLAGER, 1);
-        LivingEntity villager = mock(Villager.class);
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.VILLAGER, 1);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.VILLAGER);
+        Villager villager = mock(Villager.class);
         when(villager.getType()).thenReturn(EntityType.VILLAGER);
         when(villager.getLocation()).thenReturn(location);
         when(villager.getWorld()).thenReturn(world);
         when(villager.getUniqueId()).thenReturn(UUID.randomUUID());
-        List<Entity> villagers = new ArrayList<>();
-        villagers.add(villager);
-        when(world.getNearbyEntities(any())).thenReturn(villagers);
 
         CreatureSpawnEvent event = new CreatureSpawnEvent(villager, SpawnReason.BREEDING);
 
@@ -386,11 +393,9 @@ public class EntityLimitListenerTest {
         List<UUID> justSpawned = (List<UUID>) justSpawnedField.get(ell);
 
         // Set CHICKEN at limit
-        ibc.setEntityLimit(EntityType.CHICKEN, 1);
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.CHICKEN, 1);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.CHICKEN);
         LivingEntity chicken = mockEntity(EntityType.CHICKEN, location);
-        List<Entity> chickens = new ArrayList<>();
-        chickens.add(mockEntity(EntityType.CHICKEN, location));
-        when(world.getNearbyEntities(any())).thenReturn(chickens);
 
         // Add entity UUID to justSpawned (debounce)
         justSpawned.add(chicken.getUniqueId());
@@ -407,16 +412,13 @@ public class EntityLimitListenerTest {
     @Test
     public void testVehicleCreateAtLimitCancels() {
         // Set island-specific MINECART limit to 1, pre-fill with 1
-        ibc.setEntityLimit(EntityType.MINECART, 1);
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.MINECART, 1);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.MINECART);
         Minecart minecart = mock(Minecart.class);
         when(minecart.getType()).thenReturn(EntityType.MINECART);
         when(minecart.getLocation()).thenReturn(location);
         when(minecart.getWorld()).thenReturn(world);
         when(minecart.getUniqueId()).thenReturn(UUID.randomUUID());
-
-        List<Entity> minecarts = new ArrayList<>();
-        minecarts.add(minecart);
-        when(world.getNearbyEntities(any())).thenReturn(minecarts);
 
         VehicleCreateEvent event = new VehicleCreateEvent(minecart);
 
@@ -432,7 +434,7 @@ public class EntityLimitListenerTest {
         @SuppressWarnings("unchecked")
         List<UUID> justSpawned = (List<UUID>) justSpawnedField.get(ell);
 
-        ibc.setEntityLimit(EntityType.MINECART, 1);
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.MINECART, 1);
         Minecart minecart = mock(Minecart.class);
         when(minecart.getType()).thenReturn(EntityType.MINECART);
         when(minecart.getLocation()).thenReturn(location);
@@ -459,16 +461,13 @@ public class EntityLimitListenerTest {
     @Test
     public void testHangingPlaceAtLimitCancels() {
         // Set island-specific PAINTING limit to 1, pre-fill with 1
-        ibc.setEntityLimit(EntityType.PAINTING, 1);
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.PAINTING, 1);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.PAINTING);
         Painting painting = mock(Painting.class);
         when(painting.getType()).thenReturn(EntityType.PAINTING);
         when(painting.getLocation()).thenReturn(location);
         when(painting.getWorld()).thenReturn(world);
         when(painting.getUniqueId()).thenReturn(UUID.randomUUID());
-
-        List<Entity> paintings = new ArrayList<>();
-        paintings.add(painting);
-        when(world.getNearbyEntities(any())).thenReturn(paintings);
 
         Player player = mock(Player.class);
         when(player.isOp()).thenReturn(false);
@@ -486,7 +485,7 @@ public class EntityLimitListenerTest {
     @Test
     public void testHangingPlaceOpPlayerBypasses() {
         // Set island-specific PAINTING limit to 1, pre-fill with 1
-        ibc.setEntityLimit(EntityType.PAINTING, 1);
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.PAINTING, 1);
         Painting painting = mock(Painting.class);
         when(painting.getType()).thenReturn(EntityType.PAINTING);
         when(painting.getLocation()).thenReturn(location);
@@ -516,16 +515,25 @@ public class EntityLimitListenerTest {
         // Create a custom group "testanimals" covering CHICKEN and COW with limit 2
         EntityGroup testGroup = new EntityGroup("testanimals", Set.of(EntityType.CHICKEN, EntityType.COW), 2, Material.BARRIER);
         Settings settings = addon.getSettings();
+        // Add to entity type → group lookup
         settings.getGroupLimits().put(EntityType.CHICKEN, new ArrayList<>(List.of(testGroup)));
         settings.getGroupLimits().put(EntityType.COW, new ArrayList<>(List.of(testGroup)));
+        // Also add the per-environment limit for the group (via reflection since we can't directly access the map)
+        try {
+            java.lang.reflect.Field envGroupLimitsField = Settings.class.getDeclaredField("envGroupLimits");
+            envGroupLimitsField.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            java.util.Map<Environment, java.util.Map<String, Integer>> envGroupLimits =
+                    (java.util.Map<Environment, java.util.Map<String, Integer>>) envGroupLimitsField.get(settings);
+            envGroupLimits.computeIfAbsent(Environment.NORMAL, k -> new java.util.HashMap<>())
+                    .put("testanimals", 2);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
 
         // Pre-fill with 2 entities in the group (1 CHICKEN + 1 COW)
-        LivingEntity chickenEntity = mockEntity(EntityType.CHICKEN, location);
-        LivingEntity cowEntity = mockEntity(EntityType.COW, location);
-        List<Entity> entities = new ArrayList<>();
-        entities.add(chickenEntity);
-        entities.add(cowEntity);
-        when(world.getNearbyEntities(any())).thenReturn(entities);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.CHICKEN);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.COW);
 
         // Try to spawn another CHICKEN
         LivingEntity newChicken = mockEntity(EntityType.CHICKEN, location);

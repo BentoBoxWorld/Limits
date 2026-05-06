@@ -13,6 +13,7 @@ import java.util.UUID;
 
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
+import org.bukkit.World.Environment;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -105,7 +106,7 @@ public class LimitPanelTest {
         when(im.getIsland(world, targetUUID)).thenReturn(island);
         when(island.getUniqueId()).thenReturn("island-id");
         when(bll.getMaterialLimits(eq(world), eq("island-id"))).thenReturn(Collections.emptyMap());
-        when(settings.getLimits()).thenReturn(Collections.emptyMap());
+        when(settings.getLimits(Environment.NORMAL)).thenReturn(Collections.emptyMap());
         // Target player is offline (MockBukkit returns null by default when no players added)
 
         limitPanel.showLimits(gm, user, targetUUID);
@@ -118,7 +119,7 @@ public class LimitPanelTest {
         when(im.getIsland(world, targetUUID)).thenReturn(island);
         when(island.getUniqueId()).thenReturn("island-id");
         when(bll.getMaterialLimits(eq(world), eq("island-id"))).thenReturn(Collections.emptyMap());
-        when(settings.getLimits()).thenReturn(Collections.emptyMap());
+        when(settings.getLimits(Environment.NORMAL)).thenReturn(Collections.emptyMap());
         // Target player is offline (MockBukkit returns null by default when no players added)
 
         limitPanel.showLimits(gm, user, targetUUID);

@@ -19,31 +19,53 @@ There is a user command and an admin command called "limits". Admins can check t
 
 The config.yml has the following sections:
 
-* blocklimits
-* worlds
-* entitylimits
+* `blocklimits`, `blocklimits-nether`, `blocklimits-end`
+* `worlds`
+* `entitylimits`, `entitylimits-nether`, `entitylimits-end`
+* `entitygrouplimits`, `entitygrouplimits-nether`, `entitygrouplimits-end`
+
+### Per-environment separation
+
+Limits are tracked independently in the overworld, nether, and end. A `HOPPER: 10` limit means the player can place up to 10 hoppers in **each** of overworld, nether, and end — 30 hoppers total across the island. Likewise for entities and entity groups.
+
+If you want a different limit in nether or end, add a corresponding `*-nether` or `*-end` section that overrides the env-default for those entries only.
 
 ### blocklimits
 
-This section lists the maximum number of blocks allowed for each block material. Do not use non-block materials because they will not work. The limits apply to all game worlds.
+The base block-limit section. Values here apply to every environment unless overridden by `blocklimits-nether` / `blocklimits-end` or by a `worlds.<worldname>` entry.
 
 ### worlds
 
-This section lists block limits for specific worlds. You must name the world specifically, e.g. AcidIsland_world and then list the materials and the limit.
+Per-world overrides. Name the world specifically (e.g. `AcidIsland_world`) and list the materials and limits. A world entry overrides the env-default for that exact world.
 
 ### entitylimits
 
-Coming soon!
+Default entity-type limits applied independently per environment. Override per env via `entitylimits-nether` / `entitylimits-end`.
+
+### entitygrouplimits
+
+Define named entity groups (icon, member set, default limit). Override the limit value per env with `entitygrouplimits-nether` / `entitygrouplimits-end`. The icon and member set are fixed in the base section — only the numeric limit can be overridden per env.
 
 ## Permissions
 
-Island owners can have exclusive permissions that override the default or world settings. The format is:
+Island owners can have exclusive permissions that override the default or world settings. Two formats are supported:
 
-Format is `GAME-MODE-NAME.island.limit.MATERIAL.LIMIT`
+* All-environment: `<gamemode>.island.limit.<KEY>.<NUMBER>` — applies the limit independently to every environment.
+* Per-environment: `<gamemode>.island.limit.<env>.<KEY>.<NUMBER>` — applies only to one environment, where `<env>` is `overworld`, `nether`, or `end`.
 
-example: `bskyblock.island.limit.hopper.10`
+Examples:
+
+```
+bskyblock.island.limit.hopper.10            # 10 hoppers in each env
+bskyblock.island.limit.nether.hopper.5      # only 5 hoppers in nether
+bskyblock.island.limit.end.enderman.50      # only 50 endermen in the end
+```
 
 Permissions activate when the player logs in.
+
+### Migrating an existing server
+
+When upgrading from a pre-env version of Limits, existing per-island block counts are migrated to the overworld slot on first load. Counts in the nether/end will start at zero and be populated as entities and blocks change. Run `/<gamemode> admin limits calc <player>` to fully recount any island and redistribute its counts across environments.
 
 Usage permissions are (put the gamemode name, e.g. acidisland at the front):
 

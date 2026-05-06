@@ -51,12 +51,13 @@ island:
     block-limit-syntax: "[number]/[limit]"
     no-limits: "&c No limits set in this world"
     panel:
-        title-syntax: '[title] [sort]'
-        entity-group-name-syntax: '[name]' 
+        title-syntax: '[title] [env]'
+        entity-group-name-syntax: '[name]'
         entity-name-syntax: '[name]'
         block-name-syntax: '[name]'
-        A2Z: "a > z"
-        Z2A: "z > a"
+        env-overworld: "Overworld"
+        env-nether: "Nether"
+        env-end: "End"
     errors:
         no-owner: "&c That island has no owner"
         not-on-island: "&c This location does not have limits set."

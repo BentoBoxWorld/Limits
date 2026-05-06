@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.bukkit.Material;
+import org.bukkit.World.Environment;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
@@ -66,7 +67,7 @@ public class SettingsTest {
 
     @Test
     public void testEntityLimitsParsed() {
-        Map<EntityType, Integer> limits = settings.getLimits();
+        Map<EntityType, Integer> limits = settings.getLimits(Environment.NORMAL);
         assertNotNull(limits);
         assertFalse(limits.isEmpty());
         assertEquals(5, limits.get(EntityType.ENDERMAN));
@@ -126,16 +127,16 @@ public class SettingsTest {
     public void testUnknownEntityTypeLogsError() throws Exception {
         config.set("entitylimits.UNKNOWN_ENTITY_XYZ", 99);
         Settings s = new Settings(addon);
-        verify(addon, atLeastOnce()).logError("Unknown entity type: UNKNOWN_ENTITY_XYZ - skipping...");
-        assertFalse(s.getLimits().containsValue(99));
+        verify(addon, atLeastOnce()).logError("Unknown entity type in entitylimits: UNKNOWN_ENTITY_XYZ - skipping...");
+        assertFalse(s.getLimits(Environment.NORMAL).containsValue(99));
     }
 
     @Test
     public void testDisallowedEntityTypeLogsError() throws Exception {
         config.set("entitylimits.TNT", 10);
         Settings s = new Settings(addon);
-        verify(addon).logError("Entity type: TNT is not supported - skipping...");
-        assertFalse(s.getLimits().containsKey(EntityType.TNT));
+        verify(addon).logError("Entity type in entitylimits not supported: TNT - skipping...");
+        assertFalse(s.getLimits(Environment.NORMAL).containsKey(EntityType.TNT));
     }
 
     @Test
