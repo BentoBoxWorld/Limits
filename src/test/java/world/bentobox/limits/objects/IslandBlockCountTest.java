@@ -226,7 +226,7 @@ public class IslandBlockCountTest {
     }
 
     @Test
-    public void legacyJsonMigratesIntoOverworldEnv() {
+    void legacyJsonMigratesIntoOverworldEnv() {
         // Legacy data with no envBlockCounts must end up scoped to Environment.NORMAL.
         String legacy = """
                 {
@@ -264,7 +264,7 @@ public class IslandBlockCountTest {
     }
 
     @Test
-    public void allEnvsSetterAppliesUniformly() {
+    void allEnvsSetterAppliesUniformly() {
         ibc.setBlockLimitAllEnvs(stoneKey, 50);
         assertEquals(50, ibc.getBlockLimit(Environment.NORMAL, stoneKey));
         assertEquals(50, ibc.getBlockLimit(Environment.NETHER, stoneKey));
@@ -277,7 +277,7 @@ public class IslandBlockCountTest {
     }
 
     @Test
-    public void countsAreEnvIndependent() {
+    void countsAreEnvIndependent() {
         ibc.add(Environment.NORMAL, stoneKey);
         ibc.add(Environment.NORMAL, stoneKey);
         ibc.add(Environment.NETHER, stoneKey);
@@ -290,7 +290,7 @@ public class IslandBlockCountTest {
     }
 
     @Test
-    public void entityCountIncrementDecrement() {
+    void entityCountIncrementDecrement() {
         ibc.incrementEntity(Environment.NORMAL, EntityType.PIG);
         ibc.incrementEntity(Environment.NORMAL, EntityType.PIG);
         ibc.incrementEntity(Environment.NETHER, EntityType.PIG);

@@ -24,7 +24,7 @@ public class ResultsTest {
     }
 
     @Test
-    public void testGetBlockCountReturnsEmptyMultiset() {
+    void testGetBlockCountReturnsEmptyMultiset() {
         Results results = new Results();
         assertNotNull(results.getBlockCount(Environment.NORMAL));
         assertTrue(results.getBlockCount(Environment.NORMAL).isEmpty());

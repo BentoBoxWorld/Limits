@@ -1067,7 +1067,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testDefaultLimitAppliedWhenNoIslandOrWorldLimit() throws Exception {
+    public void testDefaultLimitAppliedWhenNoIslandOrWorldLimit() {
         // Set default limit for COBBLESTONE = 2
         listener.getEnvDefaultLimitMap().get(Environment.NORMAL).put(Material.COBBLESTONE.getKey(), 2);
 
@@ -1087,7 +1087,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testIslandOffsetIncreasesEffectiveLimit() throws Exception {
+    public void testIslandOffsetIncreasesEffectiveLimit() {
         // Set default limit for COBBLESTONE = 2
         listener.getEnvDefaultLimitMap().get(Environment.NORMAL).put(Material.COBBLESTONE.getKey(), 2);
 

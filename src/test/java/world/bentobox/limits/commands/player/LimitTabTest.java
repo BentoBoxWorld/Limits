@@ -5,9 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -111,11 +109,11 @@ public class LimitTabTest {
         StringBuilder out = new StringBuilder(template);
         if (vars != null) {
             for (int i = 0; i + 1 < vars.length; i += 2) {
-                String var = String.valueOf(vars[i]);
+                String placeholder = String.valueOf(vars[i]);
                 String val = String.valueOf(vars[i + 1]);
                 int idx;
-                while ((idx = out.indexOf(var)) >= 0) {
-                    out.replace(idx, idx + var.length(), val);
+                while ((idx = out.indexOf(placeholder)) >= 0) {
+                    out.replace(idx, idx + placeholder.length(), val);
                 }
             }
         }
@@ -123,7 +121,7 @@ public class LimitTabTest {
     }
 
     @Test
-    public void blockCountReadsFromEnvKeyedIbc() {
+    void blockCountReadsFromEnvKeyedIbc() {
         IslandBlockCount ibc = new IslandBlockCount("island", "BSkyBlock");
         NamespacedKey hopper = Material.HOPPER.getKey();
         // Place 3 hoppers in the overworld and 7 in the nether.
@@ -140,7 +138,7 @@ public class LimitTabTest {
     }
 
     @Test
-    public void entityCountReadsFromEnvKeyedIbc() {
+    void entityCountReadsFromEnvKeyedIbc() {
         IslandBlockCount ibc = new IslandBlockCount("island", "BSkyBlock");
         for (int i = 0; i < 4; i++) ibc.incrementEntity(Environment.NORMAL, EntityType.CHICKEN);
         for (int i = 0; i < 9; i++) ibc.incrementEntity(Environment.NETHER, EntityType.CHICKEN);
@@ -155,7 +153,7 @@ public class LimitTabTest {
     }
 
     @Test
-    public void tabIconAndTitleReflectEnvironment() {
+    void tabIconAndTitleReflectEnvironment() {
         IslandBlockCount ibc = new IslandBlockCount("island", "BSkyBlock");
         LimitTab netherTab = new LimitTab(addon, ibc, Collections.emptyMap(), island, world, user, Environment.NETHER);
         assertNotNull(netherTab.getIcon());
@@ -181,9 +179,9 @@ public class LimitTabTest {
                 for (int i = 0; i < desc.length(); i++) {
                     char c = desc.charAt(i);
                     if (Character.isDigit(c)) digits.append(c);
-                    else if (digits.length() > 0) break;
+                    else if (!digits.isEmpty()) break;
                 }
-                return digits.length() > 0 ? digits.toString() : null;
+                return !digits.isEmpty() ? digits.toString() : null;
             }
         }
         return null;
