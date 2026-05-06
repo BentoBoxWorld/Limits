@@ -36,6 +36,9 @@ public class Settings {
             Environment.NETHER, "-nether",
             Environment.THE_END, "-end");
 
+    private static final String SKIPPING = " - skipping...";
+    private static final String LIMIT_SUFFIX = ".limit";
+
     private final Map<GeneralGroup, Integer> general = new EnumMap<>(GeneralGroup.class);
     /** Per-env entity type limits (env defaults from config). */
     private final Map<Environment, Map<EntityType, Integer>> envLimits = new EnumMap<>(Environment.class);
@@ -126,24 +129,31 @@ public class Settings {
                     general.put(GeneralGroup.MOBS, el.getInt(key, 0));
                 }
             } else {
-                EntityType type = getType(key);
-                if (type == null) {
-                    addon.logError("Unknown entity type in " + section + ": " + key + " - skipping...");
-                } else if (DISALLOWED.contains(type)) {
-                    addon.logError("Entity type in " + section + " not supported: " + key + " - skipping...");
-                } else {
-                    int value = el.getInt(key, 0);
-                    targetEnvs.forEach(env -> envLimits.get(env).put(type, value));
-                }
+                applyEntityKey(addon, section, el, key, targetEnvs);
             }
         }
+    }
+
+    private void applyEntityKey(Limits addon, String section, ConfigurationSection el, String key,
+            List<Environment> targetEnvs) {
+        EntityType type = getType(key);
+        if (type == null) {
+            addon.logError("Unknown entity type in " + section + ": " + key + SKIPPING);
+            return;
+        }
+        if (DISALLOWED.contains(type)) {
+            addon.logError("Entity type in " + section + " not supported: " + key + SKIPPING);
+            return;
+        }
+        int value = el.getInt(key, 0);
+        targetEnvs.forEach(env -> envLimits.get(env).put(type, value));
     }
 
     private void loadGroupDefinitions(Limits addon) {
         ConfigurationSection el = addon.getConfig().getConfigurationSection("entitygrouplimits");
         if (el == null) return;
         for (String name : el.getKeys(false)) {
-            int limit = el.getInt(name + ".limit");
+            int limit = el.getInt(name + LIMIT_SUFFIX);
             String iconName = el.getString(name + ".icon", "BARRIER");
             Material icon;
             try {
@@ -155,11 +165,11 @@ public class Settings {
             Set<EntityType> entities = el.getStringList(name + ".entities").stream().map(s -> {
                 EntityType type = getType(s);
                 if (type == null) {
-                    addon.logError("Unknown entity type: " + s + " - skipping...");
+                    addon.logError("Unknown entity type: " + s + SKIPPING);
                     return null;
                 }
                 if (DISALLOWED.contains(type)) {
-                    addon.logError("Entity type: " + s + " is not supported - skipping...");
+                    addon.logError("Entity type: " + s + " is not supported" + SKIPPING);
                     return null;
                 }
                 return type;
@@ -176,25 +186,32 @@ public class Settings {
         ConfigurationSection el = addon.getConfig().getConfigurationSection(section);
         if (el == null) return;
         for (String name : el.getKeys(false)) {
-            // Accept either a flat int (Monsters: 100) or a nested .limit (Monsters.limit: 100)
-            int limit;
-            if (el.isInt(name)) {
-                limit = el.getInt(name);
-            } else if (el.isInt(name + ".limit")) {
-                limit = el.getInt(name + ".limit");
-            } else {
-                addon.logError("Group override " + section + "." + name + " missing limit - skipping.");
-                continue;
-            }
-            // Group must already be defined in the base entitygrouplimits section
-            boolean exists = getGroupLimitDefinitions().stream().anyMatch(g -> g.getName().equals(name));
-            if (!exists) {
-                addon.logError("Group override " + section + "." + name
-                        + " refers to an undefined group - define it under entitygrouplimits first.");
-                continue;
-            }
-            envGroupLimits.get(env).put(name, limit);
+            applyGroupOverride(addon, el, section, name, env);
         }
+    }
+
+    private void applyGroupOverride(Limits addon, ConfigurationSection el, String section, String name,
+            Environment env) {
+        // Accept either a flat int (Monsters: 100) or a nested .limit (Monsters.limit: 100)
+        Integer limit = resolveGroupLimit(el, name);
+        if (limit == null) {
+            addon.logError("Group override " + section + "." + name + " missing limit - skipping.");
+            return;
+        }
+        // Group must already be defined in the base entitygrouplimits section
+        boolean exists = getGroupLimitDefinitions().stream().anyMatch(g -> g.getName().equals(name));
+        if (!exists) {
+            addon.logError("Group override " + section + "." + name
+                    + " refers to an undefined group - define it under entitygrouplimits first.");
+            return;
+        }
+        envGroupLimits.get(env).put(name, limit);
+    }
+
+    private static Integer resolveGroupLimit(ConfigurationSection el, String name) {
+        if (el.isInt(name)) return el.getInt(name);
+        if (el.isInt(name + LIMIT_SUFFIX)) return el.getInt(name + LIMIT_SUFFIX);
+        return null;
     }
 
     private EntityType getType(String key) {
