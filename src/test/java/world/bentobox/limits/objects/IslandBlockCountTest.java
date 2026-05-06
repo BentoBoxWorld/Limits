@@ -200,7 +200,7 @@ public class IslandBlockCountTest {
     }
 
     @Test
-    public void testReadLegacyJsonWithBareMaterialNames() {
+    void testReadLegacyJsonWithBareMaterialNames() {
         // This is the on-disk shape produced by versions of Limits where
         // blockCounts was Map<Material, Integer>. Pre-1d0a3b7 databases look
         // exactly like this and must still load.
@@ -306,7 +306,7 @@ public class IslandBlockCountTest {
     }
 
     @Test
-    public void testReadJsonWithNamespacedStringKeys() {
+    void testReadJsonWithNamespacedStringKeys() {
         // This is the format the new adapter writes; it must round-trip.
         String json = """
                 {
@@ -324,7 +324,7 @@ public class IslandBlockCountTest {
     }
 
     @Test
-    public void testWriteRoundTripWithNamespacedKeys() {
+    void testWriteRoundTripWithNamespacedKeys() {
         ibc.add(Environment.NORMAL, stoneKey);
         ibc.add(Environment.NORMAL, stoneKey);
         ibc.setBlockLimit(Environment.NORMAL, NamespacedKey.minecraft("hopper"), 20);
