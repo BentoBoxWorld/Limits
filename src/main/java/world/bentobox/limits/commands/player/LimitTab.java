@@ -13,6 +13,7 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.World;
+import org.bukkit.World.Environment;
 import org.bukkit.entity.EntityType;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -30,122 +31,111 @@ import world.bentobox.limits.Limits;
 import world.bentobox.limits.objects.IslandBlockCount;
 
 /**
- * @author tastybento
+ * One tab of the limits panel. Shows counts and limits for a single environment.
  *
+ * @author tastybento
  */
 public class LimitTab implements Tab {
 
-    enum SORT_BY {
-        A2Z,
-        Z2A
-    }
-
-    /**
-     * This maps the entity types to the icon that should be shown in the panel
-     * If the icon is null, then the entity type is not covered by the addon
-     */
+    /** This maps the entity types to the icon that should be shown in the panel */
     private static final Map<EntityType, Material> E2M = ImmutableMap.<EntityType, Material>builder()
             .put(EntityType.MOOSHROOM, Material.MOOSHROOM_SPAWN_EGG).put(EntityType.SNOW_GOLEM, Material.SNOW_BLOCK)
             .put(EntityType.IRON_GOLEM, Material.IRON_BLOCK)
             .put(EntityType.ILLUSIONER, Material.VILLAGER_SPAWN_EGG)
             .put(EntityType.WITHER, Material.WITHER_SKELETON_SKULL)
-            //.put(EntityType.BOAT, Material.OAK_BOAT)
             .put(EntityType.ARMOR_STAND, Material.ARMOR_STAND)
             .put(EntityType.ITEM_FRAME, Material.ITEM_FRAME)
             .put(EntityType.PAINTING, Material.PAINTING)
-            // Minecarts
             .put(EntityType.TNT_MINECART, Material.TNT_MINECART).put(EntityType.CHEST_MINECART, Material.CHEST_MINECART)
             .put(EntityType.COMMAND_BLOCK_MINECART, Material.COMMAND_BLOCK_MINECART)
             .put(EntityType.FURNACE_MINECART, Material.FURNACE_MINECART)
             .put(EntityType.HOPPER_MINECART, Material.HOPPER_MINECART)
             .put(EntityType.SPAWNER_MINECART, Material.MINECART)
-            //.put(EntityType.CHEST_BOAT, Material.OAK_CHEST_BOAT)
             .build();
-    // This is a map of blocks to Items
+
     private static final Map<NamespacedKey, NamespacedKey> B2M;
     static {
-        ImmutableMap.Builder<NamespacedKey, NamespacedKey> builder = ImmutableMap.<NamespacedKey, NamespacedKey>builder()
+        B2M = ImmutableMap.<NamespacedKey, NamespacedKey>builder()
                 .put(Material.POTATOES.getKey(), Material.POTATO.getKey())
                 .put(Material.CARROTS.getKey(), Material.CARROT.getKey())
                 .put(Material.BEETROOTS.getKey(), Material.BEETROOT.getKey())
-                .put(Material.REDSTONE_WIRE.getKey(), Material.REDSTONE.getKey()).put(Material.MELON_STEM.getKey(), Material.MELON.getKey())
+                .put(Material.REDSTONE_WIRE.getKey(), Material.REDSTONE.getKey())
+                .put(Material.MELON_STEM.getKey(), Material.MELON.getKey())
                 .put(Material.PUMPKIN_STEM.getKey(), Material.PUMPKIN.getKey())
                 .put(Material.SWEET_BERRY_BUSH.getKey(), Material.SWEET_BERRIES.getKey())
                 .put(Material.BAMBOO_SAPLING.getKey(), Material.BAMBOO.getKey())
-                ;
-        B2M = builder.build();
+                .build();
     }
 
     private final World world;
     private final User user;
     private final Limits addon;
+    private final Environment env;
     private final List<@Nullable PanelItem> result;
-    private final SORT_BY sortBy;
 
-    public LimitTab(Limits addon, IslandBlockCount ibc, Map<NamespacedKey, Integer> matLimits, Island island, World world, User user, SORT_BY sortBy) {
+    public LimitTab(Limits addon, IslandBlockCount ibc, Map<NamespacedKey, Integer> matLimits, Island island,
+            World world, User user, Environment env) {
         this.addon = addon;
         this.world = world;
         this.user = user;
-        this.sortBy = sortBy;
+        this.env = env;
         result = new ArrayList<>();
         addMaterialIcons(ibc, matLimits);
         addEntityLimits(ibc, island);
         addEntityGroupLimits(ibc, island);
-        // Sort
-        if (sortBy == SORT_BY.Z2A) {
-            result.sort((o1, o2) -> o2.getName().compareTo(o1.getName()));
-        } else {
-            result.sort(Comparator.comparing(PanelItem::getName));
-        }
-
+        result.sort(Comparator.comparing(PanelItem::getName));
     }
 
     private void addEntityGroupLimits(IslandBlockCount ibc, Island island) {
-        // Entity group limits
-        Map<EntityGroup, Integer> groupMap = addon.getSettings().getGroupLimitDefinitions().stream().collect(Collectors.toMap(e -> e, EntityGroup::getLimit));
-        // Group by same loop up map
-        Map<String, EntityGroup> groupByName = groupMap.keySet().stream().collect(Collectors.toMap(EntityGroup::getName, e -> e));
-        // Merge in any permission-based limits
-        if (ibc == null) {
-            return;
+        Map<String, Integer> envGroupLimits = new HashMap<>(addon.getSettings().getGroupLimits(env));
+        Map<EntityGroup, Integer> groupMap = addon.getSettings().getGroupLimitDefinitions().stream()
+                .filter(g -> envGroupLimits.containsKey(g.getName()))
+                .collect(Collectors.toMap(g -> g, g -> envGroupLimits.get(g.getName())));
+        Map<String, EntityGroup> groupByName = addon.getSettings().getGroupLimitDefinitions().stream()
+                .collect(Collectors.toMap(EntityGroup::getName, e -> e));
+        if (ibc != null) {
+            ibc.getEntityGroupLimits(env).forEach((name, limit) -> {
+                EntityGroup g = groupByName.get(name);
+                if (g != null) groupMap.put(g, limit);
+            });
+            ibc.getEntityGroupLimitsOffset(env).forEach((name, offset) -> {
+                EntityGroup g = groupByName.get(name);
+                if (g != null) groupMap.put(g, groupMap.getOrDefault(g, 0) + offset);
+            });
         }
-        ibc.getEntityGroupLimits().entrySet().stream()
-        .filter(e -> groupByName.containsKey(e.getKey()))
-        .forEach(e -> groupMap.put(groupByName.get(e.getKey()), e.getValue()));
-        // Update the group map for each group limit offset. If the value already exists add it
-        ibc.getEntityGroupLimitsOffset().forEach((key, value) -> {
-            if (groupByName.get(key) != null) {
-                groupMap.put(groupByName.get(key), (groupMap.getOrDefault(groupByName.get(key), 0) + value));
-            }
-        });
-        groupMap.forEach((v, limit) -> {
+        groupMap.forEach((g, limit) -> {
             PanelItemBuilder pib = new PanelItemBuilder();
             pib.name(user.getTranslation("island.limits.panel.entity-group-name-syntax", TextVariables.NAME,
-                    v.getName()));
-            String description = "";
-            description += "(" + prettyNames(v) + ")\n";
-            pib.icon(v.getIcon());
-            long count = getCount(island, v);
-            String color = count >= limit ? user.getTranslation("island.limits.max-color") : user.getTranslation("island.limits.regular-color");
-            description += color
-                    + user.getTranslation("island.limits.block-limit-syntax",
-                            TextVariables.NUMBER, String.valueOf(count),
-                            "[limit]", String.valueOf(limit));
+                    g.getName()));
+            String description = "(" + prettyNames(g) + ")\n";
+            pib.icon(g.getIcon());
+            int count = ibc == null ? 0 : sumGroupCount(ibc, g);
+            String color = count >= limit ? user.getTranslation("island.limits.max-color")
+                    : user.getTranslation("island.limits.regular-color");
+            description += color + user.getTranslation("island.limits.block-limit-syntax",
+                    TextVariables.NUMBER, String.valueOf(count),
+                    "[limit]", String.valueOf(limit));
             pib.description(description);
             result.add(pib.build());
         });
     }
 
-    private void addEntityLimits(IslandBlockCount ibc, Island island) {
-        // Entity limits
-        Map<EntityType, Integer> map = new HashMap<>(addon.getSettings().getLimits());
-        // Merge in any permission-based limits
-        if (ibc != null) {
-            map.putAll(ibc.getEntityLimits());
-            ibc.getEntityLimitsOffset().forEach((k,v) -> map.put(k, map.getOrDefault(k, 0) + v));
+    private int sumGroupCount(IslandBlockCount ibc, EntityGroup group) {
+        Map<EntityType, Integer> counts = ibc.getEntityCounts(env);
+        int total = 0;
+        for (EntityType t : group.getTypes()) {
+            total += counts.getOrDefault(t, 0);
         }
+        return total;
+    }
 
-        map.forEach((k,v) -> {
+    private void addEntityLimits(IslandBlockCount ibc, Island island) {
+        Map<EntityType, Integer> map = new HashMap<>(addon.getSettings().getLimits(env));
+        if (ibc != null) {
+            map.putAll(ibc.getEntityLimits(env));
+            ibc.getEntityLimitsOffset(env).forEach((k, v) -> map.put(k, map.getOrDefault(k, 0) + v));
+        }
+        map.forEach((k, v) -> {
             PanelItemBuilder pib = new PanelItemBuilder();
             pib.name(user.getTranslation("island.limits.panel.entity-name-syntax", TextVariables.NAME,
                     Util.prettifyText(k.toString())));
@@ -156,55 +146,64 @@ public class LimitTab implements Tab {
                 } else if (k.isAlive()) {
                     m = Material.valueOf(k + "_SPAWN_EGG");
                 } else {
-                    // Regular material
                     m = Material.valueOf(k.toString());
                 }
             } catch (Exception e) {
                 m = Material.BARRIER;
             }
             pib.icon(m);
-            long count = getCount(island, k);
-            String color = count >= v ? user.getTranslation("island.limits.max-color") : user.getTranslation("island.limits.regular-color");
-            pib.description(color
-                    + user.getTranslation("island.limits.block-limit-syntax",
-                            TextVariables.NUMBER, String.valueOf(count),
-                            "[limit]", String.valueOf(v)));
+            int count = ibc == null ? 0 : ibc.getEntityCount(env, k);
+            String color = count >= v ? user.getTranslation("island.limits.max-color")
+                    : user.getTranslation("island.limits.regular-color");
+            pib.description(color + user.getTranslation("island.limits.block-limit-syntax",
+                    TextVariables.NUMBER, String.valueOf(count),
+                    "[limit]", String.valueOf(v)));
             result.add(pib.build());
         });
-
     }
 
     private void addMaterialIcons(IslandBlockCount ibc, Map<NamespacedKey, Integer> matLimits) {
-        // Material limits
         for (Entry<NamespacedKey, Integer> en : matLimits.entrySet()) {
             PanelItemBuilder pib = new PanelItemBuilder();
             pib.name(user.getTranslation("island.limits.panel.block-name-syntax", TextVariables.NAME,
                     Util.prettifyText(en.getKey().getKey())));
-            // Adjust icon
             Material mat = Registry.MATERIAL.get(B2M.getOrDefault(en.getKey(), en.getKey()));
             pib.icon(Objects.requireNonNullElse(mat, Material.PAPER));
 
-            int count = ibc == null ? 0 : ibc.getBlockCounts().getOrDefault(en.getKey(), 0);
+            int count = ibc == null ? 0 : ibc.getBlockCount(env, en.getKey());
             int value = en.getValue();
-            String color = count >= value ? user.getTranslation("island.limits.max-color") : user.getTranslation("island.limits.regular-color");
-            pib.description(color
-                    + user.getTranslation("island.limits.block-limit-syntax",
-                            TextVariables.NUMBER, String.valueOf(count),
-                            "[limit]", String.valueOf(value)));
+            String color = count >= value ? user.getTranslation("island.limits.max-color")
+                    : user.getTranslation("island.limits.regular-color");
+            pib.description(color + user.getTranslation("island.limits.block-limit-syntax",
+                    TextVariables.NUMBER, String.valueOf(count),
+                    "[limit]", String.valueOf(value)));
             result.add(pib.build());
         }
     }
 
     @Override
     public PanelItem getIcon() {
-        return new PanelItemBuilder().icon(Material.MAGENTA_GLAZED_TERRACOTTA).name(this.getName()).build();
+        Material icon = switch (env) {
+            case NETHER -> Material.NETHERRACK;
+            case THE_END -> Material.END_STONE;
+            default -> Material.GRASS_BLOCK;
+        };
+        return new PanelItemBuilder().icon(icon).name(this.getName()).build();
     }
 
     @Override
     public String getName() {
-        String sort = user.getTranslation(world, "island.limits.panel." + sortBy);
-        return user.getTranslation(world, "island.limits.panel.title-syntax", "[title]",
-                user.getTranslation(world, "limits.panel-title"), "[sort]", sort);
+        return user.getTranslation(world, "island.limits.panel.title-syntax",
+                "[title]", user.getTranslation(world, "limits.panel-title"),
+                "[env]", user.getTranslation(world, envKey()));
+    }
+
+    private String envKey() {
+        return switch (env) {
+            case NETHER -> "island.limits.panel.env-nether";
+            case THE_END -> "island.limits.panel.env-end";
+            default -> "island.limits.panel.env-overworld";
+        };
     }
 
     @Override
@@ -220,52 +219,11 @@ public class LimitTab implements Tab {
     private String prettyNames(EntityGroup v) {
         StringBuilder sb = new StringBuilder();
         List<EntityType> l = new ArrayList<>(v.getTypes());
-        for(int i = 0; i < l.size(); i++)
-        {
+        for (int i = 0; i < l.size(); i++) {
             sb.append(Util.prettifyText(l.get(i).toString()));
-            if (i + 1 < l.size())
-                sb.append(", ");
-            if((i+1) % 5 == 0)
-                sb.append("\n");
+            if (i + 1 < l.size()) sb.append(", ");
+            if ((i + 1) % 5 == 0) sb.append("\n");
         }
         return sb.toString();
-    }
-
-    long getCount(Island island, EntityType ent) {
-        long count = island.getWorld().getEntities().stream()
-                .filter(e -> e.getType().equals(ent))
-                .filter(e -> island.inIslandSpace(e.getLocation())).count();
-        // Nether
-        if (addon.getPlugin().getIWM().isNetherIslands(island.getWorld()) && addon.getPlugin().getIWM().getNetherWorld(island.getWorld()) != null) {
-            count += addon.getPlugin().getIWM().getNetherWorld(island.getWorld()).getEntities().stream()
-                    .filter(e -> e.getType().equals(ent))
-                    .filter(e -> island.inIslandSpace(e.getLocation())).count();
-        }
-        // End
-        if (addon.getPlugin().getIWM().isEndIslands(island.getWorld()) && addon.getPlugin().getIWM().getEndWorld(island.getWorld()) != null) {
-            count += addon.getPlugin().getIWM().getEndWorld(island.getWorld()).getEntities().stream()
-                    .filter(e -> e.getType().equals(ent))
-                    .filter(e -> island.inIslandSpace(e.getLocation())).count();
-        }
-        return count;
-    }
-
-    long getCount(Island island, EntityGroup group) {
-        long count = island.getWorld().getEntities().stream()
-                .filter(e -> group.contains(e.getType()))
-                .filter(e -> island.inIslandSpace(e.getLocation())).count();
-        // Nether
-        if (addon.getPlugin().getIWM().isNetherIslands(island.getWorld()) && addon.getPlugin().getIWM().getNetherWorld(island.getWorld()) != null) {
-            count += addon.getPlugin().getIWM().getNetherWorld(island.getWorld()).getEntities().stream()
-                    .filter(e -> group.contains(e.getType()))
-                    .filter(e -> island.inIslandSpace(e.getLocation())).count();
-        }
-        // End
-        if (addon.getPlugin().getIWM().isEndIslands(island.getWorld()) && addon.getPlugin().getIWM().getEndWorld(island.getWorld()) != null) {
-            count += addon.getPlugin().getIWM().getEndWorld(island.getWorld()).getEntities().stream()
-                    .filter(e -> group.contains(e.getType()))
-                    .filter(e -> island.inIslandSpace(e.getLocation())).count();
-        }
-        return count;
     }
 }

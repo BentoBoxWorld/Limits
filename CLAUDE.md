@@ -36,15 +36,34 @@ Limits is a **BentoBox addon** (not a standalone Spigot plugin). It depends on B
 4. Registers three listeners: `BlockLimitsListener`, `JoinListener`, `EntityLimitListener`
 5. Registers PlaceholderAPI placeholders for each material and entity type
 
-### Three-Tier Limit System
+### Per-Environment Tracking (since #43)
 
-Limits are resolved in a priority hierarchy (highest wins):
+Block counts, entity counts, limits, and offsets are all tracked **per `World.Environment`** (overworld, nether, end). The data model in `IslandBlockCount` keys every map by `Environment` first, then by material/entity. Pre-env data on disk is migrated into `Environment.NORMAL` lazily on first access.
 
-1. **Island-specific** (`IslandBlockCount.blockLimits` / `entityLimits`): set by player permissions, checked at join
-2. **World-specific** (`BlockLimitsListener.worldLimitMap`): from `config.yml` `worlds:` section
-3. **Default** (`BlockLimitsListener.defaultLimitMap`): from `config.yml` `blocklimits:` section
+This means:
+- Counts in nether and end are persistent — they don't go to zero when chunks unload (the original bug in #43).
+- A single config-defined limit applies independently to each env (`HOPPER: 10` allows 10 in overworld, 10 in nether, 10 in end).
+- Entity portal teleports decrement the source-env count and increment the destination-env count via `EntityPortalEvent`.
 
-**Offsets** (`blockLimitsOffset`, `entityLimitsOffset`) are added on top of any limit found — used by the `offset` admin command to give per-island bonus allowances.
+### Limit Resolution Order
+
+For a block placement (or entity spawn) in environment `env`, the limit is resolved in priority order:
+
+1. **Island-specific env limit** (`IslandBlockCount.envBlockLimits[env]`) — set by player permissions, checked at join.
+2. **World-specific limit** (`BlockLimitsListener.worldLimitMap[world]`) — from the `worlds:` section. Each world is one env so this is implicitly env-scoped.
+3. **Env default** (`BlockLimitsListener.envDefaultLimitMap[env]`) — from `blocklimits` (seeded into all envs) plus `blocklimits-nether` / `blocklimits-end` overrides.
+
+**Offsets** (`envBlockLimitsOffset[env]`, `envEntityLimitsOffset[env]`) are added on top of any resolved limit. The legacy `/offset` admin command sets the same offset across all envs via the `setBlockLimitsOffsetAllEnvs` / `setEntityLimitsOffsetAllEnvs` helpers.
+
+### Persistent Entity Counts
+
+`EntityLimitListener` no longer counts entities via `World.getNearbyEntities(island.getBoundingBox())`. Instead it maintains the count in `IslandBlockCount.envEntityCounts`:
+
+- Increment on MONITOR-priority handlers for `CreatureSpawnEvent`, `VehicleCreateEvent`, `HangingPlaceEvent` (after our LOW-priority limit check has had its say).
+- Decrement on `EntityRemoveEvent` whenever the cause is **not** `UNLOAD` (so death, despawn, drop, plugin removal, etc. all decrement; chunk unload does not).
+- `EntityPortalEvent` (MONITOR) handles env-to-env teleport: decrement source env, increment destination env.
+
+This is Paper-only (the addon dropped Spigot support; `EntityRemoveEvent` is on Bukkit's API now but `EntityRemoveEvent.Cause` is needed).
 
 ### Key Classes
 
@@ -52,7 +71,8 @@ Limits are resolved in a priority hierarchy (highest wins):
 |---|---|
 | `Limits` | Main addon; wires everything together, registers placeholders |
 | `Settings` | Parses `config.yml`; holds entity limits, entity group limits, game mode list |
-| `IslandBlockCount` | Per-island data object stored in BentoBox's database (`@Table("IslandBlockCount")`); tracks block counts, per-island block/entity limits, and offsets |
+| `IslandBlockCount` | Per-island data object stored in BentoBox's database (`@Table("IslandBlockCount")`); tracks block counts, entity counts, limits, and offsets — all keyed by `Environment` |
+| `EnvNamespacedKeyMapAdapter` | Gson type adapter for `Map<Environment, Map<NamespacedKey, Integer>>` — needed because `NamespacedKey` is not enum-keyed and Gson can't handle it natively |
 | `BlockLimitsListener` | Core block tracking listener; handles all block place/break/grow/explode events; maintains the `islandCountMap` in memory; persists via BentoBox `Database<IslandBlockCount>` |
 | `JoinListener` | Applies permission-based limits on player join, island creation/reset, and ownership change; fires `LimitsPermCheckEvent` / `LimitsJoinPermCheckEvent` for external cancellation |
 | `EntityLimitListener` | Cancels entity spawn/breed/vehicle-create events when entity or group limits are exceeded; handles async golem/snowman spawning edge cases |
@@ -60,11 +80,11 @@ Limits are resolved in a priority hierarchy (highest wins):
 
 ### Permission-Based Limits
 
-Permission format: `<gamemode>.island.limit.<MATERIAL_OR_ENTITY_OR_GROUP>.<NUMBER>`
+Two formats:
+- 5-segment, all-env: `<gamemode>.island.limit.<KEY>.<NUMBER>` — applied independently to overworld, nether, and end.
+- 6-segment, env-scoped: `<gamemode>.island.limit.<env>.<KEY>.<NUMBER>` where `<env>` ∈ `{overworld, nether, end}`.
 
-Example: `bskyblock.island.limit.HOPPER.20`
-
-`JoinListener.checkPerms()` clears all permission-based limits then re-applies them from scratch on each join. The highest value wins if multiple permissions grant the same limit. Wildcards are not supported.
+`JoinListener.checkPerms()` clears all permission-based limits then re-applies them from scratch on each join. The highest value wins if multiple permissions grant the same limit for the same env. Wildcards are not supported.
 
 ### Block Material Normalization
 
