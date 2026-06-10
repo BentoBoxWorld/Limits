@@ -11,6 +11,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
+import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -65,7 +66,7 @@ public class RecountCalculator {
         this.addon = addon;
         this.bll = addon.getBlockLimitListener();
         this.island = island;
-        this.ibc = bll.getIsland(Objects.requireNonNull(island).getUniqueId());
+        this.ibc = bll.getIsland(Objects.requireNonNull(island));
         this.r = r;
         results = new Results();
         chunksToCheck = getChunksToScan(island);
@@ -119,26 +120,23 @@ public class RecountCalculator {
 
     private CompletableFuture<List<Chunk>> getWorldChunk(Environment env, Queue<Pair<Integer, Integer>> pairList) {
         if (worlds.containsKey(env)) {
-            CompletableFuture<List<Chunk>> r2 = new CompletableFuture<>();
-            List<Chunk> chunkList = new ArrayList<>();
             World world = worlds.get(env);
-            loadChunks(r2, world, pairList, chunkList);
-            return r2;
+            boolean isNether = world.getEnvironment().equals(Environment.NETHER);
+            List<CompletableFuture<Chunk>> futures = new ArrayList<>();
+            while (!pairList.isEmpty()) {
+                Pair<Integer, Integer> p = pairList.poll();
+                futures.add(Util.getChunkAtAsync(world, p.x, p.z, isNether));
+            }
+            if (futures.isEmpty()) {
+                return CompletableFuture.completedFuture(Collections.emptyList());
+            }
+            return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .thenApply(v -> futures.stream()
+                            .map(CompletableFuture::join)
+                            .filter(Objects::nonNull)
+                            .collect(Collectors.toList()));
         }
         return CompletableFuture.completedFuture(Collections.emptyList());
-    }
-
-    private void loadChunks(CompletableFuture<List<Chunk>> r2, World world, Queue<Pair<Integer, Integer>> pairList,
-            List<Chunk> chunkList) {
-        if (pairList.isEmpty()) {
-            r2.complete(chunkList);
-            return;
-        }
-        Pair<Integer, Integer> p = pairList.poll();
-        Util.getChunkAtAsync(world, p.x, p.z, world.getEnvironment().equals(Environment.NETHER)).thenAccept(chunk -> {
-            if (chunk != null) chunkList.add(chunk);
-            loadChunks(r2, world, pairList, chunkList);
-        });
     }
 
     private void scanAsync(Environment env, Chunk chunk) {
@@ -197,15 +195,16 @@ public class RecountCalculator {
         }
         Queue<Pair<Integer, Integer>> endPairList = new ConcurrentLinkedQueue<>(pairList);
         Queue<Pair<Integer, Integer>> netherPairList = new ConcurrentLinkedQueue<>(pairList);
-        CompletableFuture<Boolean> result = new CompletableFuture<>();
-        getWorldChunk(Environment.THE_END, endPairList).thenAccept(endChunks ->
-        scanChunk(Environment.THE_END, endChunks).thenAccept(b ->
-        getWorldChunk(Environment.NETHER, netherPairList).thenAccept(netherChunks ->
-        scanChunk(Environment.NETHER, netherChunks).thenAccept(b2 ->
-        getWorldChunk(Environment.NORMAL, pairList).thenAccept(normalChunks ->
-        scanChunk(Environment.NORMAL, normalChunks).thenAccept(b3 ->
-        result.complete(!chunksToCheck.isEmpty())))))));
-        return result;
+
+        CompletableFuture<List<Chunk>> endFuture = getWorldChunk(Environment.THE_END, endPairList);
+        CompletableFuture<List<Chunk>> netherFuture = getWorldChunk(Environment.NETHER, netherPairList);
+        CompletableFuture<List<Chunk>> normalFuture = getWorldChunk(Environment.NORMAL, pairList);
+
+        return CompletableFuture.allOf(endFuture, netherFuture, normalFuture)
+                .thenCompose(v -> scanChunk(Environment.THE_END, endFuture.join())
+                        .thenCompose(b -> scanChunk(Environment.NETHER, netherFuture.join()))
+                        .thenCompose(b2 -> scanChunk(Environment.NORMAL, normalFuture.join()))
+                        .thenApply(b3 -> !chunksToCheck.isEmpty()));
     }
 
     private void scanEntities() {
@@ -225,10 +224,7 @@ public class RecountCalculator {
     }
 
     public void tidyUp() {
-        if (ibc == null) {
-            ibc = new IslandBlockCount(island.getUniqueId(),
-                    addon.getPlugin().getIWM().getAddon(world).map(a -> a.getDescription().getName()).orElse("default"));
-        }
+        ibc = bll.getIsland(island);
         // Reset and write per-env block counts
         ibc.clearAllBlockCounts();
         results.getEnvBlockCount().forEach((env, multiset) -> multiset.forEach(key -> ibc.add(env, key)));

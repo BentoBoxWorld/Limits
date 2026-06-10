@@ -290,7 +290,11 @@ public class BlockLimitsListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockSpreadEvent e) {
-        process(e.getBlock(), true);
+        process(e.getBlock(), false);
+        if (process(e.getBlock(), e.getNewState().getBlockData(), true) > -1) {
+            e.setCancelled(true);
+            process(e.getBlock(), true);
+        }
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
@@ -306,6 +310,7 @@ public class BlockLimitsListener implements Listener {
     public void onBlock(BlockGrowEvent e) {
         if (process(e.getNewState().getBlock(), true) > -1) {
             e.setCancelled(true);
+            process(e.getNewState().getBlock(), false);
             e.getBlock().getWorld().getBlockAt(e.getBlock().getLocation()).setBlockData(e.getBlock().getBlockData());
         } else {
             process(e.getBlock(), false);
