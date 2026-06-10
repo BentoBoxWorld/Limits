@@ -579,6 +579,9 @@ public class BlockLimitsListenerTest {
         Block block = mockBlock(Material.GRASS_BLOCK, blockLocation);
         Block source = mockBlock(Material.GRASS_BLOCK, new Location(world, 101, 65, 100));
         BlockState newState = mock(BlockState.class);
+        BlockData newBlockData = mock(BlockData.class);
+        when(newBlockData.getMaterial()).thenReturn(Material.GRASS_BLOCK);
+        when(newState.getBlockData()).thenReturn(newBlockData);
         BlockSpreadEvent event = new BlockSpreadEvent(block, source, newState);
 
         listener.onBlock(event);
