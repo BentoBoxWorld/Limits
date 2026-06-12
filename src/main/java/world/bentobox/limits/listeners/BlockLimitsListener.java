@@ -193,6 +193,11 @@ public class BlockLimitsListener implements Listener {
     // Player-related events
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockPlaceEvent e) {
+        // BlockMultiPlaceEvent is a subclass of BlockPlaceEvent and shares its HandlerList,
+        // so it is delivered here too. Let the dedicated handler count it once (see #86).
+        if (e instanceof BlockMultiPlaceEvent) {
+            return;
+        }
         notify(e, User.getInstance(e.getPlayer()), process(e.getBlock(), true), e.getBlock().getType());
     }
 

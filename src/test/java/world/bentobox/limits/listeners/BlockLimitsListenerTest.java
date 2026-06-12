@@ -511,6 +511,50 @@ public class BlockLimitsListenerTest {
         assertTrue(event.isCancelled());
     }
 
+    @Test
+    public void testBedPlacedViaMultiPlaceCountsOnce() {
+        // Regression for #86. A bed places two blocks and fires a BlockMultiPlaceEvent.
+        // BlockMultiPlaceEvent shares BlockPlaceEvent's HandlerList, so a single dispatch
+        // reaches BOTH onBlock(BlockPlaceEvent) and onBlock(BlockMultiPlaceEvent). The bed
+        // must be counted once, not twice. Dispatch through the real plugin manager so the
+        // double-delivery actually happens (a direct handler call would mask it).
+        org.mockbukkit.mockbukkit.plugin.PluginMock mockPlugin = MockBukkit.createMockPlugin();
+        org.bukkit.Bukkit.getPluginManager().registerEvents(listener, mockPlugin);
+
+        Block foot = mockBlock(Material.RED_BED, blockLocation);
+        Block head = mockBlock(Material.RED_BED, new Location(world, 100, 65, 101));
+        BlockState headState = mock(BlockState.class);
+        when(headState.getBlock()).thenReturn(head);
+        BlockMultiPlaceEvent event = new BlockMultiPlaceEvent(List.of(headState), foot,
+                new ItemStack(Material.RED_BED), player, true);
+
+        org.bukkit.Bukkit.getPluginManager().callEvent(event);
+
+        assertEquals(1, listener.getIsland("test-island-id").getBlockCount(Material.RED_BED.getKey()));
+    }
+
+    @Test
+    public void testBedPlaceThenBreakLeavesZero() {
+        // Regression for #86: placing then breaking a bed must return the count to 0,
+        // not leave a phantom bed behind.
+        org.mockbukkit.mockbukkit.plugin.PluginMock mockPlugin = MockBukkit.createMockPlugin();
+        org.bukkit.Bukkit.getPluginManager().registerEvents(listener, mockPlugin);
+
+        Block foot = mockBlock(Material.RED_BED, blockLocation);
+        Block head = mockBlock(Material.RED_BED, new Location(world, 100, 65, 101));
+        BlockState headState = mock(BlockState.class);
+        when(headState.getBlock()).thenReturn(head);
+        BlockMultiPlaceEvent place = new BlockMultiPlaceEvent(List.of(headState), foot,
+                new ItemStack(Material.RED_BED), player, true);
+        org.bukkit.Bukkit.getPluginManager().callEvent(place);
+
+        // Player breaks one half of the bed (vanilla removes the other half with no break event).
+        BlockBreakEvent breakEvent = new BlockBreakEvent(foot, player);
+        org.bukkit.Bukkit.getPluginManager().callEvent(breakEvent);
+
+        assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.RED_BED.getKey()));
+    }
+
     // --- PlayerInteractEvent tests ---
 
     @Test
