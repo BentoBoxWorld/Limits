@@ -591,6 +591,52 @@ public class BlockLimitsListenerTest {
         assertEquals(1, ibc.getBlockCount(Material.GRASS_BLOCK.getKey()));
     }
 
+    @Test
+    public void testBlockSpreadDecrementsOldAddsNew() {
+        // Grass spreading onto dirt: DIRT count should drop, GRASS_BLOCK count should rise.
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Environment.NORMAL, Material.DIRT.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.DIRT, blockLocation);
+        Block source = mockBlock(Material.GRASS_BLOCK, new Location(world, 101, 65, 100));
+        BlockState newState = mock(BlockState.class);
+        BlockData newBlockData = mock(BlockData.class);
+        when(newBlockData.getMaterial()).thenReturn(Material.GRASS_BLOCK);
+        when(newState.getBlockData()).thenReturn(newBlockData);
+        BlockSpreadEvent event = new BlockSpreadEvent(block, source, newState);
+
+        listener.onBlock(event);
+
+        assertFalse(event.isCancelled());
+        assertEquals(0, ibc.getBlockCount(Material.DIRT.getKey()));
+        assertEquals(1, ibc.getBlockCount(Material.GRASS_BLOCK.getKey()));
+    }
+
+    @Test
+    public void testBlockSpreadAtLimitCancelsAndRestoresOld() {
+        // GRASS_BLOCK is at limit; spread onto DIRT must be cancelled and the DIRT count preserved.
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Environment.NORMAL, Material.DIRT.getKey());
+        ibc.setBlockLimit(Environment.NORMAL, Material.GRASS_BLOCK.getKey(), 1);
+        ibc.add(Environment.NORMAL, Material.GRASS_BLOCK.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.DIRT, blockLocation);
+        Block source = mockBlock(Material.GRASS_BLOCK, new Location(world, 101, 65, 100));
+        BlockState newState = mock(BlockState.class);
+        BlockData newBlockData = mock(BlockData.class);
+        when(newBlockData.getMaterial()).thenReturn(Material.GRASS_BLOCK);
+        when(newState.getBlockData()).thenReturn(newBlockData);
+        BlockSpreadEvent event = new BlockSpreadEvent(block, source, newState);
+
+        listener.onBlock(event);
+
+        assertTrue(event.isCancelled());
+        assertEquals(1, ibc.getBlockCount(Material.DIRT.getKey()));
+        assertEquals(1, ibc.getBlockCount(Material.GRASS_BLOCK.getKey()));
+    }
+
     // --- BlockFromToEvent tests ---
 
     @Test
@@ -731,6 +777,32 @@ public class BlockLimitsListenerTest {
         assertEquals(1, ibc.getBlockCount(Material.DIRT.getKey()));
         assertEquals(0, ibc.getBlockCount(Material.GRASS_BLOCK.getKey()));
         verify(worldBlock).setBlockData(block.getBlockData());
+    }
+
+    @Test
+    public void testBlockGrowAtNonZeroLimitDoesNotDecrement() {
+        // GRASS_BLOCK is at a non-zero limit (5 of 5). A blocked grow must NOT change the count.
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.setBlockLimit(Environment.NORMAL, Material.GRASS_BLOCK.getKey(), 5);
+        for (int i = 0; i < 5; i++) {
+            ibc.add(Environment.NORMAL, Material.GRASS_BLOCK.getKey());
+        }
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.DIRT, blockLocation);
+        Block newBlock = mockBlock(Material.GRASS_BLOCK, blockLocation);
+        BlockState newState = mock(BlockState.class);
+        when(newState.getBlock()).thenReturn(newBlock);
+
+        Block worldBlock = mock(Block.class);
+        when(world.getBlockAt(blockLocation)).thenReturn(worldBlock);
+
+        BlockGrowEvent event = new BlockGrowEvent(block, newState);
+        listener.onBlock(event);
+
+        assertTrue(event.isCancelled());
+        // The physical world still has 5 grass blocks, so the count must remain 5.
+        assertEquals(5, ibc.getBlockCount(Material.GRASS_BLOCK.getKey()));
     }
 
     // --- EntityChangeBlockEvent state transition tests ---
