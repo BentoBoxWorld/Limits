@@ -185,49 +185,49 @@ public class BlockLimitsListenerTest {
     // --- fixMaterial tests ---
 
     @Test
-    public void testFixMaterialChippedAnvil() {
+    void testFixMaterialChippedAnvil() {
         BlockData blockData = mock(BlockData.class);
         when(blockData.getMaterial()).thenReturn(Material.CHIPPED_ANVIL);
         assertEquals(Material.ANVIL.getKey(), listener.fixMaterial(blockData));
     }
 
     @Test
-    public void testFixMaterialDamagedAnvil() {
+    void testFixMaterialDamagedAnvil() {
         BlockData blockData = mock(BlockData.class);
         when(blockData.getMaterial()).thenReturn(Material.DAMAGED_ANVIL);
         assertEquals(Material.ANVIL.getKey(), listener.fixMaterial(blockData));
     }
 
     @Test
-    public void testFixMaterialRedstoneWallTorch() {
+    void testFixMaterialRedstoneWallTorch() {
         BlockData blockData = mock(BlockData.class);
         when(blockData.getMaterial()).thenReturn(Material.REDSTONE_WALL_TORCH);
         assertEquals(Material.REDSTONE_TORCH.getKey(), listener.fixMaterial(blockData));
     }
 
     @Test
-    public void testFixMaterialWallTorch() {
+    void testFixMaterialWallTorch() {
         BlockData blockData = mock(BlockData.class);
         when(blockData.getMaterial()).thenReturn(Material.WALL_TORCH);
         assertEquals(Material.TORCH.getKey(), listener.fixMaterial(blockData));
     }
 
     @Test
-    public void testFixMaterialZombieWallHead() {
+    void testFixMaterialZombieWallHead() {
         BlockData blockData = mock(BlockData.class);
         when(blockData.getMaterial()).thenReturn(Material.ZOMBIE_WALL_HEAD);
         assertEquals(Material.ZOMBIE_HEAD.getKey(), listener.fixMaterial(blockData));
     }
 
     @Test
-    public void testFixMaterialBambooSapling() {
+    void testFixMaterialBambooSapling() {
         BlockData blockData = mock(BlockData.class);
         when(blockData.getMaterial()).thenReturn(Material.BAMBOO_SAPLING);
         assertEquals(Material.BAMBOO.getKey(), listener.fixMaterial(blockData));
     }
 
     @Test
-    public void testFixMaterialPistonHeadNormal() {
+    void testFixMaterialPistonHeadNormal() {
         TechnicalPiston tp = mock(TechnicalPiston.class);
         when(tp.getMaterial()).thenReturn(Material.PISTON_HEAD);
         when(tp.getType()).thenReturn(TechnicalPiston.Type.NORMAL);
@@ -235,7 +235,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testFixMaterialPistonHeadSticky() {
+    void testFixMaterialPistonHeadSticky() {
         TechnicalPiston tp = mock(TechnicalPiston.class);
         when(tp.getMaterial()).thenReturn(Material.PISTON_HEAD);
         when(tp.getType()).thenReturn(TechnicalPiston.Type.STICKY);
@@ -243,70 +243,70 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testFixMaterialRegularStone() {
+    void testFixMaterialRegularStone() {
         BlockData blockData = mock(BlockData.class);
         when(blockData.getMaterial()).thenReturn(Material.STONE);
         assertEquals(Material.STONE.getKey(), listener.fixMaterial(blockData));
     }
 
     @Test
-    public void testFixMaterialCopperWallTorch() {
+    void testFixMaterialCopperWallTorch() {
         BlockData blockData = mock(BlockData.class);
         when(blockData.getMaterial()).thenReturn(Material.COPPER_WALL_TORCH);
         assertEquals(Material.COPPER_TORCH.getKey(), listener.fixMaterial(blockData));
     }
 
     @Test
-    public void testFixMaterialExposedCopperChest() {
+    void testFixMaterialExposedCopperChest() {
         BlockData blockData = mock(BlockData.class);
         when(blockData.getMaterial()).thenReturn(Material.EXPOSED_COPPER_CHEST);
         assertEquals(Material.COPPER_CHEST.getKey(), listener.fixMaterial(blockData));
     }
 
     @Test
-    public void testFixMaterialWeatheredCopperChest() {
+    void testFixMaterialWeatheredCopperChest() {
         BlockData blockData = mock(BlockData.class);
         when(blockData.getMaterial()).thenReturn(Material.WEATHERED_COPPER_CHEST);
         assertEquals(Material.COPPER_CHEST.getKey(), listener.fixMaterial(blockData));
     }
 
     @Test
-    public void testFixMaterialOxidizedCopperChest() {
+    void testFixMaterialOxidizedCopperChest() {
         BlockData blockData = mock(BlockData.class);
         when(blockData.getMaterial()).thenReturn(Material.OXIDIZED_COPPER_CHEST);
         assertEquals(Material.COPPER_CHEST.getKey(), listener.fixMaterial(blockData));
     }
 
     @Test
-    public void testFixMaterialWaxedCopperChest() {
+    void testFixMaterialWaxedCopperChest() {
         BlockData blockData = mock(BlockData.class);
         when(blockData.getMaterial()).thenReturn(Material.WAXED_COPPER_CHEST);
         assertEquals(Material.COPPER_CHEST.getKey(), listener.fixMaterial(blockData));
     }
 
     @Test
-    public void testFixMaterialWaxedExposedCopperChest() {
+    void testFixMaterialWaxedExposedCopperChest() {
         BlockData blockData = mock(BlockData.class);
         when(blockData.getMaterial()).thenReturn(Material.WAXED_EXPOSED_COPPER_CHEST);
         assertEquals(Material.COPPER_CHEST.getKey(), listener.fixMaterial(blockData));
     }
 
     @Test
-    public void testFixMaterialWaxedWeatheredCopperChest() {
+    void testFixMaterialWaxedWeatheredCopperChest() {
         BlockData blockData = mock(BlockData.class);
         when(blockData.getMaterial()).thenReturn(Material.WAXED_WEATHERED_COPPER_CHEST);
         assertEquals(Material.COPPER_CHEST.getKey(), listener.fixMaterial(blockData));
     }
 
     @Test
-    public void testFixMaterialWaxedOxidizedCopperChest() {
+    void testFixMaterialWaxedOxidizedCopperChest() {
         BlockData blockData = mock(BlockData.class);
         when(blockData.getMaterial()).thenReturn(Material.WAXED_OXIDIZED_COPPER_CHEST);
         assertEquals(Material.COPPER_CHEST.getKey(), listener.fixMaterial(blockData));
     }
 
     @Test
-    public void testFixMaterialCopperChestUnchanged() {
+    void testFixMaterialCopperChestUnchanged() {
         BlockData blockData = mock(BlockData.class);
         when(blockData.getMaterial()).thenReturn(Material.COPPER_CHEST);
         assertEquals(Material.COPPER_CHEST.getKey(), listener.fixMaterial(blockData));
@@ -315,7 +315,7 @@ public class BlockLimitsListenerTest {
     // --- setIsland / getIsland tests ---
 
     @Test
-    public void testSetAndGetIsland() {
+    void testSetAndGetIsland() {
         String islandId = "test-island-123";
         IslandBlockCount ibc = new IslandBlockCount(islandId, "BSkyBlock");
         listener.setIsland(islandId, ibc);
@@ -325,14 +325,14 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testGetIslandUnknownIdReturnsNull() {
+    void testGetIslandUnknownIdReturnsNull() {
         assertNull(listener.getIsland("nonexistent-island-id"));
     }
 
     // --- getMaterialLimits tests ---
 
     @Test
-    public void testGetMaterialLimitsDefaultOnly() {
+    void testGetMaterialLimitsDefaultOnly() {
         Map<NamespacedKey, Integer> limits = listener.getMaterialLimits(world, "some-island");
         assertNotNull(limits);
         // The default config has HOPPER: 10 in blocklimits
@@ -341,7 +341,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testGetMaterialLimitsIslandOverridesDefault() {
+    void testGetMaterialLimitsIslandOverridesDefault() {
         String islandId = "island-override-test";
         IslandBlockCount ibc = new IslandBlockCount(islandId, "BSkyBlock");
         ibc.setBlockLimit(Environment.NORMAL, Material.HOPPER.getKey(), 25);
@@ -373,7 +373,7 @@ public class BlockLimitsListenerTest {
     // --- BlockPlaceEvent tests ---
 
     @Test
-    public void testBlockPlaceIncrementsCount() {
+    void testBlockPlaceIncrementsCount() {
         Block block = mockBlock(Material.STONE, blockLocation);
         BlockState replacedState = mock(BlockState.class);
         BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block, new ItemStack(Material.STONE), player, true, EquipmentSlot.HAND);
@@ -386,7 +386,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testBlockPlaceAtLimitCancelsEvent() {
+    void testBlockPlaceAtLimitCancelsEvent() {
         // Pre-populate island with 10 HOPPERs (default config limit is 10)
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         for (int i = 0; i < 10; i++) {
@@ -404,7 +404,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testBlockPlaceUnlimitedMaterialAllowed() {
+    void testBlockPlaceUnlimitedMaterialAllowed() {
         Block block = mockBlock(Material.DIRT, blockLocation);
         BlockState replacedState = mock(BlockState.class);
         BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block, new ItemStack(Material.DIRT), player, true, EquipmentSlot.HAND);
@@ -415,7 +415,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testBlockPlaceDoNotCountWaterBlock() {
+    void testBlockPlaceDoNotCountWaterBlock() {
         Block block = mockBlock(Material.WATER, blockLocation);
         BlockState replacedState = mock(BlockState.class);
         BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block, new ItemStack(Material.WATER_BUCKET), player, true, EquipmentSlot.HAND);
@@ -427,7 +427,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testBlockPlaceOutsideGameModeWorldIgnored() {
+    void testBlockPlaceOutsideGameModeWorldIgnored() {
         when(addon.inGameModeWorld(world)).thenReturn(false);
 
         Block block = mockBlock(Material.STONE, blockLocation);
@@ -442,7 +442,7 @@ public class BlockLimitsListenerTest {
     // --- BlockBreakEvent tests ---
 
     @Test
-    public void testBlockBreakDecrementsCount() {
+    void testBlockBreakDecrementsCount() {
         // Pre-populate with 3 STONE
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.STONE.getKey());
@@ -459,7 +459,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testBlockBreakCountNeverGoesNegative() {
+    void testBlockBreakCountNeverGoesNegative() {
         // Start with 0 STONE (no pre-population)
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         listener.setIsland("test-island-id", ibc);
@@ -473,7 +473,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testBlockBreakWithMetadataIgnoreFlagSkipped() {
+    void testBlockBreakWithMetadataIgnoreFlagSkipped() {
         // Pre-populate with 1 STONE
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.STONE.getKey());
@@ -492,7 +492,7 @@ public class BlockLimitsListenerTest {
     // --- BlockMultiPlaceEvent tests ---
 
     @Test
-    public void testBlockMultiPlaceAtLimitCancels() {
+    void testBlockMultiPlaceAtLimitCancels() {
         // Set limit for OAK_PLANKS to 1 via island-specific limit
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.setBlockLimit(Environment.NORMAL, Material.OAK_PLANKS.getKey(), 1);
@@ -512,7 +512,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testBedPlacedViaMultiPlaceCountsOnce() {
+    void testBedPlacedViaMultiPlaceCountsOnce() {
         // Regression for #86. A bed places two blocks and fires a BlockMultiPlaceEvent.
         // BlockMultiPlaceEvent shares BlockPlaceEvent's HandlerList, so a single dispatch
         // reaches BOTH onBlock(BlockPlaceEvent) and onBlock(BlockMultiPlaceEvent). The bed
@@ -534,7 +534,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testBedPlaceThenBreakLeavesZero() {
+    void testBedPlaceThenBreakLeavesZero() {
         // Regression for #86: placing then breaking a bed must return the count to 0,
         // not leave a phantom bed behind.
         org.mockbukkit.mockbukkit.plugin.PluginMock mockPlugin = MockBukkit.createMockPlugin();
@@ -558,7 +558,7 @@ public class BlockLimitsListenerTest {
     // --- PlayerInteractEvent tests ---
 
     @Test
-    public void testTurtleEggNonPhysicalActionIgnored() {
+    void testTurtleEggNonPhysicalActionIgnored() {
         Block block = mockBlock(Material.TURTLE_EGG, blockLocation);
         PlayerInteractEvent event = new PlayerInteractEvent(player, Action.LEFT_CLICK_BLOCK, null, block, BlockFace.UP);
 
@@ -571,7 +571,7 @@ public class BlockLimitsListenerTest {
     // --- BlockBurnEvent / BlockFadeEvent / LeavesDecayEvent tests ---
 
     @Test
-    public void testBlockBurnDecrementsCount() {
+    void testBlockBurnDecrementsCount() {
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.OAK_PLANKS.getKey());
         ibc.add(Environment.NORMAL, Material.OAK_PLANKS.getKey());
@@ -586,7 +586,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testBlockFadeDecrementsCount() {
+    void testBlockFadeDecrementsCount() {
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.SAND.getKey());
         ibc.add(Environment.NORMAL, Material.SAND.getKey());
@@ -602,7 +602,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testLeavesDecayDecrementsCount() {
+    void testLeavesDecayDecrementsCount() {
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.OAK_LEAVES.getKey());
         ibc.add(Environment.NORMAL, Material.OAK_LEAVES.getKey());
@@ -619,7 +619,7 @@ public class BlockLimitsListenerTest {
     // --- BlockSpreadEvent tests ---
 
     @Test
-    public void testBlockSpreadIncrementsCount() {
+    void testBlockSpreadIncrementsCount() {
         Block block = mockBlock(Material.GRASS_BLOCK, blockLocation);
         Block source = mockBlock(Material.GRASS_BLOCK, new Location(world, 101, 65, 100));
         BlockState newState = mock(BlockState.class);
@@ -636,7 +636,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testBlockSpreadDecrementsOldAddsNew() {
+    void testBlockSpreadDecrementsOldAddsNew() {
         // Grass spreading onto dirt: DIRT count should drop, GRASS_BLOCK count should rise.
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.DIRT.getKey());
@@ -658,7 +658,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testBlockSpreadAtLimitCancelsAndRestoresOld() {
+    void testBlockSpreadAtLimitCancelsAndRestoresOld() {
         // GRASS_BLOCK is at limit; spread onto DIRT must be cancelled and the DIRT count preserved.
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.DIRT.getKey());
@@ -684,7 +684,7 @@ public class BlockLimitsListenerTest {
     // --- BlockFromToEvent tests ---
 
     @Test
-    public void testBlockFromToNonLiquidIgnored() {
+    void testBlockFromToNonLiquidIgnored() {
         Block sourceBlock = mockBlock(Material.STONE, blockLocation);
         when(sourceBlock.isLiquid()).thenReturn(false);
         Block toBlock = mockBlock(Material.REDSTONE_WIRE, new Location(world, 101, 65, 100));
@@ -699,7 +699,7 @@ public class BlockLimitsListenerTest {
     // --- BlockFormEvent / EntityBlockFormEvent tests ---
 
     @Test
-    public void testBlockFormIgnoresEntityBlockFormEvent() {
+    void testBlockFormIgnoresEntityBlockFormEvent() {
         Block block = mockBlock(Material.STONE, blockLocation);
         BlockState newState = mock(BlockState.class);
         Entity entity = mock(Entity.class);
@@ -715,7 +715,7 @@ public class BlockLimitsListenerTest {
     // --- Block state transition tests ---
 
     @Test
-    public void testBlockFormStateTransition() {
+    void testBlockFormStateTransition() {
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.COBBLESTONE.getKey());
         listener.setIsland("test-island-id", ibc);
@@ -735,7 +735,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testBlockFormAtLimitCancelsAndRestoresOld() {
+    void testBlockFormAtLimitCancelsAndRestoresOld() {
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.COBBLESTONE.getKey());
         ibc.setBlockLimit(Environment.NORMAL, Material.STONE.getKey(), 1);
@@ -757,7 +757,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testEntityBlockFormStateTransition() {
+    void testEntityBlockFormStateTransition() {
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.COBBLESTONE.getKey());
         listener.setIsland("test-island-id", ibc);
@@ -780,7 +780,7 @@ public class BlockLimitsListenerTest {
     // --- BlockGrowEvent tests ---
 
     @Test
-    public void testBlockGrowIncrementsNewAndRemovesOld() {
+    void testBlockGrowIncrementsNewAndRemovesOld() {
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.DIRT.getKey());
         listener.setIsland("test-island-id", ibc);
@@ -799,7 +799,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testBlockGrowAtLimitCancelsAndRestoresBlockData() {
+    void testBlockGrowAtLimitCancelsAndRestoresBlockData() {
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.DIRT.getKey());
         ibc.setBlockLimit(Environment.NORMAL, Material.GRASS_BLOCK.getKey(), 0);
@@ -824,7 +824,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testBlockGrowAtNonZeroLimitDoesNotDecrement() {
+    void testBlockGrowAtNonZeroLimitDoesNotDecrement() {
         // GRASS_BLOCK is at a non-zero limit (5 of 5). A blocked grow must NOT change the count.
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.setBlockLimit(Environment.NORMAL, Material.GRASS_BLOCK.getKey(), 5);
@@ -852,7 +852,7 @@ public class BlockLimitsListenerTest {
     // --- EntityChangeBlockEvent state transition tests ---
 
     @Test
-    public void testEntityChangeBlockToNonAirAddsNewRemovesOld() {
+    void testEntityChangeBlockToNonAirAddsNewRemovesOld() {
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.DIRT.getKey());
         listener.setIsland("test-island-id", ibc);
@@ -872,7 +872,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testEntityChangeBlockToNonAirAtLimitCancels() {
+    void testEntityChangeBlockToNonAirAtLimitCancels() {
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.DIRT.getKey());
         ibc.setBlockLimit(Environment.NORMAL, Material.COBBLESTONE.getKey(), 1);
@@ -894,7 +894,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testEntityChangeBlockFarmlandRemovesCropAbove() {
+    void testEntityChangeBlockFarmlandRemovesCropAbove() {
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.FARMLAND.getKey());
         ibc.add(Environment.NORMAL, Material.OAK_PLANKS.getKey());
@@ -921,7 +921,7 @@ public class BlockLimitsListenerTest {
     // --- Block cascade tests ---
 
     @Test
-    public void testBlockBreakSugarCaneCascade() {
+    void testBlockBreakSugarCaneCascade() {
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.SUGAR_CANE.getKey());
         ibc.add(Environment.NORMAL, Material.SUGAR_CANE.getKey());
@@ -949,7 +949,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testBlockBreakBambooCascade() {
+    void testBlockBreakBambooCascade() {
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.BAMBOO.getKey());
         ibc.add(Environment.NORMAL, Material.BAMBOO.getKey());
@@ -975,7 +975,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testBlockBreakRedstoneOnTopRemoved() {
+    void testBlockBreakRedstoneOnTopRemoved() {
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.STONE.getKey());
         ibc.add(Environment.NORMAL, Material.REDSTONE_WIRE.getKey());
@@ -993,7 +993,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testBlockBreakRedstoneWallTorchOnSideRemoved() {
+    void testBlockBreakRedstoneWallTorchOnSideRemoved() {
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.STONE.getKey());
         // fixMaterial normalises REDSTONE_WALL_TORCH → REDSTONE_TORCH
@@ -1014,7 +1014,7 @@ public class BlockLimitsListenerTest {
     // --- Center block test ---
 
     @Test
-    public void testBlockPlaceCenterBlockIgnored() {
+    void testBlockPlaceCenterBlockIgnored() {
         // Make the block location equal to the island center
         when(island.getCenter()).thenReturn(blockLocation);
 
@@ -1031,7 +1031,7 @@ public class BlockLimitsListenerTest {
     // --- Turtle egg physical interaction test ---
 
     @Test
-    public void testTurtleEggPhysicalBreakDecrementsCount() {
+    void testTurtleEggPhysicalBreakDecrementsCount() {
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.TURTLE_EGG.getKey());
         listener.setIsland("test-island-id", ibc);
@@ -1047,7 +1047,7 @@ public class BlockLimitsListenerTest {
     // --- Explosion tests ---
 
     @Test
-    public void testBlockExplodeDecrementsBatch() {
+    void testBlockExplodeDecrementsBatch() {
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.STONE.getKey());
         ibc.add(Environment.NORMAL, Material.STONE.getKey());
@@ -1068,7 +1068,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testEntityExplodeDecrementsBatch() {
+    void testEntityExplodeDecrementsBatch() {
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.STONE.getKey());
         ibc.add(Environment.NORMAL, Material.STONE.getKey());
@@ -1090,7 +1090,7 @@ public class BlockLimitsListenerTest {
     // --- EntityChangeBlockEvent tests ---
 
     @Test
-    public void testEntityChangeBlockToAirDecrements() {
+    void testEntityChangeBlockToAirDecrements() {
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.STONE.getKey());
         listener.setIsland("test-island-id", ibc);
@@ -1109,7 +1109,7 @@ public class BlockLimitsListenerTest {
     // --- BlockFromToEvent liquid destroys redstone test ---
 
     @Test
-    public void testBlockFromToLiquidDestroysRedstone() {
+    void testBlockFromToLiquidDestroysRedstone() {
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         ibc.add(Environment.NORMAL, Material.REDSTONE_WIRE.getKey());
         listener.setIsland("test-island-id", ibc);
@@ -1127,7 +1127,7 @@ public class BlockLimitsListenerTest {
     // --- Limit hierarchy tests ---
 
     @Test
-    public void testIslandLimitTakesPrecedenceOverWorldLimit() throws Exception {
+    void testIslandLimitTakesPrecedenceOverWorldLimit() throws Exception {
         // Set world limit for COBBLESTONE = 5
         Field worldLimitField = BlockLimitsListener.class.getDeclaredField("worldLimitMap");
         worldLimitField.setAccessible(true);
@@ -1155,7 +1155,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testWorldLimitTakesPrecedenceOverDefaultLimit() throws Exception {
+    void testWorldLimitTakesPrecedenceOverDefaultLimit() throws Exception {
         // Set default limit for COBBLESTONE = 10
         listener.getEnvDefaultLimitMap().get(Environment.NORMAL).put(Material.COBBLESTONE.getKey(), 10);
 
@@ -1186,7 +1186,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testDefaultLimitAppliedWhenNoIslandOrWorldLimit() {
+    void testDefaultLimitAppliedWhenNoIslandOrWorldLimit() {
         // Set default limit for COBBLESTONE = 2
         listener.getEnvDefaultLimitMap().get(Environment.NORMAL).put(Material.COBBLESTONE.getKey(), 2);
 
@@ -1206,7 +1206,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testIslandOffsetIncreasesEffectiveLimit() {
+    void testIslandOffsetIncreasesEffectiveLimit() {
         // Set default limit for COBBLESTONE = 2
         listener.getEnvDefaultLimitMap().get(Environment.NORMAL).put(Material.COBBLESTONE.getKey(), 2);
 
@@ -1231,7 +1231,7 @@ public class BlockLimitsListenerTest {
     // --- Batch save tests ---
 
     @Test
-    public void testBatchSaveTriggersAfterThreshold() {
+    void testBatchSaveTriggersAfterThreshold() {
         // CHANGE_LIMIT = 9, so the 10th change triggers a save
         for (int i = 0; i < 10; i++) {
             Block block = mockBlock(Material.STONE, blockLocation);
@@ -1245,7 +1245,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testNoSaveBeforeThresholdReached() {
+    void testNoSaveBeforeThresholdReached() {
         // Fire 9 events (CHANGE_LIMIT = 9, save triggers when > 9, i.e. on 10th)
         for (int i = 0; i < 9; i++) {
             Block block = mockBlock(Material.STONE, blockLocation);
@@ -1261,7 +1261,7 @@ public class BlockLimitsListenerTest {
     // --- IslandDeleteEvent tests ---
 
     @Test
-    public void testIslandDeleteRemovesFromMaps() {
+    void testIslandDeleteRemovesFromMaps() {
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         listener.setIsland("test-island-id", ibc);
         assertNotNull(listener.getIsland("test-island-id"));
@@ -1276,7 +1276,7 @@ public class BlockLimitsListenerTest {
     }
 
     @Test
-    public void testIslandDeleteCallsDatabaseDelete() {
+    void testIslandDeleteCallsDatabaseDelete() {
         IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
         listener.setIsland("test-island-id", ibc);
 
@@ -1295,7 +1295,7 @@ public class BlockLimitsListenerTest {
     // --- save tests ---
 
     @Test
-    public void testSaveSavesChangedIslands() {
+    void testSaveSavesChangedIslands() {
         String islandId = "save-test-island";
         IslandBlockCount ibc = new IslandBlockCount(islandId, "BSkyBlock");
         ibc.setChanged(true);
