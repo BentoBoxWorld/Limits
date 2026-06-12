@@ -290,7 +290,11 @@ public class BlockLimitsListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockSpreadEvent e) {
-        process(e.getBlock(), true);
+        process(e.getBlock(), false);
+        if (process(e.getBlock(), e.getNewState().getBlockData(), true) > -1) {
+            e.setCancelled(true);
+            process(e.getBlock(), true);
+        }
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
