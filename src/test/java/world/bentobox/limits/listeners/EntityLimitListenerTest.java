@@ -11,8 +11,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -577,6 +580,104 @@ public class EntityLimitListenerTest {
         when(entity.getWorld()).thenReturn(world);
         when(entity.getUniqueId()).thenReturn(UUID.randomUUID());
         return entity;
+    }
+
+    // --- Golem / snowman block-removal tests (#127) ---
+
+    @Test
+    public void testDetectIronGolemRemovesAllBlocksWhenSpawnedAtBody() throws Exception {
+        grid = new HashMap<>();
+        Block base = setBlock(0, 64, 0, Material.IRON_BLOCK);
+        Block body = setBlock(0, 65, 0, Material.IRON_BLOCK);
+        Block head = setBlock(0, 66, 0, Material.CARVED_PUMPKIN);
+        Block arm1 = setBlock(0, 65, -1, Material.IRON_BLOCK); // NORTH
+        Block arm2 = setBlock(0, 65, 1, Material.IRON_BLOCK); // SOUTH
+
+        // Vanilla can spawn the golem at the BODY block; the old base-anchored search missed
+        // everything except the spawn block, leaving the base, arms and pumpkin behind (#127).
+        invokeDetect("detectIronGolem", spawnAt(body));
+
+        for (Block b : List.of(base, body, head, arm1, arm2)) {
+            verify(bll).removeBlock(b);
+            verify(b).setType(Material.AIR);
+        }
+    }
+
+    @Test
+    public void testDetectIronGolemRemovesAllBlocksWhenSpawnedAtBase() throws Exception {
+        grid = new HashMap<>();
+        Block base = setBlock(0, 64, 0, Material.IRON_BLOCK);
+        Block body = setBlock(0, 65, 0, Material.IRON_BLOCK);
+        Block head = setBlock(0, 66, 0, Material.CARVED_PUMPKIN);
+        Block arm1 = setBlock(1, 65, 0, Material.IRON_BLOCK); // EAST
+        Block arm2 = setBlock(-1, 65, 0, Material.IRON_BLOCK); // WEST
+
+        invokeDetect("detectIronGolem", spawnAt(base));
+
+        for (Block b : List.of(base, body, head, arm1, arm2)) {
+            verify(bll).removeBlock(b);
+            verify(b).setType(Material.AIR);
+        }
+    }
+
+    @Test
+    public void testDetectSnowmanRemovesAllBlocks() throws Exception {
+        grid = new HashMap<>();
+        Block base = setBlock(0, 64, 0, Material.SNOW_BLOCK);
+        Block body = setBlock(0, 65, 0, Material.SNOW_BLOCK);
+        Block head = setBlock(0, 66, 0, Material.JACK_O_LANTERN);
+
+        invokeDetect("detectSnowman", spawnAt(body));
+
+        for (Block b : List.of(base, body, head)) {
+            verify(bll).removeBlock(b);
+            verify(b).setType(Material.AIR);
+        }
+    }
+
+    @Test
+    public void testDetectIronGolemLeavesUnrelatedBlocksAlone() throws Exception {
+        grid = new HashMap<>();
+        // A lone iron block with no pumpkin is not a golem — nothing may be erased.
+        Block stray = setBlock(0, 65, 0, Material.IRON_BLOCK);
+
+        invokeDetect("detectIronGolem", spawnAt(stray));
+
+        verify(stray, never()).setType(Material.AIR);
+        verify(bll, never()).removeBlock(any(Block.class));
+    }
+
+    /** Coordinate-keyed mock blocks whose getRelative() walks the shared grid. */
+    private Map<List<Integer>, Block> grid;
+
+    private Block gridBlock(int x, int y, int z) {
+        return grid.computeIfAbsent(List.of(x, y, z), k -> {
+            Block b = mock(Block.class);
+            when(b.getType()).thenReturn(Material.AIR);
+            when(b.getRelative(any(BlockFace.class))).thenAnswer(inv -> {
+                BlockFace f = inv.getArgument(0);
+                return gridBlock(x + f.getModX(), y + f.getModY(), z + f.getModZ());
+            });
+            return b;
+        });
+    }
+
+    private Block setBlock(int x, int y, int z, Material type) {
+        Block b = gridBlock(x, y, z);
+        when(b.getType()).thenReturn(type);
+        return b;
+    }
+
+    private Location spawnAt(Block block) {
+        Location loc = mock(Location.class);
+        when(loc.getBlock()).thenReturn(block);
+        return loc;
+    }
+
+    private void invokeDetect(String method, Location loc) throws Exception {
+        Method m = EntityLimitListener.class.getDeclaredMethod(method, Location.class);
+        m.setAccessible(true);
+        m.invoke(ell, loc);
     }
 
 }
