@@ -1,8 +1,8 @@
 ---
 block-limits:
-  hit-limit: "&c[material] limitowany do [number]!"
+  hit-limit: "<red>[material] limitowany do [number]!"
 entity-limits:
-  hit-limit: "&cSpawnowanie [entity] limitowane do [number]!"
+  hit-limit: "<red>Spawnowanie [entity] limitowane do [number]!"
 limits:
   panel-title: Limity wysp
 admin:
@@ -13,52 +13,56 @@ admin:
     calc:
       parameters: "<gracz>"
       description: ponownie oblicza limity wyspy dla gracza
-      finished: "&aPrzeliczanie zakończone!"
+      finished: "<green>Przeliczanie zakończone!"
     offset:
-      unknown: "&c Nieznany materiał lub podmiot [name]."
+      unknown: "<red> Nieznany materiał lub podmiot [name]."
+      description: "pozwala zarządzać limitów dla materiałów i podmiotów,"
       main:
         description: pozwala zarządzać limitów dla materiałów i podmiotów,
       set:
         parameters: "<gracz> <materiał|istota> <liczba>"
         description: ustawia nową wartość dla limitu materiału lub encji
-        success: "&a Przesunięcie limitu dla [name] jest ustawione na [number]."
-        same: "&c Limit dla [name] jest aktualnie [number]."
+        success: "<green> Przesunięcie limitu dla [name] jest ustawione na [number]."
+        same: "<red> Limit dla [name] jest aktualnie [number]."
       add:
         parameters: "<gracz> <materiał|istota> <liczba>"
         description: dodaje przesunięcie dla limitu materiału lub potworów
-        success: "&a Przesunięcie limitu dla [name] jest zwiększone do [number]."
+        success: "<green> Przesunięcie limitu dla [name] jest zwiększone do [number]."
       remove:
         parameters: "<gracz> <materiał|istota> <liczba>"
         description: zmniejsza offset dla limitu materiału lub podmiotu
-        success: "&a Limit dla bloku [name] \nzostał zmniejszony do [number]."
+        success: "<green> Limit dla bloku [name] \nzostał zmniejszony do [number]."
       reset:
         parameters: "<gracz> <materiał|istota>"
         description: usuwa wartość dla materiału lub istoty
-        success: "&a Limit dla [name] jest ustawione na 0."
+        success: "<green> Limit dla [name] jest ustawione na 0."
       view:
         parameters: "<gracz> <materiał|istota>"
         description: displays offset for material or entity
-        message: "&a [name] wartość jest ustawiona na [number]."
+        message: "<green> [name] wartość jest ustawiona na [number]."
 island:
   limits:
     description: pokazuje limity twojej wyspy
-    max-color: "&c"
-    regular-color: "&a"
+    max-color: "<red>"
+    regular-color: "<green>"
     block-limit-syntax: "[number]/[limit]"
-    no-limits: "&c Na tym świecie nie ma żadnych ograniczeń"
+    no-limits: "<red> Na tym świecie nie ma żadnych ograniczeń"
     panel:
       title-syntax: "[title] [sort]"
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
+      env-overworld: "Świat Powierzchniowy"
+      env-nether: "Nether"
+      env-end: "Kraj"
       A2Z: a > z
       Z2A: z > a
     errors:
-      no-owner: "&c Ta wyspa nie ma właściciela"
-      not-on-island: "&c Ta lokalizacja nie ma ustalonych ograniczeń."
+      no-owner: "<red> Ta wyspa nie ma właściciela"
+      not-on-island: "<red> Ta lokalizacja nie ma ustalonych ograniczeń."
     recount:
       description: określa limity dla twojej wyspy
-      now-recounting: "&b Teraz przeliczam. To może chwilę potrwać, proszę czekać..."
-      in-progress: "&c Trwa odzyskiwanie wyspy. Proszę czekać..."
-      time-out: "&c Przekroczono limit czasu podczas przeliczania. Czy wyspa jest
+      now-recounting: "<aqua> Teraz przeliczam. To może chwilę potrwać, proszę czekać..."
+      in-progress: "<red> Trwa odzyskiwanie wyspy. Proszę czekać..."
+      time-out: "<red> Przekroczono limit czasu podczas przeliczania. Czy wyspa jest
         naprawdę duża?"
