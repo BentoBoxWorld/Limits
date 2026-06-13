@@ -38,7 +38,7 @@ import world.bentobox.limits.objects.IslandBlockCount;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-public class LimitTabTest {
+class LimitTabTest {
 
     @Mock private Limits addon;
     @Mock private Island island;
@@ -49,7 +49,7 @@ public class LimitTabTest {
     @Mock private User user;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         MockBukkit.mock();
         when(island.getWorld()).thenReturn(world);
         when(addon.getPlugin()).thenReturn(plugin);
@@ -82,7 +82,7 @@ public class LimitTabTest {
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() {
         MockBukkit.unmock();
     }
 

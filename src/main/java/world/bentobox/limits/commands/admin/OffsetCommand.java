@@ -188,7 +188,7 @@ public class OffsetCommand extends CompositeCommand
         @Override
         public Optional<List<String>> tabComplete(User user, String alias, List<String> args)
         {
-            return OffsetCommand.craftTabComplete(user, alias, args);
+            return OffsetCommand.craftTabComplete(user, args);
         }
 
 
@@ -305,7 +305,7 @@ public class OffsetCommand extends CompositeCommand
         @Override
         public Optional<List<String>> tabComplete(User user, String alias, List<String> args)
         {
-            return OffsetCommand.craftTabComplete(user, alias, args);
+            return OffsetCommand.craftTabComplete(user, args);
         }
 
 
@@ -422,7 +422,7 @@ public class OffsetCommand extends CompositeCommand
         @Override
         public Optional<List<String>> tabComplete(User user, String alias, List<String> args)
         {
-            return OffsetCommand.craftTabComplete(user, alias, args);
+            return OffsetCommand.craftTabComplete(user, args);
         }
 
 
@@ -524,7 +524,7 @@ public class OffsetCommand extends CompositeCommand
         @Override
         public Optional<List<String>> tabComplete(User user, String alias, List<String> args)
         {
-            return OffsetCommand.craftTabComplete(user, alias, args);
+            return OffsetCommand.craftTabComplete(user, args);
         }
 
 
@@ -624,7 +624,7 @@ public class OffsetCommand extends CompositeCommand
         @Override
         public Optional<List<String>> tabComplete(User user, String alias, List<String> args)
         {
-            return OffsetCommand.craftTabComplete(user, alias, args);
+            return OffsetCommand.craftTabComplete(user, args);
         }
 
 
@@ -660,11 +660,10 @@ public class OffsetCommand extends CompositeCommand
     /**
      * This method crafts tab complete for all subcommands
      * @param user User who runs command.
-     * @param alias Command alias.
      * @param args List of args.
      * @return Optional list of strings.
      */
-    private static Optional<List<String>> craftTabComplete(User user, String alias, List<String> args)
+    private static Optional<List<String>> craftTabComplete(User user, List<String> args)
     {
         String lastArg = !args.isEmpty() ? args.get(args.size() - 1) : "";
 
@@ -686,7 +685,7 @@ public class OffsetCommand extends CompositeCommand
 
             options.addAll(Arrays.stream(EntityType.values()).
                 map(Enum::name).
-                collect(Collectors.toList()));
+                toList());
 
             return Optional.of(Util.tabLimit(options, lastArg));
         }

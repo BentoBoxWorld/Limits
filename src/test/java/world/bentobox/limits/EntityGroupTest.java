@@ -16,85 +16,85 @@ import org.junit.jupiter.api.Test;
 
 import org.mockbukkit.mockbukkit.MockBukkit;
 
-public class EntityGroupTest {
+class EntityGroupTest {
 
     private EntityGroup group;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         MockBukkit.mock();
         group = new EntityGroup("monsters", Set.of(EntityType.ZOMBIE, EntityType.SKELETON), 10, Material.ZOMBIE_HEAD);
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() {
         MockBukkit.unmock();
     }
 
     @Test
-    public void testConstructorAndGetters() {
+    void testConstructorAndGetters() {
         assertEquals("monsters", group.getName());
         assertEquals(Set.of(EntityType.ZOMBIE, EntityType.SKELETON), group.getTypes());
         assertEquals(10, group.getLimit());
     }
 
     @Test
-    public void testContainsMember() {
+    void testContainsMember() {
         assertTrue(group.contains(EntityType.ZOMBIE));
     }
 
     @Test
-    public void testContainsNonMember() {
+    void testContainsNonMember() {
         assertFalse(group.contains(EntityType.CREEPER));
     }
 
     @Test
-    public void testGetIconWhenSet() {
+    void testGetIconWhenSet() {
         assertEquals(Material.ZOMBIE_HEAD, group.getIcon());
     }
 
     @Test
-    public void testGetIconWhenNull() {
+    void testGetIconWhenNull() {
         EntityGroup noIcon = new EntityGroup("passive", Set.of(EntityType.COW), 5, null);
         assertEquals(Material.BARRIER, noIcon.getIcon());
     }
 
     @Test
-    public void testEqualsSameName() {
+    void testEqualsSameName() {
         EntityGroup other = new EntityGroup("monsters", Set.of(EntityType.CREEPER), 20, Material.STONE);
         assertEquals(group, other);
     }
 
     @Test
-    public void testEqualsDifferentName() {
+    void testEqualsDifferentName() {
         EntityGroup other = new EntityGroup("animals", Set.of(EntityType.ZOMBIE), 10, Material.ZOMBIE_HEAD);
         assertNotEquals(group, other);
     }
 
     @Test
-    public void testEqualsNull() {
+    void testEqualsNull() {
         assertNotEquals(null, group);
     }
 
     @Test
-    public void testEqualsDifferentClass() {
+    void testEqualsDifferentClass() {
         assertNotEquals("monsters", group);
     }
 
     @Test
-    public void testHashCodeConsistent() {
+    void testHashCodeConsistent() {
         EntityGroup other = new EntityGroup("monsters", Set.of(EntityType.CREEPER), 20, Material.STONE);
         assertEquals(group.hashCode(), other.hashCode());
     }
 
     @Test
-    public void testHashCodeDifferent() {
+    void testHashCodeDifferent() {
         EntityGroup other = new EntityGroup("animals", Set.of(EntityType.ZOMBIE), 10, Material.ZOMBIE_HEAD);
         assertNotEquals(group.hashCode(), other.hashCode());
     }
 
     @Test
-    public void testToStringContainsName() {
+    void testToStringContainsName() {
         String str = group.toString();
         assertNotNull(str);
         assertTrue(str.contains("monsters"));

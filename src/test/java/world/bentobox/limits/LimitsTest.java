@@ -1,11 +1,11 @@
 package world.bentobox.limits;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -56,7 +56,6 @@ import world.bentobox.bentobox.managers.IslandWorldManager;
 import world.bentobox.bentobox.managers.IslandsManager;
 import world.bentobox.bentobox.managers.PlaceholdersManager;
 import org.mockbukkit.mockbukkit.MockBukkit;
-import org.mockbukkit.mockbukkit.ServerMock;
 
 /**
  * @author tastybento
@@ -65,7 +64,7 @@ import org.mockbukkit.mockbukkit.ServerMock;
 @SuppressWarnings("deprecation")
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-public class LimitsTest {
+class LimitsTest {
     private static File jFile;
     @Mock
     private User user;
@@ -98,7 +97,7 @@ public class LimitsTest {
     private MockedStatic<BentoBox> mockedBentoBox;
 
     @BeforeAll
-    public static void beforeClass() throws Exception {
+    static void beforeClass() throws Exception {
         cleanUp();
         // Make the addon jar
         jFile = new File("addon.jar");
@@ -124,8 +123,8 @@ public class LimitsTest {
      * @throws java.lang.Exception
      */
     @BeforeEach
-    public void setUp() throws Exception {
-        ServerMock server = MockBukkit.mock();
+    void setUp() {
+        MockBukkit.mock();
 
         // Set up plugin
         mockedBentoBox = Mockito.mockStatic(BentoBox.class);
@@ -137,7 +136,6 @@ public class LimitsTest {
         when(plugin.getSettings()).thenReturn(pluginSettings);
         when(pluginSettings.getDatabaseType()).thenReturn(value);
 
-        //when(plugin.isEnabled()).thenReturn(true);
         // Command manager
         CommandsManager cm = mock(CommandsManager.class);
         when(plugin.getCommandsManager()).thenReturn(cm);
@@ -213,7 +211,7 @@ public class LimitsTest {
      * @throws java.lang.Exception
      */
     @AfterEach
-    public void tearDown() throws Exception {
+    void tearDown() throws Exception {
         if (mockedBentoBox != null) {
             mockedBentoBox.close();
         }
@@ -224,7 +222,7 @@ public class LimitsTest {
     }
 
     @AfterAll
-    public static void cleanUp() throws Exception {
+    static void cleanUp() throws Exception {
         new File("addon.jar").delete();
         new File("config.yml").delete();
         deleteAll(new File("addons"));
@@ -243,7 +241,7 @@ public class LimitsTest {
      * Test method for {@link world.bentobox.limits.Limits#onEnable()}.
      */
     @Test
-    public void testOnEnable() {
+    void testOnEnable() {
         addon.onEnable();
         File f = new File("config.yml");
         assertTrue(f.exists());
@@ -254,15 +252,15 @@ public class LimitsTest {
      * Test method for {@link world.bentobox.limits.Limits#onDisable()}.
      */
     @Test
-    public void testOnDisable() {
-        addon.onDisable();
+    void testOnDisable() {
+        assertDoesNotThrow(() -> addon.onDisable());
     }
 
     /**
      * Test method for {@link world.bentobox.limits.Limits#getSettings()}.
      */
     @Test
-    public void testGetSettings() {
+    void testGetSettings() {
         assertNull(addon.getSettings());
         addon.onEnable();
         world.bentobox.limits.Settings set = addon.getSettings();
@@ -273,7 +271,7 @@ public class LimitsTest {
      * Test method for {@link world.bentobox.limits.Limits#getGameModes()}.
      */
     @Test
-    public void testGetGameModes() {
+    void testGetGameModes() {
         assertTrue(addon.getGameModes().isEmpty());
         addon.onEnable();
         assertFalse(addon.getGameModes().isEmpty());
@@ -283,7 +281,7 @@ public class LimitsTest {
      * Test method for {@link world.bentobox.limits.Limits#getBlockLimitListener()}.
      */
     @Test
-    public void testGetBlockLimitListener() {
+    void testGetBlockLimitListener() {
         assertNull(addon.getBlockLimitListener());
         addon.onEnable();
         assertNotNull(addon.getBlockLimitListener());
@@ -293,7 +291,7 @@ public class LimitsTest {
      * Test method for {@link world.bentobox.limits.Limits#inGameModeWorld(org.bukkit.World)}.
      */
     @Test
-    public void testInGameModeWorld() {
+    void testInGameModeWorld() {
         addon.onEnable();
         assertFalse(addon.inGameModeWorld(world));
         when(gameMode.inWorld(world)).thenReturn(true);
@@ -304,7 +302,7 @@ public class LimitsTest {
      * Test method for {@link world.bentobox.limits.Limits#getGameModeName(org.bukkit.World)}.
      */
     @Test
-    public void testGetGameModeName() {
+    void testGetGameModeName() {
         when(gameMode.inWorld(world)).thenReturn(true);
         assertTrue(addon.getGameModeName(world).isEmpty());
         addon.onEnable();
@@ -315,7 +313,7 @@ public class LimitsTest {
      * Test method for {@link world.bentobox.limits.Limits#getGameModePermPrefix(org.bukkit.World)}.
      */
     @Test
-    public void testGetGameModePermPrefix() {
+    void testGetGameModePermPrefix() {
         when(gameMode.inWorld(world)).thenReturn(true);
         addon.onEnable();
         assertEquals("bskyblock.", addon.getGameModePermPrefix(world));
@@ -325,7 +323,7 @@ public class LimitsTest {
      * Test method for {@link world.bentobox.limits.Limits#isCoveredGameMode(java.lang.String)}.
      */
     @Test
-    public void testIsCoveredGameMode() {
+    void testIsCoveredGameMode() {
         assertFalse(addon.isCoveredGameMode("BSkyBlock"));
         addon.onEnable();
         assertTrue(addon.isCoveredGameMode("BSkyBlock"));
@@ -335,7 +333,7 @@ public class LimitsTest {
      * Test method for {@link world.bentobox.limits.Limits#getJoinListener()}.
      */
     @Test
-    public void testGetJoinListener() {
+    void testGetJoinListener() {
         assertNull(addon.getJoinListener());
         addon.onEnable();
         assertNotNull(addon.getJoinListener());

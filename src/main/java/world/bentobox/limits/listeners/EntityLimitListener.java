@@ -46,6 +46,10 @@ import java.util.stream.Collectors;
 public class EntityLimitListener implements Listener {
     /** Permission node for bypassing limits. */
     private static final String MOD_BYPASS = "mod.bypass";
+    /** Locale reference for the entity limit notification. */
+    private static final String ENTITY_LIMIT_HIT = "entity-limits.hit-limit";
+    /** Notification placeholder for the entity name. */
+    private static final String ENTITY_PLACEHOLDER = "[entity]";
     private final Limits addon;
     /** Entity UUIDs that have just spawned to prevent double-processing. */
     private final List<UUID> justSpawned = new ArrayList<>();
@@ -137,8 +141,11 @@ public class EntityLimitListener implements Listener {
             boolean bypass = Objects.requireNonNull(player).isOp() || player.hasPermission(
                     addon.getPlugin().getIWM().getPermissionPrefix(hangingPlaceEvent.getEntity().getWorld())
                             + MOD_BYPASS);
-            AtLimitResult res;
-            if (!bypass && !island.isSpawn() && (res = atLimit(island, hangingPlaceEvent.getEntity())).hit()) {
+            if (bypass || island.isSpawn()) {
+                return;
+            }
+            AtLimitResult res = atLimit(island, hangingPlaceEvent.getEntity());
+            if (res.hit()) {
                 hangingPlaceEvent.setCancelled(true);
                 if (res.getTypelimit() != null) {
                     User.getInstance(player).notify("block-limits.hit-limit", "[material]",
@@ -175,9 +182,7 @@ public class EntityLimitListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onSpawnEggUseOnEntity(PlayerInteractEntityEvent e) {
-        if (e.getHand() == null) {
-            return;
-        }
+        // PlayerInteractEntityEvent.getHand() is never null (always HAND or OFF_HAND)
         EntityType type = spawnEggType(e.getPlayer().getInventory().getItem(e.getHand()));
         if (type != null) {
             checkSpawnEggLimit(e, e.getPlayer(), e.getRightClicked().getLocation(), type);
@@ -224,11 +229,11 @@ public class EntityLimitListener implements Listener {
 
     private void notifyEntityLimit(Player player, EntityType type, AtLimitResult res) {
         if (res.getTypelimit() != null) {
-            User.getInstance(player).notify("entity-limits.hit-limit", "[entity]",
+            User.getInstance(player).notify(ENTITY_LIMIT_HIT, ENTITY_PLACEHOLDER,
                     Util.prettifyText(type.toString()), TextVariables.NUMBER,
                     String.valueOf(res.getTypelimit().getValue()));
         } else {
-            User.getInstance(player).notify("entity-limits.hit-limit", "[entity]",
+            User.getInstance(player).notify(ENTITY_LIMIT_HIT, ENTITY_PLACEHOLDER,
                     res.getGrouplimit().getKey().getName() + " ("
                             + res.getGrouplimit().getKey().getTypes().stream()
                                     .map(x -> Util.prettifyText(x.toString()))
@@ -361,13 +366,14 @@ public class EntityLimitListener implements Listener {
 
     private boolean processIsland(Cancellable cancelableEvent, LivingEntity livingEntity, Location location,
             SpawnReason spawnReason, boolean runAsync) {
-        if (addon.getIslands().getIslandAt(livingEntity.getLocation()).isEmpty()) {
+        Optional<Island> optionalIsland = addon.getIslands().getIslandAt(livingEntity.getLocation());
+        if (optionalIsland.isEmpty()) {
             if (runAsync) {
                 cancelableEvent.setCancelled(false);
             }
             return true;
         }
-        Island island = addon.getIslands().getIslandAt(livingEntity.getLocation()).get();
+        Island island = optionalIsland.get();
         AtLimitResult res = atLimit(island, livingEntity);
         if (island.isSpawn() || !res.hit()) {
             if (runAsync) {
@@ -536,11 +542,11 @@ public class EntityLimitListener implements Listener {
                 if (ent instanceof Player p) {
                     p.updateInventory();
                     if (res.getTypelimit() != null) {
-                        User.getInstance(p).notify("entity-limits.hit-limit", "[entity]",
+                        User.getInstance(p).notify(ENTITY_LIMIT_HIT, ENTITY_PLACEHOLDER,
                                 Util.prettifyText(entity.getType().toString()),
                                 TextVariables.NUMBER, String.valueOf(res.getTypelimit().getValue()));
                     } else {
-                        User.getInstance(p).notify("entity-limits.hit-limit", "[entity]",
+                        User.getInstance(p).notify(ENTITY_LIMIT_HIT, ENTITY_PLACEHOLDER,
                                 res.getGrouplimit().getKey().getName() + " ("
                                         + res.getGrouplimit().getKey().getTypes().stream()
                                                 .map(x -> Util.prettifyText(x.toString()))

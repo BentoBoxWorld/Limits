@@ -31,7 +31,7 @@ import org.mockbukkit.mockbukkit.MockBukkit;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-public class SettingsTest {
+class SettingsTest {
 
     @Mock
     private Limits addon;
@@ -40,7 +40,7 @@ public class SettingsTest {
     private FileConfiguration config;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    void setUp() throws Exception {
         MockBukkit.mock();
 
         config = new YamlConfiguration();
@@ -53,12 +53,12 @@ public class SettingsTest {
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() {
         MockBukkit.unmock();
     }
 
     @Test
-    public void testGameModesNotEmpty() {
+    void testGameModesNotEmpty() {
         List<String> gameModes = settings.getGameModes();
         assertNotNull(gameModes);
         assertFalse(gameModes.isEmpty());
@@ -66,7 +66,7 @@ public class SettingsTest {
     }
 
     @Test
-    public void testEntityLimitsParsed() {
+    void testEntityLimitsParsed() {
         Map<EntityType, Integer> limits = settings.getLimits(Environment.NORMAL);
         assertNotNull(limits);
         assertFalse(limits.isEmpty());
@@ -75,7 +75,7 @@ public class SettingsTest {
     }
 
     @Test
-    public void testGroupLimitsParsed() {
+    void testGroupLimitsParsed() {
         Map<EntityType, List<EntityGroup>> groupLimits = settings.getGroupLimits();
         assertNotNull(groupLimits);
         assertFalse(groupLimits.isEmpty());
@@ -84,7 +84,7 @@ public class SettingsTest {
     }
 
     @Test
-    public void testGetGroupLimitDefinitions() {
+    void testGetGroupLimitDefinitions() {
         List<EntityGroup> definitions = settings.getGroupLimitDefinitions();
         assertNotNull(definitions);
         assertFalse(definitions.isEmpty());
@@ -94,17 +94,17 @@ public class SettingsTest {
     }
 
     @Test
-    public void testLogLimitsOnJoinDefaultsTrue() {
+    void testLogLimitsOnJoinDefaultsTrue() {
         assertTrue(settings.isLogLimitsOnJoin());
     }
 
     @Test
-    public void testAsyncGolumsDefaultsTrue() {
+    void testAsyncGolumsDefaultsTrue() {
         assertTrue(settings.isAsyncGolums());
     }
 
     @Test
-    public void testGetGeneralEmpty() {
+    void testGetGeneralEmpty() {
         // Default config.yml does not have ANIMALS or MOBS entries in entitylimits
         Map<Settings.GeneralGroup, Integer> general = settings.getGeneral();
         assertNotNull(general);
@@ -113,7 +113,7 @@ public class SettingsTest {
     }
 
     @Test
-    public void testGetGeneralWithAnimalsAndMobs() throws Exception {
+    void testGetGeneralWithAnimalsAndMobs() {
         // Add ANIMALS and MOBS to the entitylimits section
         config.set("entitylimits.ANIMALS", 100);
         config.set("entitylimits.MOBS", 50);
@@ -124,7 +124,7 @@ public class SettingsTest {
     }
 
     @Test
-    public void testUnknownEntityTypeLogsError() throws Exception {
+    void testUnknownEntityTypeLogsError() {
         config.set("entitylimits.UNKNOWN_ENTITY_XYZ", 99);
         Settings s = new Settings(addon);
         verify(addon, atLeastOnce()).logError("Unknown entity type in entitylimits: UNKNOWN_ENTITY_XYZ - skipping...");
@@ -132,7 +132,7 @@ public class SettingsTest {
     }
 
     @Test
-    public void testDisallowedEntityTypeLogsError() throws Exception {
+    void testDisallowedEntityTypeLogsError() {
         config.set("entitylimits.TNT", 10);
         Settings s = new Settings(addon);
         verify(addon).logError("Entity type in entitylimits not supported: TNT - skipping...");
@@ -140,7 +140,7 @@ public class SettingsTest {
     }
 
     @Test
-    public void testInvalidGroupIconFallsBackToBarrier() throws Exception {
+    void testInvalidGroupIconFallsBackToBarrier() {
         // Clear existing groups and add one with invalid icon
         config.set("entitygrouplimits", null);
         config.set("entitygrouplimits.TestGroup.icon", "NOT_A_REAL_MATERIAL");

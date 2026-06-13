@@ -11,7 +11,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
-import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -120,12 +119,12 @@ public class RecountCalculator {
 
     private CompletableFuture<List<Chunk>> getWorldChunk(Environment env, Queue<Pair<Integer, Integer>> pairList) {
         if (worlds.containsKey(env)) {
-            World world = worlds.get(env);
-            boolean isNether = world.getEnvironment().equals(Environment.NETHER);
+            World envWorld = worlds.get(env);
+            boolean isNether = envWorld.getEnvironment().equals(Environment.NETHER);
             List<CompletableFuture<Chunk>> futures = new ArrayList<>();
             while (!pairList.isEmpty()) {
                 Pair<Integer, Integer> p = pairList.poll();
-                futures.add(Util.getChunkAtAsync(world, p.x, p.z, isNether));
+                futures.add(Util.getChunkAtAsync(envWorld, p.x, p.z, isNether));
             }
             if (futures.isEmpty()) {
                 return CompletableFuture.completedFuture(Collections.emptyList());
@@ -134,7 +133,7 @@ public class RecountCalculator {
                     .thenApply(v -> futures.stream()
                             .map(CompletableFuture::join)
                             .filter(Objects::nonNull)
-                            .collect(Collectors.toList()));
+                            .toList());
         }
         return CompletableFuture.completedFuture(Collections.emptyList());
     }
@@ -242,7 +241,7 @@ public class RecountCalculator {
     }
 
     public void scanIsland(LongSupplier startTime, Runnable onRemove, BooleanSupplier isCancelled, Runnable recurse) {
-        scanNextChunk().thenAccept(r -> {
+        scanNextChunk().thenAccept(hasMoreChunks -> {
             if (!Bukkit.isPrimaryThread()) {
                 addon.getPlugin().logError("scanChunk not on Primary Thread!");
             }
@@ -253,7 +252,7 @@ public class RecountCalculator {
                         + getIsland());
                 return;
             }
-            if (Boolean.TRUE.equals(r) && !isCancelled.getAsBoolean()) {
+            if (Boolean.TRUE.equals(hasMoreChunks) && !isCancelled.getAsBoolean()) {
                 recurse.run();
             } else {
                 onRemove.run();

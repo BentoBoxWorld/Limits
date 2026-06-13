@@ -251,17 +251,16 @@ public class JoinListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onPlayerJoin(PlayerJoinEvent event) {
-        addon.getGameModes().forEach(gameMode -> {
-            addon.getIslands().getIslands(gameMode.getOverWorld(), event.getPlayer().getUniqueId()).stream()
-                    .filter(island -> event.getPlayer().getUniqueId().equals(island.getOwner()))
-                    .map(Island::getUniqueId).forEach(islandId -> {
-                        IslandBlockCount islandBlockCount = addon.getBlockLimitListener().getIsland(islandId);
-                        if (!joinEventCheck(event.getPlayer(), islandId, islandBlockCount)) {
-                            checkPerms(event.getPlayer(), gameMode.getPermissionPrefix() + "island.limit.", islandId,
-                                    gameMode.getDescription().getName());
-                        }
-                    });
-        });
+        addon.getGameModes().forEach(gameMode -> addon.getIslands()
+                .getIslands(gameMode.getOverWorld(), event.getPlayer().getUniqueId()).stream()
+                .filter(island -> event.getPlayer().getUniqueId().equals(island.getOwner()))
+                .map(Island::getUniqueId).forEach(islandId -> {
+                    IslandBlockCount islandBlockCount = addon.getBlockLimitListener().getIsland(islandId);
+                    if (!joinEventCheck(event.getPlayer(), islandId, islandBlockCount)) {
+                        checkPerms(event.getPlayer(), gameMode.getPermissionPrefix() + "island.limit.", islandId,
+                                gameMode.getDescription().getName());
+                    }
+                }));
     }
 
     private boolean joinEventCheck(Player player, String islandId, IslandBlockCount islandBlockCount) {

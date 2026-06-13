@@ -23,7 +23,7 @@ import world.bentobox.limits.objects.IslandBlockCount;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-public class LimitsPermCheckEventTest {
+class LimitsPermCheckEventTest {
 
     @Mock
     private Player player;
@@ -33,7 +33,7 @@ public class LimitsPermCheckEventTest {
     private LimitsPermCheckEvent event;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         MockBukkit.mock();
         ibc = new IslandBlockCount("island1", "BSkyBlock");
         entityGroup = new EntityGroup("monsters", Set.of(EntityType.ZOMBIE), 10, Material.ZOMBIE_HEAD);
@@ -41,12 +41,12 @@ public class LimitsPermCheckEventTest {
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() {
         MockBukkit.unmock();
     }
 
     @Test
-    public void testConstructorSetsAllFields() {
+    void testConstructorSetsAllFields() {
         assertEquals(player, event.getPlayer());
         assertEquals("island1", event.getIslandId());
         assertEquals(ibc, event.getIbc());
@@ -57,44 +57,44 @@ public class LimitsPermCheckEventTest {
     }
 
     @Test
-    public void testGetSetEntityGroup() {
+    void testGetSetEntityGroup() {
         EntityGroup newGroup = new EntityGroup("animals", Set.of(EntityType.COW), 5, null);
         event.setEntityGroup(newGroup);
         assertEquals(newGroup, event.getEntityGroup());
     }
 
     @Test
-    public void testGetSetEntityType() {
+    void testGetSetEntityType() {
         event.setEntityType(EntityType.SKELETON);
         assertEquals(EntityType.SKELETON, event.getEntityType());
     }
 
     @Test
-    public void testGetSetMaterial() {
+    void testGetSetMaterial() {
         event.setMaterial(Material.DIAMOND_BLOCK);
         assertEquals(Material.DIAMOND_BLOCK, event.getMaterial());
     }
 
     @Test
-    public void testGetSetValue() {
+    void testGetSetValue() {
         event.setValue(100);
         assertEquals(100, event.getValue());
     }
 
     @Test
-    public void testNullEntityGroup() {
+    void testNullEntityGroup() {
         event.setEntityGroup(null);
         assertNull(event.getEntityGroup());
     }
 
     @Test
-    public void testNullEntityType() {
+    void testNullEntityType() {
         event.setEntityType(null);
         assertNull(event.getEntityType());
     }
 
     @Test
-    public void testNullMaterial() {
+    void testNullMaterial() {
         event.setMaterial(null);
         assertNull(event.getMaterial());
     }

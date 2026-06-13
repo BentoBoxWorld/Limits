@@ -19,7 +19,7 @@ import world.bentobox.limits.objects.IslandBlockCount;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-public class LimitsJoinPermCheckEventTest {
+class LimitsJoinPermCheckEventTest {
 
     @Mock
     private Player player;
@@ -28,70 +28,70 @@ public class LimitsJoinPermCheckEventTest {
     private LimitsJoinPermCheckEvent event;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         ibc = new IslandBlockCount("island1", "BSkyBlock");
         event = new LimitsJoinPermCheckEvent(player, "island1", ibc);
     }
 
     @Test
-    public void testConstructorSetsFields() {
+    void testConstructorSetsFields() {
         assertEquals(player, event.getPlayer());
         assertEquals("island1", event.getIslandId());
         assertEquals(ibc, event.getIbc());
     }
 
     @Test
-    public void testGetPlayer() {
+    void testGetPlayer() {
         assertEquals(player, event.getPlayer());
     }
 
     @Test
-    public void testGetIslandId() {
+    void testGetIslandId() {
         assertEquals("island1", event.getIslandId());
     }
 
     @Test
-    public void testGetSetIbc() {
+    void testGetSetIbc() {
         IslandBlockCount newIbc = new IslandBlockCount("island2", "AcidIsland");
         event.setIbc(newIbc);
         assertEquals(newIbc, event.getIbc());
     }
 
     @Test
-    public void testSetIbcNull() {
+    void testSetIbcNull() {
         event.setIbc(null);
         assertNull(event.getIbc());
     }
 
     @Test
-    public void testIsCancelledDefaultFalse() {
+    void testIsCancelledDefaultFalse() {
         assertFalse(event.isCancelled());
     }
 
     @Test
-    public void testSetCancelled() {
+    void testSetCancelled() {
         event.setCancelled(true);
         assertTrue(event.isCancelled());
     }
 
     @Test
-    public void testIsIgnorePermsDefaultFalse() {
+    void testIsIgnorePermsDefaultFalse() {
         assertFalse(event.isIgnorePerms());
     }
 
     @Test
-    public void testSetIgnorePerms() {
+    void testSetIgnorePerms() {
         event.setIgnorePerms(true);
         assertTrue(event.isIgnorePerms());
     }
 
     @Test
-    public void testGetHandlers() {
+    void testGetHandlers() {
         assertNotNull(event.getHandlers());
     }
 
     @Test
-    public void testGetHandlerListStatic() {
+    void testGetHandlerListStatic() {
         assertNotNull(LimitsJoinPermCheckEvent.getHandlerList());
     }
 }

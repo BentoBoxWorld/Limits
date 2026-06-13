@@ -17,32 +17,32 @@ import org.mockbukkit.mockbukkit.MockBukkit;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-public class IslandBlockCountTest {
+class IslandBlockCountTest {
 
     private IslandBlockCount ibc;
     private NamespacedKey stoneKey;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         MockBukkit.mock();
         stoneKey = Material.STONE.getKey();
         ibc = new IslandBlockCount("island1", "BSkyBlock");
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() {
         MockBukkit.unmock();
     }
 
     @Test
-    public void testConstructorSetsFields() {
+    void testConstructorSetsFields() {
         assertEquals("island1", ibc.getUniqueId());
         assertEquals("BSkyBlock", ibc.getGameMode());
         assertTrue(ibc.isChanged());
     }
 
     @Test
-    public void testAddIncrementsCount() {
+    void testAddIncrementsCount() {
         ibc.add(Environment.NORMAL, stoneKey);
         assertEquals(1, ibc.getBlockCount(stoneKey));
         ibc.add(Environment.NORMAL, stoneKey);
@@ -50,7 +50,7 @@ public class IslandBlockCountTest {
     }
 
     @Test
-    public void testRemoveDecrementsAndRemovesAtZero() {
+    void testRemoveDecrementsAndRemovesAtZero() {
         ibc.add(Environment.NORMAL, stoneKey);
         ibc.add(Environment.NORMAL, stoneKey);
         assertEquals(2, ibc.getBlockCount(stoneKey));
@@ -65,35 +65,35 @@ public class IslandBlockCountTest {
     }
 
     @Test
-    public void testGetBlockCountUnknownMaterial() {
+    void testGetBlockCountUnknownMaterial() {
         assertEquals(0, ibc.getBlockCount(stoneKey));
     }
 
     @Test
-    public void testGetBlockLimitUnknownMaterial() {
+    void testGetBlockLimitUnknownMaterial() {
         assertEquals(-1, ibc.getBlockLimit(Environment.NORMAL, stoneKey));
     }
 
     @Test
-    public void testSetBlockLimitThenGet() {
+    void testSetBlockLimitThenGet() {
         ibc.setBlockLimit(Environment.NORMAL, stoneKey, 50);
         assertEquals(50, ibc.getBlockLimit(Environment.NORMAL, stoneKey));
     }
 
     @Test
-    public void testIsAtLimitNoLimitSet() {
+    void testIsAtLimitNoLimitSet() {
         assertFalse(ibc.isAtLimit(Environment.NORMAL, stoneKey));
     }
 
     @Test
-    public void testIsAtLimitCountBelowLimit() {
+    void testIsAtLimitCountBelowLimit() {
         ibc.setBlockLimit(Environment.NORMAL, stoneKey, 10);
         ibc.add(Environment.NORMAL, stoneKey);
         assertFalse(ibc.isAtLimit(Environment.NORMAL, stoneKey));
     }
 
     @Test
-    public void testIsAtLimitCountAtLimit() {
+    void testIsAtLimitCountAtLimit() {
         ibc.setBlockLimit(Environment.NORMAL, stoneKey, 2);
         ibc.add(Environment.NORMAL, stoneKey);
         ibc.add(Environment.NORMAL, stoneKey);
@@ -101,7 +101,7 @@ public class IslandBlockCountTest {
     }
 
     @Test
-    public void testIsAtLimitWithOffset() {
+    void testIsAtLimitWithOffset() {
         // count=10, limit=10, offset=5 → effective limit is 15, so NOT at limit
         ibc.setBlockLimit(Environment.NORMAL, stoneKey, 10);
         ibc.setBlockLimitsOffset(Environment.NORMAL, stoneKey, 5);
@@ -112,7 +112,7 @@ public class IslandBlockCountTest {
     }
 
     @Test
-    public void testIsAtLimitOverloadWithOffset() {
+    void testIsAtLimitOverloadWithOffset() {
         ibc.setBlockLimitsOffset(Environment.NORMAL, stoneKey, 5);
         for (int i = 0; i < 10; i++) {
             ibc.add(Environment.NORMAL, stoneKey);
@@ -124,14 +124,14 @@ public class IslandBlockCountTest {
     }
 
     @Test
-    public void testIsBlockLimited() {
+    void testIsBlockLimited() {
         assertFalse(ibc.isBlockLimited(Environment.NORMAL, stoneKey));
         ibc.setBlockLimit(Environment.NORMAL, stoneKey, 10);
         assertTrue(ibc.isBlockLimited(Environment.NORMAL, stoneKey));
     }
 
     @Test
-    public void testEntityLimits() {
+    void testEntityLimits() {
         assertEquals(-1, ibc.getEntityLimit(Environment.NORMAL, EntityType.ZOMBIE));
         ibc.setEntityLimit(Environment.NORMAL, EntityType.ZOMBIE, 25);
         assertEquals(25, ibc.getEntityLimit(Environment.NORMAL, EntityType.ZOMBIE));
@@ -140,7 +140,7 @@ public class IslandBlockCountTest {
     }
 
     @Test
-    public void testEntityGroupLimits() {
+    void testEntityGroupLimits() {
         assertEquals(-1, ibc.getEntityGroupLimit(Environment.NORMAL, "monsters"));
         ibc.setEntityGroupLimit(Environment.NORMAL, "monsters", 30);
         assertEquals(30, ibc.getEntityGroupLimit(Environment.NORMAL, "monsters"));
@@ -149,40 +149,40 @@ public class IslandBlockCountTest {
     }
 
     @Test
-    public void testBlockLimitsOffset() {
+    void testBlockLimitsOffset() {
         assertEquals(0, ibc.getBlockLimitOffset(Environment.NORMAL, stoneKey));
         ibc.setBlockLimitsOffset(Environment.NORMAL, stoneKey, 7);
         assertEquals(7, ibc.getBlockLimitOffset(Environment.NORMAL, stoneKey));
     }
 
     @Test
-    public void testEntityLimitsOffset() {
+    void testEntityLimitsOffset() {
         assertEquals(0, ibc.getEntityLimitOffset(Environment.NORMAL, EntityType.ZOMBIE));
         ibc.setEntityLimitsOffset(Environment.NORMAL, EntityType.ZOMBIE, 3);
         assertEquals(3, ibc.getEntityLimitOffset(Environment.NORMAL, EntityType.ZOMBIE));
     }
 
     @Test
-    public void testEntityGroupLimitsOffset() {
+    void testEntityGroupLimitsOffset() {
         assertEquals(0, ibc.getEntityGroupLimitOffset(Environment.NORMAL, "monsters"));
         ibc.setEntityGroupLimitsOffset(Environment.NORMAL, "monsters", 4);
         assertEquals(4, ibc.getEntityGroupLimitOffset(Environment.NORMAL, "monsters"));
     }
 
     @Test
-    public void testSetChangedFalse() {
+    void testSetChangedFalse() {
         ibc.setChanged(false);
         assertFalse(ibc.isChanged());
     }
 
     @Test
-    public void testIsGameMode() {
+    void testIsGameMode() {
         assertTrue(ibc.isGameMode("BSkyBlock"));
         assertFalse(ibc.isGameMode("AcidIsland"));
     }
 
     @Test
-    public void testSetAndGetUniqueId() {
+    void testSetAndGetUniqueId() {
         ibc.setUniqueId("island2");
         assertEquals("island2", ibc.getUniqueId());
     }

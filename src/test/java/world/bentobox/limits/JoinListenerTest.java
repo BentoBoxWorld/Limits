@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 import java.util.UUID;
 
 import net.kyori.adventure.text.Component;
@@ -35,6 +36,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -59,7 +63,7 @@ import world.bentobox.limits.objects.IslandBlockCount;
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-public class JoinListenerTest {
+class JoinListenerTest {
 
     @Mock
     private Limits addon;
@@ -88,7 +92,7 @@ public class JoinListenerTest {
     private MockedStatic<Bukkit> mockedBukkit;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         MockBukkit.mock();
         jl = new JoinListener(addon);
         // Setup addon
@@ -126,12 +130,12 @@ public class JoinListenerTest {
         when(owner.isOnline()).thenReturn(true);
         when(owner.getPlayer()).thenReturn(player);
         mockedBukkit.when(() -> Bukkit.getOfflinePlayer(any(UUID.class))).thenReturn(owner);
-        mockedBukkit.when(() -> Bukkit.getPluginManager()).thenReturn(pim);
+        mockedBukkit.when(Bukkit::getPluginManager).thenReturn(pim);
 
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() {
         mockedBukkit.close();
         MockBukkit.unmock();
     }
@@ -141,7 +145,7 @@ public class JoinListenerTest {
      * {@link world.bentobox.limits.listeners.JoinListener#onNewIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
      */
     @Test
-    public void testOnNewIslandWrongReason() {
+    void testOnNewIslandWrongReason() {
         IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.BAN);
         jl.onNewIsland(e);
         verify(island, never()).getWorld();
@@ -152,7 +156,7 @@ public class JoinListenerTest {
      * {@link world.bentobox.limits.listeners.JoinListener#onNewIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
      */
     @Test
-    public void testOnNewIslandRegistered() {
+    void testOnNewIslandRegistered() {
         IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.REGISTERED);
         jl.onNewIsland(e);
         verify(island).getWorld();
@@ -163,7 +167,7 @@ public class JoinListenerTest {
      * {@link world.bentobox.limits.listeners.JoinListener#onNewIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
      */
     @Test
-    public void testOnNewIslandResetted() {
+    void testOnNewIslandResetted() {
         IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.RESETTED);
         jl.onNewIsland(e);
         verify(island).getWorld();
@@ -173,7 +177,7 @@ public class JoinListenerTest {
      * Test method for {@link world.bentobox.limits.listeners.JoinListener#onNewIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
      */
     @Test
-    public void testOnNewIslandCreated() {
+    void testOnNewIslandCreated() {
         when(addon.inGameModeWorld(any())).thenReturn(true);
         IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.CREATED);
         jl.onNewIsland(e);
@@ -185,7 +189,7 @@ public class JoinListenerTest {
      * Test method for {@link world.bentobox.limits.listeners.JoinListener#onNewIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
      */
     @Test
-    public void testOnNewIslandCreatedOffline() {
+    void testOnNewIslandCreatedOffline() {
         when(owner.isOnline()).thenReturn(false);
         when(addon.inGameModeWorld(any())).thenReturn(true);
         IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.CREATED);
@@ -198,7 +202,7 @@ public class JoinListenerTest {
      * Test method for {@link world.bentobox.limits.listeners.JoinListener#onNewIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
      */
     @Test
-    public void testOnNewIslandCreatedNoNameOrPermPrefix() {
+    void testOnNewIslandCreatedNoNameOrPermPrefix() {
         when(addon.getGameModeName(any())).thenReturn("");
         when(addon.getGameModePermPrefix(any())).thenReturn("bskyblock.");
         when(addon.inGameModeWorld(any())).thenReturn(true);
@@ -215,7 +219,7 @@ public class JoinListenerTest {
      * {@link world.bentobox.limits.listeners.JoinListener#onOwnerChange(world.bentobox.bentobox.api.events.team.TeamEvent.TeamSetownerEvent)}.
      */
     @Test
-    public void testOnOwnerChange() {
+    void testOnOwnerChange() {
         TeamSetownerEvent e = mock(TeamSetownerEvent.class);
         when(e.getIsland()).thenReturn(island);
         when(e.getNewOwner()).thenReturn(UUID.randomUUID());
@@ -229,8 +233,8 @@ public class JoinListenerTest {
      * {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */
     @Test
-    public void testOnPlayerJoin() {
-        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+    void testOnPlayerJoin() {
+        PlayerJoinEvent e = new PlayerJoinEvent(player, Component.text("welcome"));
         jl.onPlayerJoin(e);
         verify(addon).getGameModes();
         verify(bll).setIsland("unique_id", ibc);
@@ -241,9 +245,9 @@ public class JoinListenerTest {
      * {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */
     @Test
-    public void testOnPlayerJoinIBCNull() {
+    void testOnPlayerJoinIBCNull() {
         ibc = null;
-        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        PlayerJoinEvent e = new PlayerJoinEvent(player, Component.text("welcome"));
         jl.onPlayerJoin(e);
         verify(addon).getGameModes();
         verify(bll, never()).setIsland("unique_id", ibc);
@@ -254,34 +258,47 @@ public class JoinListenerTest {
      * {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */
     @Test
-    public void testOnPlayerJoinWithPermNotLimits() {
+    void testOnPlayerJoinWithPermNotLimits() {
         Set<PermissionAttachmentInfo> perms = new HashSet<>();
         PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
         when(permAtt.getPermission()).thenReturn("bskyblock.my.perm.for.game");
         perms.add(permAtt);
         when(player.getEffectivePermissions()).thenReturn(perms);
-        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        PlayerJoinEvent e = new PlayerJoinEvent(player, Component.text("welcome"));
         jl.onPlayerJoin(e);
         verify(addon).getGameModes();
         verify(bll).setIsland("unique_id", ibc);
     }
 
+    private static Stream<Arguments> invalidPermissionLimits() {
+        return Stream.of(
+                Arguments.of("bskyblock.island.limit.my.perm.for.game",
+                        "Player tastybento has permission: 'bskyblock.island.limit.my.perm.for.game' but format must be 'bskyblock.island.limit.[ENV.]KEY.NUMBER' where ENV is overworld|nether|end and KEY is a material, entity type, or group name. Ignoring..."),
+                Arguments.of("bskyblock.island.limit.mumbo.34",
+                        "Player tastybento has permission: 'bskyblock.island.limit.mumbo.34' but MUMBO is not a valid material or entity type/group. Ignoring..."),
+                Arguments.of("bskyblock.island.limit.*",
+                        "Player tastybento has permission: 'bskyblock.island.limit.*' but wildcards are not allowed. Ignoring..."),
+                Arguments.of("bskyblock.island.limit.STONE.abc",
+                        "Player tastybento has permission: 'bskyblock.island.limit.STONE.abc' but the last part MUST be an integer! Ignoring..."));
+    }
+
     /**
      * Test method for
      * {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
+     * Each invalid permission format should be logged and ignored.
      */
-    @Test
-    public void testOnPlayerJoinWithPermLimitsWrongSize() {
+    @ParameterizedTest
+    @MethodSource("invalidPermissionLimits")
+    void testOnPlayerJoinWithInvalidPermLimits(String permission, String expectedError) {
         Set<PermissionAttachmentInfo> perms = new HashSet<>();
         PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
-        when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.my.perm.for.game");
+        when(permAtt.getPermission()).thenReturn(permission);
         when(permAtt.getValue()).thenReturn(true);
         perms.add(permAtt);
         when(player.getEffectivePermissions()).thenReturn(perms);
-        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        PlayerJoinEvent e = new PlayerJoinEvent(player, Component.text("welcome"));
         jl.onPlayerJoin(e);
-        verify(addon).logError(
-                "Player tastybento has permission: 'bskyblock.island.limit.my.perm.for.game' but format must be 'bskyblock.island.limit.[ENV.]KEY.NUMBER' where ENV is overworld|nether|end and KEY is a material, entity type, or group name. Ignoring...");
+        verify(addon).logError(expectedError);
     }
 
     /**
@@ -289,68 +306,14 @@ public class JoinListenerTest {
      * {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */
     @Test
-    public void testOnPlayerJoinWithPermLimitsInvalidMaterial() {
-        Set<PermissionAttachmentInfo> perms = new HashSet<>();
-        PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
-        when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.mumbo.34");
-        when(permAtt.getValue()).thenReturn(true);
-        perms.add(permAtt);
-        when(player.getEffectivePermissions()).thenReturn(perms);
-        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
-        jl.onPlayerJoin(e);
-        verify(addon).logError(
-                "Player tastybento has permission: 'bskyblock.island.limit.mumbo.34' but MUMBO is not a valid material or entity type/group. Ignoring...");
-    }
-
-    /**
-     * Test method for
-     * {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
-     */
-    @Test
-    public void testOnPlayerJoinWithPermLimitsWildcard() {
-        Set<PermissionAttachmentInfo> perms = new HashSet<>();
-        PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
-        when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.*");
-        when(permAtt.getValue()).thenReturn(true);
-        perms.add(permAtt);
-        when(player.getEffectivePermissions()).thenReturn(perms);
-        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
-        jl.onPlayerJoin(e);
-        verify(addon).logError(
-                "Player tastybento has permission: 'bskyblock.island.limit.*' but wildcards are not allowed. Ignoring...");
-    }
-
-    /**
-     * Test method for
-     * {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
-     */
-    @Test
-    public void testOnPlayerJoinWithPermLimitsNotNumber() {
-        Set<PermissionAttachmentInfo> perms = new HashSet<>();
-        PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
-        when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.STONE.abc");
-        when(permAtt.getValue()).thenReturn(true);
-        perms.add(permAtt);
-        when(player.getEffectivePermissions()).thenReturn(perms);
-        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
-        jl.onPlayerJoin(e);
-        verify(addon).logError(
-                "Player tastybento has permission: 'bskyblock.island.limit.STONE.abc' but the last part MUST be an integer! Ignoring...");
-    }
-
-    /**
-     * Test method for
-     * {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
-     */
-    @Test
-    public void testOnPlayerJoinWithPermLimitsSuccess() {
+    void testOnPlayerJoinWithPermLimitsSuccess() {
         Set<PermissionAttachmentInfo> perms = new HashSet<>();
         PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
         when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.STONE.24");
         when(permAtt.getValue()).thenReturn(true);
         perms.add(permAtt);
         when(player.getEffectivePermissions()).thenReturn(perms);
-        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        PlayerJoinEvent e = new PlayerJoinEvent(player, Component.text("welcome"));
         jl.onPlayerJoin(e);
         verify(addon, never()).logError(anyString());
         verify(ibc).setBlockLimit(Environment.NORMAL, Material.STONE.getKey(), 24);
@@ -361,14 +324,14 @@ public class JoinListenerTest {
      * {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */
     @Test
-    public void testOnPlayerJoinWithPermLimitsSuccessEntity() {
+    void testOnPlayerJoinWithPermLimitsSuccessEntity() {
         Set<PermissionAttachmentInfo> perms = new HashSet<>();
         PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
         when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.BAT.24");
         when(permAtt.getValue()).thenReturn(true);
         perms.add(permAtt);
         when(player.getEffectivePermissions()).thenReturn(perms);
-        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        PlayerJoinEvent e = new PlayerJoinEvent(player, Component.text("welcome"));
         jl.onPlayerJoin(e);
         verify(addon, never()).logError(anyString());
         verify(ibc).setEntityLimit(Environment.NORMAL, EntityType.BAT, 24);
@@ -379,14 +342,14 @@ public class JoinListenerTest {
      * {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */
     @Test
-    public void testOnPlayerJoinWithPermLimitsSuccessEntityGroup() {
+    void testOnPlayerJoinWithPermLimitsSuccessEntityGroup() {
         Set<PermissionAttachmentInfo> perms = new HashSet<>();
         PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
         when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.friendly.24");
         when(permAtt.getValue()).thenReturn(true);
         perms.add(permAtt);
         when(player.getEffectivePermissions()).thenReturn(perms);
-        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        PlayerJoinEvent e = new PlayerJoinEvent(player, Component.text("welcome"));
         jl.onPlayerJoin(e);
         verify(addon, never()).logError(anyString());
         verify(ibc).setEntityGroupLimit(Environment.NORMAL, "friendly", 24);
@@ -397,7 +360,7 @@ public class JoinListenerTest {
      * {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */
     @Test
-    public void testOnPlayerJoinWithPermLimitsMultiPerms() {
+    void testOnPlayerJoinWithPermLimitsMultiPerms() {
         Set<PermissionAttachmentInfo> perms = new HashSet<>();
         PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
         when(permAtt.getPermission()).thenReturn("bskyblock.island.limit.STONE.24");
@@ -425,7 +388,7 @@ public class JoinListenerTest {
         perms.add(permAtt6);
 
         when(player.getEffectivePermissions()).thenReturn(perms);
-        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        PlayerJoinEvent e = new PlayerJoinEvent(player, Component.text("welcome"));
         jl.onPlayerJoin(e);
         verify(addon, never()).logError(anyString());
         verify(ibc).setBlockLimit(Environment.NORMAL, Material.STONE.getKey(), 24);
@@ -439,7 +402,7 @@ public class JoinListenerTest {
      * Test method for {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */
     @Test
-    public void testOnPlayerJoinWithPermLimitsMultiPermsSameMaterial() {
+    void testOnPlayerJoinWithPermLimitsMultiPermsSameMaterial() {
         // IBC - set the block limit for STONE to be 25 already
         when(ibc.getBlockLimit(any(Environment.class), any(NamespacedKey.class))).thenReturn(25);
         Set<PermissionAttachmentInfo> perms = new HashSet<>();
@@ -456,7 +419,7 @@ public class JoinListenerTest {
         when(permAtt3.getValue()).thenReturn(true);
         perms.add(permAtt3);
         when(player.getEffectivePermissions()).thenReturn(perms);
-        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        PlayerJoinEvent e = new PlayerJoinEvent(player, Component.text("welcome"));
         jl.onPlayerJoin(e);
         verify(addon, never()).logError(anyString());
         // Only the limit over 25 should be set
@@ -469,7 +432,7 @@ public class JoinListenerTest {
      * Test method for {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */
     @Test
-    public void testOnPlayerJoinWithPermLimitsMultiPermsSameEntity() {
+    void testOnPlayerJoinWithPermLimitsMultiPermsSameEntity() {
         // IBC - set the entity limit for BAT to be 25 already
         when(ibc.getEntityLimit(any(Environment.class), any(EntityType.class))).thenReturn(25);
         Set<PermissionAttachmentInfo> perms = new HashSet<>();
@@ -486,7 +449,7 @@ public class JoinListenerTest {
         when(permAtt3.getValue()).thenReturn(true);
         perms.add(permAtt3);
         when(player.getEffectivePermissions()).thenReturn(perms);
-        PlayerJoinEvent e = new PlayerJoinEvent(player, "welcome");
+        PlayerJoinEvent e = new PlayerJoinEvent(player, Component.text("welcome"));
         jl.onPlayerJoin(e);
         verify(addon, never()).logError(anyString());
         // Only the limit over 25 should be set
@@ -500,7 +463,7 @@ public class JoinListenerTest {
      * {@link world.bentobox.limits.listeners.JoinListener#onUnregisterIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
      */
     @Test
-    public void testOnUnregisterIslandNotUnregistered() {
+    void testOnUnregisterIslandNotUnregistered() {
         IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.BAN);
         jl.onUnregisterIsland(e);
         verify(island, never()).getWorld();
@@ -511,7 +474,7 @@ public class JoinListenerTest {
      * {@link world.bentobox.limits.listeners.JoinListener#onUnregisterIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
      */
     @Test
-    public void testOnUnregisterIslandNotInWorld() {
+    void testOnUnregisterIslandNotInWorld() {
         IslandEvent e = new IslandEvent(island, null, false, null, IslandEvent.Reason.UNREGISTERED);
         jl.onUnregisterIsland(e);
         verify(island).getWorld();
@@ -523,7 +486,7 @@ public class JoinListenerTest {
      * {@link world.bentobox.limits.listeners.JoinListener#onUnregisterIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
      */
     @Test
-    public void testOnUnregisterIslandInWorld() {
+    void testOnUnregisterIslandInWorld() {
         when(addon.inGameModeWorld(any())).thenReturn(true);
         when(addon.getBlockLimitListener()).thenReturn(bll);
         when(bll.getIsland(island.getUniqueId())).thenReturn(ibc);
@@ -540,7 +503,7 @@ public class JoinListenerTest {
      * Test method for {@link world.bentobox.limits.listeners.JoinListener#onUnregisterIsland(world.bentobox.bentobox.api.events.island.IslandEvent)}.
      */
     @Test
-    public void testOnUnregisterIslandInWorldNullIBC() {
+    void testOnUnregisterIslandInWorldNullIBC() {
         when(bll.getIsland(anyString())).thenReturn(null);
         @SuppressWarnings("unchecked")
         Map<NamespacedKey, Integer> map = mock(Map.class);

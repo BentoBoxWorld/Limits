@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -54,7 +53,7 @@ public class Limits extends Addon {
         settings = new Settings(this);
         gameModes = getPlugin().getAddonsManager().getGameModeAddons().stream()
                 .filter(gm -> settings.getGameModes().contains(gm.getDescription().getName()))
-                .collect(Collectors.toList());
+                .toList();
         gameModes.forEach(gm -> {
             gm.getAdminCommand().ifPresent(a -> new AdminCommand(this, a));
             gm.getPlayerCommand().ifPresent(a -> new PlayerCommand(this, a));

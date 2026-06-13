@@ -21,7 +21,6 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.TechnicalPiston;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.event.Cancellable;
-import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -45,7 +44,6 @@ import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Enums;
-import com.google.common.base.Optional;
 
 import world.bentobox.bentobox.api.events.island.IslandDeleteEvent;
 import world.bentobox.bentobox.api.localization.TextVariables;
@@ -73,14 +71,41 @@ public class BlockLimitsListener implements Listener {
      * addon links and runs on older servers (< 1.21.9) where these constants are
      * absent, instead of throwing NoSuchFieldError. Absent Optional == not on this server.
      */
-    private static final Optional<Material> COPPER_WALL_TORCH = Enums.getIfPresent(Material.class, "COPPER_WALL_TORCH");
-    private static final Optional<Material> COPPER_TORCH = Enums.getIfPresent(Material.class, "COPPER_TORCH");
-    private static final Optional<Material> COPPER_CHEST = Enums.getIfPresent(Material.class, "COPPER_CHEST");
+    @Nullable
+    private static final Material COPPER_WALL_TORCH = Enums.getIfPresent(Material.class, "COPPER_WALL_TORCH").orNull();
+    @Nullable
+    private static final Material COPPER_TORCH = Enums.getIfPresent(Material.class, "COPPER_TORCH").orNull();
+    @Nullable
+    private static final Material COPPER_CHEST = Enums.getIfPresent(Material.class, "COPPER_CHEST").orNull();
     /** All weathered/waxed copper chest variants that normalise to {@link #COPPER_CHEST}. */
     private static final List<Material> COPPER_CHEST_VARIANTS = List.of("EXPOSED_COPPER_CHEST", "WEATHERED_COPPER_CHEST",
             "OXIDIZED_COPPER_CHEST", "WAXED_COPPER_CHEST", "WAXED_EXPOSED_COPPER_CHEST", "WAXED_WEATHERED_COPPER_CHEST",
             "WAXED_OXIDIZED_COPPER_CHEST").stream().map(name -> Enums.getIfPresent(Material.class, name).orNull())
             .filter(Objects::nonNull).toList();
+
+    /**
+     * Variant block materials mapped to the canonical material we count them as.
+     * Pistons are handled separately because the canonical form depends on block data.
+     */
+    private static final Map<Material, Material> VARIANT_MAP = new EnumMap<>(Material.class);
+    static {
+        VARIANT_MAP.put(Material.CHIPPED_ANVIL, Material.ANVIL);
+        VARIANT_MAP.put(Material.DAMAGED_ANVIL, Material.ANVIL);
+        VARIANT_MAP.put(Material.REDSTONE_WALL_TORCH, Material.REDSTONE_TORCH);
+        VARIANT_MAP.put(Material.WALL_TORCH, Material.TORCH);
+        VARIANT_MAP.put(Material.ZOMBIE_WALL_HEAD, Material.ZOMBIE_HEAD);
+        VARIANT_MAP.put(Material.CREEPER_WALL_HEAD, Material.CREEPER_HEAD);
+        VARIANT_MAP.put(Material.PLAYER_WALL_HEAD, Material.PLAYER_HEAD);
+        VARIANT_MAP.put(Material.DRAGON_WALL_HEAD, Material.DRAGON_HEAD);
+        VARIANT_MAP.put(Material.BAMBOO_SAPLING, Material.BAMBOO);
+        // 1.21.9 materials: only mapped when present on this server
+        if (COPPER_WALL_TORCH != null && COPPER_TORCH != null) {
+            VARIANT_MAP.put(COPPER_WALL_TORCH, COPPER_TORCH);
+        }
+        if (COPPER_CHEST != null) {
+            COPPER_CHEST_VARIANTS.forEach(variant -> VARIANT_MAP.put(variant, COPPER_CHEST));
+        }
+    }
 
     /** Save every 10 blocks of change */
     private static final Integer CHANGE_LIMIT = 9;
@@ -159,41 +184,45 @@ public class BlockLimitsListener implements Listener {
     private Map<NamespacedKey, Integer> loadLimits(ConfigurationSection cs) {
         Map<NamespacedKey, Integer> limits = new HashMap<>();
         for (String key : cs.getKeys(false)) {
-            int limit = cs.getInt(key);
-            NamespacedKey nsKey;
-            if (key.contains(":")) {
-                nsKey = NamespacedKey.fromString(key.toLowerCase(Locale.ROOT));
-                if (nsKey == null) {
-                    Bukkit.getLogger().warning("Invalid namespaced key in config, skipping: " + key);
-                    continue;
-                }
-            } else {
-                nsKey = new NamespacedKey(NamespacedKey.MINECRAFT, key.toLowerCase(Locale.ROOT));
-            }
-            boolean matched = false;
-            Material mat = Registry.MATERIAL.get(nsKey);
-            if (mat != null) {
-                matched = true;
-                if (!mat.isBlock()) {
-                    Bukkit.getLogger().warning("Non-block material in block limits config: " + key);
-                } else if (DO_NOT_COUNT.contains(mat.getKey())) {
-                    Bukkit.getLogger().warning("Uncountable material in block limits config: " + key);
-                } else {
-                    limits.put(mat.getKey(), limit);
-                }
-            }
-            if (!matched) {
-                Tag<Material> tag = Bukkit.getTag("blocks", nsKey, Material.class);
-                if (tag != null) {
-                    limits.put(tag.getKey(), limit);
-                    matched = true;
-                }
-            }
-            if (!matched) {
-                Bukkit.getLogger().warning("Unknown material or tag in config: " + key);
+            NamespacedKey nsKey = parseConfigKey(key);
+            if (nsKey != null) {
+                registerLimit(limits, nsKey, key, cs.getInt(key));
             }
         }
         return limits;
+    }
+
+    /** Parse a config key into a NamespacedKey, or null if it is an invalid namespaced key. */
+    private NamespacedKey parseConfigKey(String key) {
+        if (key.contains(":")) {
+            NamespacedKey nsKey = NamespacedKey.fromString(key.toLowerCase(Locale.ROOT));
+            if (nsKey == null) {
+                Bukkit.getLogger().warning(() -> "Invalid namespaced key in config, skipping: " + key);
+            }
+            return nsKey;
+        }
+        return new NamespacedKey(NamespacedKey.MINECRAFT, key.toLowerCase(Locale.ROOT));
+    }
+
+    /** Resolve a key to a material or block tag and store its limit, warning on any mismatch. */
+    private void registerLimit(Map<NamespacedKey, Integer> limits, NamespacedKey nsKey, String key, int limit) {
+        Material mat = Registry.MATERIAL.get(nsKey);
+        if (mat != null) {
+            if (!mat.isBlock()) {
+                Bukkit.getLogger().warning(() -> "Non-block material in block limits config: " + key);
+            } else if (DO_NOT_COUNT.contains(mat.getKey())) {
+                Bukkit.getLogger().warning(() -> "Uncountable material in block limits config: " + key);
+            } else {
+                limits.put(mat.getKey(), limit);
+            }
+            return;
+        }
+        Tag<Material> tag = Bukkit.getTag("blocks", nsKey, Material.class);
+        if (tag != null) {
+            limits.put(tag.getKey(), limit);
+            return;
+        }
+        Bukkit.getLogger().warning(() -> "Unknown material or tag in config: " + key);
     }
 
     /** Save the count database completely */
@@ -223,18 +252,18 @@ public class BlockLimitsListener implements Listener {
         if (e.getBlock().hasMetadata("blockbreakevent-ignore")) {
             return;
         }
-        handleBreak(e, e.getBlock());
+        handleBreak(e.getBlock());
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onTurtleEggBreak(PlayerInteractEvent e) {
         if (e.getAction().equals(Action.PHYSICAL) && e.getClickedBlock() != null
                 && e.getClickedBlock().getType().equals(Material.TURTLE_EGG)) {
-            handleBreak(e, e.getClickedBlock());
+            handleBreak(e.getClickedBlock());
         }
     }
 
-    private void handleBreak(Event e, Block b) {
+    private void handleBreak(Block b) {
         if (!addon.inGameModeWorld(b.getWorld())) {
             return;
         }
@@ -380,35 +409,11 @@ public class BlockLimitsListener implements Listener {
      */
     public NamespacedKey fixMaterial(BlockData b) {
         Material mat = b.getMaterial();
-        if (mat.equals(Material.CHIPPED_ANVIL) || mat.equals(Material.DAMAGED_ANVIL)) {
-            return Material.ANVIL.getKey();
-        } else if (mat == Material.REDSTONE_WALL_TORCH) {
-            return Material.REDSTONE_TORCH.getKey();
-        } else if (mat == Material.WALL_TORCH) {
-            return Material.TORCH.getKey();
-        } else if (COPPER_WALL_TORCH.isPresent() && mat == COPPER_WALL_TORCH.get() && COPPER_TORCH.isPresent()) {
-            return COPPER_TORCH.get().getKey();
-        } else if (mat == Material.ZOMBIE_WALL_HEAD) {
-            return Material.ZOMBIE_HEAD.getKey();
-        } else if (mat == Material.CREEPER_WALL_HEAD) {
-            return Material.CREEPER_HEAD.getKey();
-        } else if (mat == Material.PLAYER_WALL_HEAD) {
-            return Material.PLAYER_HEAD.getKey();
-        } else if (mat == Material.DRAGON_WALL_HEAD) {
-            return Material.DRAGON_HEAD.getKey();
-        } else if (mat == Material.BAMBOO_SAPLING) {
-            return Material.BAMBOO.getKey();
-        } else if (mat == Material.PISTON_HEAD || mat == Material.MOVING_PISTON) {
+        if (mat == Material.PISTON_HEAD || mat == Material.MOVING_PISTON) {
             TechnicalPiston tp = (TechnicalPiston) b;
-            if (tp.getType() == TechnicalPiston.Type.NORMAL) {
-                return Material.PISTON.getKey();
-            } else {
-                return Material.STICKY_PISTON.getKey();
-            }
-        } else if (COPPER_CHEST.isPresent() && COPPER_CHEST_VARIANTS.contains(mat)) {
-            return COPPER_CHEST.get().getKey();
+            return (tp.getType() == TechnicalPiston.Type.NORMAL ? Material.PISTON : Material.STICKY_PISTON).getKey();
         }
-        return mat.getKey();
+        return VARIANT_MAP.getOrDefault(mat, mat).getKey();
     }
 
     private int process(Block b, boolean add) {

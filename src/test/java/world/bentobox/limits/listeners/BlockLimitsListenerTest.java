@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -86,7 +85,7 @@ import world.bentobox.limits.objects.IslandBlockCount;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-public class BlockLimitsListenerTest {
+class BlockLimitsListenerTest {
 
     @Mock
     private Limits addon;
@@ -118,7 +117,7 @@ public class BlockLimitsListenerTest {
 
     @SuppressWarnings("unchecked")
     @BeforeEach
-    public void setUp() throws Exception {
+    void setUp() throws Exception {
         MockBukkit.mock();
 
         // Set up BentoBox static mock so Database class can initialize
@@ -171,7 +170,7 @@ public class BlockLimitsListenerTest {
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() {
         User.clearUsers();
         if (mockedDb != null) {
             mockedDb.close();
@@ -504,7 +503,8 @@ public class BlockLimitsListenerTest {
         when(state.getBlock()).thenReturn(block);
         List<BlockState> states = List.of(state);
         Block clicked = mockBlock(Material.DIRT, blockLocation);
-        BlockMultiPlaceEvent event = new BlockMultiPlaceEvent(states, clicked, new ItemStack(Material.OAK_PLANKS), player, true);
+        BlockMultiPlaceEvent event = new BlockMultiPlaceEvent(states, clicked, new ItemStack(Material.OAK_PLANKS), player,
+                true, EquipmentSlot.HAND);
 
         listener.onBlock(event);
 
@@ -526,7 +526,7 @@ public class BlockLimitsListenerTest {
         BlockState headState = mock(BlockState.class);
         when(headState.getBlock()).thenReturn(head);
         BlockMultiPlaceEvent event = new BlockMultiPlaceEvent(List.of(headState), foot,
-                new ItemStack(Material.RED_BED), player, true);
+                new ItemStack(Material.RED_BED), player, true, EquipmentSlot.HAND);
 
         org.bukkit.Bukkit.getPluginManager().callEvent(event);
 
@@ -545,7 +545,7 @@ public class BlockLimitsListenerTest {
         BlockState headState = mock(BlockState.class);
         when(headState.getBlock()).thenReturn(head);
         BlockMultiPlaceEvent place = new BlockMultiPlaceEvent(List.of(headState), foot,
-                new ItemStack(Material.RED_BED), player, true);
+                new ItemStack(Material.RED_BED), player, true, EquipmentSlot.HAND);
         org.bukkit.Bukkit.getPluginManager().callEvent(place);
 
         // Player breaks one half of the bed (vanilla removes the other half with no break event).
@@ -1289,7 +1289,7 @@ public class BlockLimitsListenerTest {
 
         listener.onIslandDelete(event);
 
-        verify(dbMock).deleteID(eq("test-island-id"));
+        verify(dbMock).deleteID("test-island-id");
     }
 
     // --- save tests ---
