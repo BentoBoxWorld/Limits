@@ -45,6 +45,10 @@ public class EntityLimitListener implements Listener {
     private final Limits addon;
     /** Entity UUIDs that have just spawned to prevent double-processing. */
     private final List<UUID> justSpawned = new ArrayList<>();
+    /** Entity UUIDs that are currently portaling to prevent double-decrement on cross-world removal. */
+    private final List<UUID> justPortaled = new ArrayList<>();
+    /** Maps entity UUID to island ID so decrement works even when the entity dies off-island. */
+    private final Map<UUID, String> entityIslandMap = new HashMap<>();
     /** Cardinal directions used for block structure detection. */
     private static final List<BlockFace> CARDINALS = List.of(BlockFace.UP, BlockFace.NORTH, BlockFace.SOUTH,
             BlockFace.EAST, BlockFace.WEST, BlockFace.DOWN);
@@ -120,7 +124,7 @@ public class EntityLimitListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onBlock(HangingPlaceEvent hangingPlaceEvent) {
         if (!addon.inGameModeWorld(hangingPlaceEvent.getBlock().getWorld())) return;
         Player player = hangingPlaceEvent.getPlayer();
@@ -177,6 +181,7 @@ public class EntityLimitListener implements Listener {
                 .ifPresent(island -> {
                     IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(island);
                     ibc.incrementEntity(envOf(w), entity.getType());
+                    entityIslandMap.put(entity.getUniqueId(), island.getUniqueId());
                 });
     }
 
@@ -191,6 +196,19 @@ public class EntityLimitListener implements Listener {
         Entity entity = e.getEntity();
         World w = entity.getWorld();
         if (!addon.inGameModeWorld(w)) return;
+
+        // Entity is being portaled — count transfer was already handled by onEntityPortal.
+        if (justPortaled.remove(entity.getUniqueId())) return;
+
+        String islandId = entityIslandMap.remove(entity.getUniqueId());
+        if (islandId != null) {
+            IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(islandId);
+            if (ibc != null) {
+                ibc.decrementEntity(envOf(w), entity.getType());
+            }
+            return;
+        }
+
         addon.getIslands().getIslandAt(entity.getLocation())
                 .filter(island -> !island.isSpawn())
                 .ifPresent(island -> {
@@ -216,8 +234,12 @@ public class EntityLimitListener implements Listener {
         if (fromEnv == toEnv) return;
         if (!addon.inGameModeWorld(fromWorld) && !addon.inGameModeWorld(toWorld)) return;
 
+        // Prevent onEntityRemove from double-decrementing for the source-world removal.
+        justPortaled.add(entity.getUniqueId());
+
         // Decrement at source if on a tracked island
         if (addon.inGameModeWorld(fromWorld)) {
+            entityIslandMap.remove(entity.getUniqueId());
             addon.getIslands().getIslandAt(entity.getLocation())
                     .filter(island -> !island.isSpawn())
                     .ifPresent(island -> {
@@ -234,6 +256,7 @@ public class EntityLimitListener implements Listener {
                     .ifPresent(island -> {
                         IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(island);
                         ibc.incrementEntity(toEnv, entity.getType());
+                        entityIslandMap.put(entity.getUniqueId(), island.getUniqueId());
                     });
         }
     }
@@ -254,7 +277,9 @@ public class EntityLimitListener implements Listener {
     private boolean processIsland(Cancellable cancelableEvent, LivingEntity livingEntity, Location location,
             SpawnReason spawnReason, boolean runAsync) {
         if (addon.getIslands().getIslandAt(livingEntity.getLocation()).isEmpty()) {
-            cancelableEvent.setCancelled(false);
+            if (runAsync) {
+                cancelableEvent.setCancelled(false);
+            }
             return true;
         }
         Island island = addon.getIslands().getIslandAt(livingEntity.getLocation()).get();
