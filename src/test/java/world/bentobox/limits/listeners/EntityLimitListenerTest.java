@@ -35,13 +35,18 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityBreedEvent;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.hanging.HangingPlaceEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.entity.Hanging;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Painting;
 import org.bukkit.entity.Villager;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.Material;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -678,6 +683,76 @@ public class EntityLimitListenerTest {
         Method m = EntityLimitListener.class.getDeclaredMethod(method, Location.class);
         m.setAccessible(true);
         m.invoke(ell, loc);
+    }
+
+    // --- Spawn-egg interact guard tests (#134) ---
+
+    @Test
+    public void testSpawnEggOnEntityAtLimitIsCancelled() {
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.ENDERMAN, 4); // seeded count is 4 -> at limit
+        Player p = eggPlayer(Material.ENDERMAN_SPAWN_EGG, EquipmentSlot.HAND);
+        Entity clicked = mock(Entity.class);
+        when(clicked.getLocation()).thenReturn(location);
+        PlayerInteractEntityEvent e = new PlayerInteractEntityEvent(p, clicked, EquipmentSlot.HAND);
+
+        ell.onSpawnEggUseOnEntity(e);
+
+        // Cancelled before the egg is consumed, rather than only blocking the later spawn.
+        assertTrue(e.isCancelled());
+    }
+
+    @Test
+    public void testSpawnEggOnEntityUnderLimitNotCancelled() {
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.ENDERMAN, 10); // count 4 < 10
+        Player p = eggPlayer(Material.ENDERMAN_SPAWN_EGG, EquipmentSlot.HAND);
+        Entity clicked = mock(Entity.class);
+        when(clicked.getLocation()).thenReturn(location);
+        PlayerInteractEntityEvent e = new PlayerInteractEntityEvent(p, clicked, EquipmentSlot.HAND);
+
+        ell.onSpawnEggUseOnEntity(e);
+
+        assertFalse(e.isCancelled());
+    }
+
+    @Test
+    public void testNonSpawnEggOnEntityIgnored() {
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.ENDERMAN, 4);
+        Player p = eggPlayer(Material.STICK, EquipmentSlot.HAND);
+        Entity clicked = mock(Entity.class);
+        when(clicked.getLocation()).thenReturn(location);
+        PlayerInteractEntityEvent e = new PlayerInteractEntityEvent(p, clicked, EquipmentSlot.HAND);
+
+        ell.onSpawnEggUseOnEntity(e);
+
+        assertFalse(e.isCancelled());
+    }
+
+    @Test
+    public void testSpawnEggOnBlockAtLimitIsCancelled() {
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.ENDERMAN, 4);
+        Player p = mock(Player.class);
+        when(p.isOp()).thenReturn(false);
+        when(p.hasPermission(anyString())).thenReturn(false);
+        when(p.getUniqueId()).thenReturn(UUID.randomUUID());
+        Block clicked = mock(Block.class);
+        when(clicked.getLocation()).thenReturn(location);
+        PlayerInteractEvent e = new PlayerInteractEvent(p, Action.RIGHT_CLICK_BLOCK,
+                new ItemStack(Material.ENDERMAN_SPAWN_EGG), clicked, BlockFace.UP);
+
+        ell.onSpawnEggUseOnBlock(e);
+
+        assertTrue(e.isCancelled());
+    }
+
+    private Player eggPlayer(Material item, EquipmentSlot hand) {
+        Player p = mock(Player.class);
+        when(p.isOp()).thenReturn(false);
+        when(p.hasPermission(anyString())).thenReturn(false);
+        when(p.getUniqueId()).thenReturn(UUID.randomUUID());
+        PlayerInventory inv = mock(PlayerInventory.class);
+        when(p.getInventory()).thenReturn(inv);
+        when(inv.getItem(hand)).thenReturn(new ItemStack(item));
+        return p;
     }
 
 }

@@ -14,8 +14,12 @@ import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityBreedEvent;
 import org.bukkit.event.entity.EntityPortalEvent;
 import org.bukkit.event.entity.EntityRemoveEvent;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.hanging.HangingPlaceEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
+import org.bukkit.inventory.ItemStack;
 import org.eclipse.jdt.annotation.Nullable;
 import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.api.localization.TextVariables;
@@ -151,6 +155,87 @@ public class EntityLimitListener implements Listener {
                 }
             }
         });
+    }
+
+    /**
+     * Deny spawn-egg use the moment a player would exceed an entity limit, before the egg is
+     * consumed. The {@link CreatureSpawnEvent} path already cancels the over-limit spawn, but by
+     * then the egg item has been used up; cancelling the interaction here keeps the egg (#134).
+     */
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onSpawnEggUseOnBlock(PlayerInteractEvent e) {
+        if (e.getAction() != Action.RIGHT_CLICK_BLOCK || e.getClickedBlock() == null) {
+            return;
+        }
+        EntityType type = spawnEggType(e.getItem());
+        if (type != null) {
+            checkSpawnEggLimit(e, e.getPlayer(), e.getClickedBlock().getLocation(), type);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onSpawnEggUseOnEntity(PlayerInteractEntityEvent e) {
+        if (e.getHand() == null) {
+            return;
+        }
+        EntityType type = spawnEggType(e.getPlayer().getInventory().getItem(e.getHand()));
+        if (type != null) {
+            checkSpawnEggLimit(e, e.getPlayer(), e.getRightClicked().getLocation(), type);
+        }
+    }
+
+    private void checkSpawnEggLimit(Cancellable event, Player player, Location location, EntityType type) {
+        if (!addon.inGameModeWorld(location.getWorld())) {
+            return;
+        }
+        addon.getIslands().getIslandAt(location).ifPresent(island -> {
+            boolean bypass = player.isOp() || player.hasPermission(
+                    addon.getPlugin().getIWM().getPermissionPrefix(location.getWorld()) + MOD_BYPASS);
+            if (bypass || island.isSpawn()) {
+                return;
+            }
+            AtLimitResult res = atLimit(island, type, envOf(location.getWorld()));
+            if (res.hit()) {
+                event.setCancelled(true);
+                notifyEntityLimit(player, type, res);
+            }
+        });
+    }
+
+    /**
+     * Resolve the entity type a spawn-egg item would create, e.g. {@code PIG_SPAWN_EGG -> PIG}.
+     *
+     * @return the entity type, or {@code null} if the item is not a recognised spawn egg
+     */
+    private EntityType spawnEggType(ItemStack item) {
+        if (item == null) {
+            return null;
+        }
+        String name = item.getType().name();
+        if (!name.endsWith("_SPAWN_EGG")) {
+            return null;
+        }
+        try {
+            return EntityType.valueOf(name.substring(0, name.length() - "_SPAWN_EGG".length()));
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private void notifyEntityLimit(Player player, EntityType type, AtLimitResult res) {
+        if (res.getTypelimit() != null) {
+            User.getInstance(player).notify("entity-limits.hit-limit", "[entity]",
+                    Util.prettifyText(type.toString()), TextVariables.NUMBER,
+                    String.valueOf(res.getTypelimit().getValue()));
+        } else {
+            User.getInstance(player).notify("entity-limits.hit-limit", "[entity]",
+                    res.getGrouplimit().getKey().getName() + " ("
+                            + res.getGrouplimit().getKey().getTypes().stream()
+                                    .map(x -> Util.prettifyText(x.toString()))
+                                    .collect(Collectors.joining(", "))
+                            + ")",
+                    TextVariables.NUMBER, String.valueOf(res.getGrouplimit().getValue()));
+        }
     }
 
     /* =========================================================================
@@ -473,8 +558,10 @@ public class EntityLimitListener implements Listener {
      * for the entity's current environment.
      */
     AtLimitResult atLimit(Island island, Entity entity) {
-        Environment env = envOf(entity.getWorld());
-        EntityType type = entity.getType();
+        return atLimit(island, entity.getType(), envOf(entity.getWorld()));
+    }
+
+    AtLimitResult atLimit(Island island, EntityType type, Environment env) {
         @Nullable
         IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(island.getUniqueId());
 
