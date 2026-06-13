@@ -44,6 +44,9 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
+import com.google.common.base.Enums;
+import com.google.common.base.Optional;
+
 import world.bentobox.bentobox.api.events.island.IslandDeleteEvent;
 import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.user.User;
@@ -64,6 +67,20 @@ public class BlockLimitsListener implements Listener {
             Material.AIR.getKey(), Material.FIRE.getKey(), Material.END_PORTAL.getKey(),
             Material.NETHER_PORTAL.getKey());
     private static final List<NamespacedKey> STACKABLE = List.of(Material.SUGAR_CANE.getKey(), Material.BAMBOO.getKey());
+
+    /*
+     * Materials added in Minecraft 1.21.9 ("Copper Age"). Resolved by name so the
+     * addon links and runs on older servers (< 1.21.9) where these constants are
+     * absent, instead of throwing NoSuchFieldError. Absent Optional == not on this server.
+     */
+    private static final Optional<Material> COPPER_WALL_TORCH = Enums.getIfPresent(Material.class, "COPPER_WALL_TORCH");
+    private static final Optional<Material> COPPER_TORCH = Enums.getIfPresent(Material.class, "COPPER_TORCH");
+    private static final Optional<Material> COPPER_CHEST = Enums.getIfPresent(Material.class, "COPPER_CHEST");
+    /** All weathered/waxed copper chest variants that normalise to {@link #COPPER_CHEST}. */
+    private static final List<Material> COPPER_CHEST_VARIANTS = List.of("EXPOSED_COPPER_CHEST", "WEATHERED_COPPER_CHEST",
+            "OXIDIZED_COPPER_CHEST", "WAXED_COPPER_CHEST", "WAXED_EXPOSED_COPPER_CHEST", "WAXED_WEATHERED_COPPER_CHEST",
+            "WAXED_OXIDIZED_COPPER_CHEST").stream().map(name -> Enums.getIfPresent(Material.class, name).orNull())
+            .filter(Objects::nonNull).toList();
 
     /** Save every 10 blocks of change */
     private static final Integer CHANGE_LIMIT = 9;
@@ -369,8 +386,8 @@ public class BlockLimitsListener implements Listener {
             return Material.REDSTONE_TORCH.getKey();
         } else if (mat == Material.WALL_TORCH) {
             return Material.TORCH.getKey();
-        } else if (mat == Material.COPPER_WALL_TORCH) {
-            return Material.COPPER_TORCH.getKey();
+        } else if (COPPER_WALL_TORCH.isPresent() && mat == COPPER_WALL_TORCH.get() && COPPER_TORCH.isPresent()) {
+            return COPPER_TORCH.get().getKey();
         } else if (mat == Material.ZOMBIE_WALL_HEAD) {
             return Material.ZOMBIE_HEAD.getKey();
         } else if (mat == Material.CREEPER_WALL_HEAD) {
@@ -388,11 +405,8 @@ public class BlockLimitsListener implements Listener {
             } else {
                 return Material.STICKY_PISTON.getKey();
             }
-        } else if (mat == Material.EXPOSED_COPPER_CHEST || mat == Material.WEATHERED_COPPER_CHEST
-                || mat == Material.OXIDIZED_COPPER_CHEST || mat == Material.WAXED_COPPER_CHEST
-                || mat == Material.WAXED_EXPOSED_COPPER_CHEST || mat == Material.WAXED_WEATHERED_COPPER_CHEST
-                || mat == Material.WAXED_OXIDIZED_COPPER_CHEST) {
-            return Material.COPPER_CHEST.getKey();
+        } else if (COPPER_CHEST.isPresent() && COPPER_CHEST_VARIANTS.contains(mat)) {
+            return COPPER_CHEST.get().getKey();
         }
         return mat.getKey();
     }
