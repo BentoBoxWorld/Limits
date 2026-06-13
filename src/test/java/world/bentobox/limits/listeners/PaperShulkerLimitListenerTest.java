@@ -1,7 +1,6 @@
 package world.bentobox.limits.listeners;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,7 +30,7 @@ import org.mockbukkit.mockbukkit.MockBukkit;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-public class PaperShulkerLimitListenerTest {
+class PaperShulkerLimitListenerTest {
 
     @Mock
     private Limits addon;

@@ -1,8 +1,8 @@
 ---
 block-limits:
-  hit-limit: "&c[material] limité à [number]!"
+  hit-limit: "<red>[material] limité à [number]!"
 entity-limits:
-  hit-limit: "&c[entity] spawning limited to [number]!"
+  hit-limit: "<red>[entity] spawning limited to [number]!"
 limits:
   panel-title: Limites de l'île
 admin:
@@ -13,54 +13,58 @@ admin:
     calc:
       parameters: "<player>"
       description: recalcule les limites de l'île pour le joueur
-      finished: "&a Recomptage terminé avec succès!"
+      finished: "<green> Recomptage terminé avec succès!"
     offset:
-      unknown: "&c Matériau ou entité inconnu [name]."
+      unknown: "<red> Matériau ou entité inconnu [name]."
+      description: "permet de gérer les décalages de limites pour les matériaux et les entités"
       main:
         description: permet de gérer les décalages de limites pour les matériaux et
           les entités
       set:
         parameters: "<joueur> <matériel|entité> <numéro>"
         description: définit un nouveau décalage pour la limite de matériau ou d'entité
-        success: "&a Le décalage limite pour [name] est défini sur [number]."
-        same: "&c Le décalage limite pour [name] est déjà [number]."
+        success: "<green> Le décalage limite pour [name] est défini sur [number]."
+        same: "<red> Le décalage limite pour [name] est déjà [number]."
       add:
         parameters: "<joueur> <matériel|entité> <numéro>"
         description: ajoute un décalage pour la limite de matériau ou d'entité
-        success: "&a Le décalage limite pour [name] est augmenté jusqu'à [number]."
+        success: "<green> Le décalage limite pour [name] est augmenté jusqu'à [number]."
       remove:
         parameters: "<joueur> <matériel|entité> <numéro>"
         description: réduit le décalage pour la limite de matériau ou d'entité
-        success: "&a Le décalage limite pour [name] est réduit jusqu'à [number]."
+        success: "<green> Le décalage limite pour [name] est réduit jusqu'à [number]."
       reset:
         parameters: "<joueur> <matériel|entité>"
         description: supprime le décalage pour le matériau ou l'entité
-        success: "&a Le décalage limite pour [name] est défini sur 0."
+        success: "<green> Le décalage limite pour [name] est défini sur 0."
       view:
         parameters: "<joueur> <matériel|entité>"
         description: affiche le décalage pour le matériau ou l'entité
-        message: "&a [name] le décalage est défini sur [number]."
+        message: "<green> [name] le décalage est défini sur [number]."
 island:
   limits:
     description: affichez les limites de votre île
-    max-color: "&c"
-    regular-color: "&a"
+    max-color: "<red>"
+    regular-color: "<green>"
     block-limit-syntax: "[number]/[limit]"
-    no-limits: "&c Aucune limite n'est fixée dans ce monde"
+    no-limits: "<red> Aucune limite n'est fixée dans ce monde"
     panel:
       title-syntax: "[title] [sort]"
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
+      env-overworld: "Surface"
+      env-nether: "Nether"
+      env-end: "l'End"
       A2Z: a > z
       Z2A: z > a
     errors:
-      no-owner: "&c Cette île n'a pas de propriétaire"
-      not-on-island: "&c Cet emplacement n'a pas de limites définies."
+      no-owner: "<red> Cette île n'a pas de propriétaire"
+      not-on-island: "<red> Cet emplacement n'a pas de limites définies."
     recount:
       description: recompte les limites de votre île
-      now-recounting: "&b Recomptage en cours. Cela peut prendre un certain temps,
+      now-recounting: "<aqua> Recomptage en cours. Cela peut prendre un certain temps,
         veuillez patienter..."
-      in-progress: "&c Le recomptage de l'île est en cours. Veuillez patienter s'il
+      in-progress: "<red> Le recomptage de l'île est en cours. Veuillez patienter s'il
         vous plaît..."
-      time-out: "&c Time out lors du recomptage. L'île est-elle vraiment grande?"
+      time-out: "<red> Time out lors du recomptage. L'île est-elle vraiment grande?"

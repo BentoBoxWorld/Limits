@@ -11,14 +11,18 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.World.Environment;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -31,13 +35,19 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityBreedEvent;
+import org.bukkit.event.Event;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.hanging.HangingPlaceEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.entity.Hanging;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Painting;
 import org.bukkit.entity.Villager;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.Material;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,7 +75,7 @@ import world.bentobox.limits.objects.IslandBlockCount;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-public class EntityLimitListenerTest {
+class EntityLimitListenerTest {
     @Mock
     private Limits addon;
     private EntityLimitListener ell;
@@ -86,7 +96,7 @@ public class EntityLimitListenerTest {
 
 
     @BeforeEach
-    public void setUp() throws Exception {
+    void setUp() throws Exception {
         MockBukkit.mock();
 
         // Entity
@@ -96,7 +106,12 @@ public class EntityLimitListenerTest {
         when(island.getUniqueId()).thenReturn(UUID.randomUUID().toString());
         when(island.inIslandSpace(any(Location.class))).thenReturn(true);
 
-        ibc = new IslandBlockCount("","");
+        ibc = new IslandBlockCount("test-island-id","BSkyBlock");
+        // Seed initial entity count for ENDERMAN to 4 (to match the 4 in collection)
+        ibc.incrementEntity(Environment.NORMAL, EntityType.ENDERMAN);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.ENDERMAN);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.ENDERMAN);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.ENDERMAN);
         when(bll.getIsland(anyString())).thenReturn(ibc);
         when(addon.getBlockLimitListener()).thenReturn(bll);
 
@@ -110,6 +125,7 @@ public class EntityLimitListenerTest {
         // World
         when(location.getWorld()).thenReturn(world);
         when(ent.getWorld()).thenReturn(world);
+        when(world.getEnvironment()).thenReturn(Environment.NORMAL);
         collection = new ArrayList<>();
         collection.add(ent);
         collection.add(ent);
@@ -148,7 +164,7 @@ public class EntityLimitListenerTest {
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() {
         User.clearUsers();
         MockBukkit.unmock();
     }
@@ -157,7 +173,7 @@ public class EntityLimitListenerTest {
      * Test for {@link EntityLimitListener#atLimit(Island, Entity)}
      */
     @Test
-    public void testAtLimitUnderLimit() {
+    void testAtLimitUnderLimit() {
         AtLimitResult result = ell.atLimit(island, ent);
         assertFalse(result.hit());
     }
@@ -166,8 +182,10 @@ public class EntityLimitListenerTest {
      * Test for {@link EntityLimitListener#atLimit(Island, Entity)}
      */
     @Test
-    public void testAtLimitAtLimit() {
-        collection.add(ent);
+    void testAtLimitAtLimit() {
+        // The default limit for ENDERMAN is 5 (from config), and we have 4 already
+        // Adding one more puts us at the limit
+        ibc.incrementEntity(Environment.NORMAL, EntityType.ENDERMAN);
         AtLimitResult result = ell.atLimit(island, ent);
         assertTrue(result.hit());
         assertEquals(EntityType.ENDERMAN, result.getTypelimit().getKey());
@@ -179,8 +197,8 @@ public class EntityLimitListenerTest {
      * Test for {@link EntityLimitListener#atLimit(Island, Entity)}
      */
     @Test
-    public void testAtLimitUnderLimitIslandLimit() {
-        ibc.setEntityLimit(EntityType.ENDERMAN, 6);
+    void testAtLimitUnderLimitIslandLimit() {
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.ENDERMAN, 6);
         AtLimitResult result = ell.atLimit(island, ent);
         assertFalse(result.hit());
     }
@@ -189,9 +207,10 @@ public class EntityLimitListenerTest {
      * Test for {@link EntityLimitListener#atLimit(Island, Entity)}
      */
     @Test
-    public void testAtLimitAtLimitIslandLimitNotAtLimit() {
-        ibc.setEntityLimit(EntityType.ENDERMAN, 6);
-        collection.add(ent);
+    void testAtLimitAtLimitIslandLimitNotAtLimit() {
+        // Island limit of 6, we have 4 already, so 5th entity should not be at limit
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.ENDERMAN, 6);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.ENDERMAN);
         AtLimitResult result = ell.atLimit(island, ent);
         assertFalse(result.hit());
     }
@@ -200,10 +219,11 @@ public class EntityLimitListenerTest {
      * Test for {@link EntityLimitListener#atLimit(Island, Entity)}
      */
     @Test
-    public void testAtLimitAtLimitIslandLimit() {
-        ibc.setEntityLimit(EntityType.ENDERMAN, 6);
-        collection.add(ent);
-        collection.add(ent);
+    void testAtLimitAtLimitIslandLimit() {
+        // Island limit of 6, we have 4, add 2 more to reach exactly 6
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.ENDERMAN, 6);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.ENDERMAN);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.ENDERMAN);
         AtLimitResult result = ell.atLimit(island, ent);
         assertTrue(result.hit());
         assertEquals(EntityType.ENDERMAN, result.getTypelimit().getKey());
@@ -214,7 +234,7 @@ public class EntityLimitListenerTest {
     // --- CreatureSpawnEvent tests ---
 
     @Test
-    public void testCreatureSpawnShoulderEntityIgnored() {
+    void testCreatureSpawnShoulderEntityIgnored() {
         LivingEntity chicken = mockEntity(EntityType.CHICKEN, location);
         CreatureSpawnEvent event = new CreatureSpawnEvent(chicken, SpawnReason.SHOULDER_ENTITY);
 
@@ -224,7 +244,7 @@ public class EntityLimitListenerTest {
     }
 
     @Test
-    public void testCreatureSpawnBreedingNonVillagerIgnored() {
+    void testCreatureSpawnBreedingNonVillagerIgnored() {
         LivingEntity cow = mockEntity(EntityType.COW, location);
         CreatureSpawnEvent event = new CreatureSpawnEvent(cow, SpawnReason.BREEDING);
 
@@ -234,7 +254,7 @@ public class EntityLimitListenerTest {
     }
 
     @Test
-    public void testCreatureSpawnOutsideGameModeWorldIgnored() {
+    void testCreatureSpawnOutsideGameModeWorldIgnored() {
         when(addon.inGameModeWorld(world)).thenReturn(false);
 
         LivingEntity chicken = mockEntity(EntityType.CHICKEN, location);
@@ -247,7 +267,7 @@ public class EntityLimitListenerTest {
     }
 
     @Test
-    public void testCreatureSpawnOnSpawnIslandAllowed() {
+    void testCreatureSpawnOnSpawnIslandAllowed() {
         when(island.isSpawn()).thenReturn(true);
 
         // Put CHICKEN at its limit (10 in config) by adding 10 chickens
@@ -266,14 +286,13 @@ public class EntityLimitListenerTest {
     }
 
     @Test
-    public void testSpawnerSpawnReasonNoPlayerNotification() {
-        // Put CHICKEN at limit so it gets cancelled
-        LivingEntity chicken = mockEntity(EntityType.CHICKEN, location);
-        List<Entity> chickens = new ArrayList<>();
+    void testSpawnerSpawnReasonNoPlayerNotification() {
+        // Put CHICKEN at limit (10 from config) so it gets cancelled
+        // Pre-fill with 10 chickens
         for (int i = 0; i < 10; i++) {
-            chickens.add(mockEntity(EntityType.CHICKEN, location));
+            ibc.incrementEntity(Environment.NORMAL, EntityType.CHICKEN);
         }
-        when(world.getNearbyEntities(any())).thenReturn(chickens);
+        LivingEntity chicken = mockEntity(EntityType.CHICKEN, location);
 
         CreatureSpawnEvent event = new CreatureSpawnEvent(chicken, SpawnReason.SPAWNER);
 
@@ -287,7 +306,7 @@ public class EntityLimitListenerTest {
     // --- HangingPlaceEvent tests ---
 
     @Test
-    public void testHangingPlaceNullPlayerIgnored() {
+    void testHangingPlaceNullPlayerIgnored() {
         Hanging hanging = mock(Hanging.class);
         when(hanging.getLocation()).thenReturn(location);
         when(hanging.getWorld()).thenReturn(world);
@@ -303,7 +322,7 @@ public class EntityLimitListenerTest {
     // --- EntityBreedEvent tests ---
 
     @Test
-    public void testBreedingOpPlayerBypasses() {
+    void testBreedingOpPlayerBypasses() {
         // Create an op player as breeder
         Player opPlayer = mock(Player.class);
         when(opPlayer.isOp()).thenReturn(true);
@@ -328,7 +347,7 @@ public class EntityLimitListenerTest {
         when(mother.getUniqueId()).thenReturn(UUID.randomUUID());
 
         // Set CHICKEN limit to 0 so any entity would be over limit
-        ibc.setEntityLimit(EntityType.CHICKEN, 0);
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.CHICKEN, 0);
 
         EntityBreedEvent event = new EntityBreedEvent(child, mother, father, opPlayer, null, 0);
 
@@ -342,13 +361,11 @@ public class EntityLimitListenerTest {
     // --- CreatureSpawn at-limit tests ---
 
     @Test
-    public void testCreatureSpawnAtLimitCancels() {
+    void testCreatureSpawnAtLimitCancels() {
         // Set island-specific CHICKEN limit to 1, pre-fill with 1
-        ibc.setEntityLimit(EntityType.CHICKEN, 1);
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.CHICKEN, 1);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.CHICKEN);
         LivingEntity chicken = mockEntity(EntityType.CHICKEN, location);
-        List<Entity> chickens = new ArrayList<>();
-        chickens.add(mockEntity(EntityType.CHICKEN, location));
-        when(world.getNearbyEntities(any())).thenReturn(chickens);
 
         CreatureSpawnEvent event = new CreatureSpawnEvent(chicken, SpawnReason.NATURAL);
 
@@ -358,17 +375,15 @@ public class EntityLimitListenerTest {
     }
 
     @Test
-    public void testCreatureSpawnBreedingVillagerProcessed() {
+    void testCreatureSpawnBreedingVillagerProcessed() {
         // Set island-specific VILLAGER limit to 1, pre-fill with 1
-        ibc.setEntityLimit(EntityType.VILLAGER, 1);
-        LivingEntity villager = mock(Villager.class);
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.VILLAGER, 1);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.VILLAGER);
+        Villager villager = mock(Villager.class);
         when(villager.getType()).thenReturn(EntityType.VILLAGER);
         when(villager.getLocation()).thenReturn(location);
         when(villager.getWorld()).thenReturn(world);
         when(villager.getUniqueId()).thenReturn(UUID.randomUUID());
-        List<Entity> villagers = new ArrayList<>();
-        villagers.add(villager);
-        when(world.getNearbyEntities(any())).thenReturn(villagers);
 
         CreatureSpawnEvent event = new CreatureSpawnEvent(villager, SpawnReason.BREEDING);
 
@@ -378,7 +393,7 @@ public class EntityLimitListenerTest {
     }
 
     @Test
-    public void testCreatureSpawnDebounceSkipsSecond() throws Exception {
+    void testCreatureSpawnDebounceSkipsSecond() throws Exception {
         // Access justSpawned list via reflection
         Field justSpawnedField = EntityLimitListener.class.getDeclaredField("justSpawned");
         justSpawnedField.setAccessible(true);
@@ -386,11 +401,9 @@ public class EntityLimitListenerTest {
         List<UUID> justSpawned = (List<UUID>) justSpawnedField.get(ell);
 
         // Set CHICKEN at limit
-        ibc.setEntityLimit(EntityType.CHICKEN, 1);
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.CHICKEN, 1);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.CHICKEN);
         LivingEntity chicken = mockEntity(EntityType.CHICKEN, location);
-        List<Entity> chickens = new ArrayList<>();
-        chickens.add(mockEntity(EntityType.CHICKEN, location));
-        when(world.getNearbyEntities(any())).thenReturn(chickens);
 
         // Add entity UUID to justSpawned (debounce)
         justSpawned.add(chicken.getUniqueId());
@@ -405,18 +418,15 @@ public class EntityLimitListenerTest {
     // --- VehicleCreateEvent tests ---
 
     @Test
-    public void testVehicleCreateAtLimitCancels() {
+    void testVehicleCreateAtLimitCancels() {
         // Set island-specific MINECART limit to 1, pre-fill with 1
-        ibc.setEntityLimit(EntityType.MINECART, 1);
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.MINECART, 1);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.MINECART);
         Minecart minecart = mock(Minecart.class);
         when(minecart.getType()).thenReturn(EntityType.MINECART);
         when(minecart.getLocation()).thenReturn(location);
         when(minecart.getWorld()).thenReturn(world);
         when(minecart.getUniqueId()).thenReturn(UUID.randomUUID());
-
-        List<Entity> minecarts = new ArrayList<>();
-        minecarts.add(minecart);
-        when(world.getNearbyEntities(any())).thenReturn(minecarts);
 
         VehicleCreateEvent event = new VehicleCreateEvent(minecart);
 
@@ -426,13 +436,13 @@ public class EntityLimitListenerTest {
     }
 
     @Test
-    public void testVehicleCreateDebounceSkipsSecond() throws Exception {
+    void testVehicleCreateDebounceSkipsSecond() throws Exception {
         Field justSpawnedField = EntityLimitListener.class.getDeclaredField("justSpawned");
         justSpawnedField.setAccessible(true);
         @SuppressWarnings("unchecked")
         List<UUID> justSpawned = (List<UUID>) justSpawnedField.get(ell);
 
-        ibc.setEntityLimit(EntityType.MINECART, 1);
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.MINECART, 1);
         Minecart minecart = mock(Minecart.class);
         when(minecart.getType()).thenReturn(EntityType.MINECART);
         when(minecart.getLocation()).thenReturn(location);
@@ -457,18 +467,15 @@ public class EntityLimitListenerTest {
     // --- HangingPlaceEvent at-limit and bypass tests ---
 
     @Test
-    public void testHangingPlaceAtLimitCancels() {
+    void testHangingPlaceAtLimitCancels() {
         // Set island-specific PAINTING limit to 1, pre-fill with 1
-        ibc.setEntityLimit(EntityType.PAINTING, 1);
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.PAINTING, 1);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.PAINTING);
         Painting painting = mock(Painting.class);
         when(painting.getType()).thenReturn(EntityType.PAINTING);
         when(painting.getLocation()).thenReturn(location);
         when(painting.getWorld()).thenReturn(world);
         when(painting.getUniqueId()).thenReturn(UUID.randomUUID());
-
-        List<Entity> paintings = new ArrayList<>();
-        paintings.add(painting);
-        when(world.getNearbyEntities(any())).thenReturn(paintings);
 
         Player player = mock(Player.class);
         when(player.isOp()).thenReturn(false);
@@ -484,9 +491,9 @@ public class EntityLimitListenerTest {
     }
 
     @Test
-    public void testHangingPlaceOpPlayerBypasses() {
+    void testHangingPlaceOpPlayerBypasses() {
         // Set island-specific PAINTING limit to 1, pre-fill with 1
-        ibc.setEntityLimit(EntityType.PAINTING, 1);
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.PAINTING, 1);
         Painting painting = mock(Painting.class);
         when(painting.getType()).thenReturn(EntityType.PAINTING);
         when(painting.getLocation()).thenReturn(location);
@@ -512,20 +519,29 @@ public class EntityLimitListenerTest {
     // --- Entity group limit tests ---
 
     @Test
-    public void testEntityGroupLimitBlocksSpawnWhenGroupFull() {
+    void testEntityGroupLimitBlocksSpawnWhenGroupFull() {
         // Create a custom group "testanimals" covering CHICKEN and COW with limit 2
         EntityGroup testGroup = new EntityGroup("testanimals", Set.of(EntityType.CHICKEN, EntityType.COW), 2, Material.BARRIER);
         Settings settings = addon.getSettings();
+        // Add to entity type → group lookup
         settings.getGroupLimits().put(EntityType.CHICKEN, new ArrayList<>(List.of(testGroup)));
         settings.getGroupLimits().put(EntityType.COW, new ArrayList<>(List.of(testGroup)));
+        // Also add the per-environment limit for the group (via reflection since we can't directly access the map)
+        try {
+            java.lang.reflect.Field envGroupLimitsField = Settings.class.getDeclaredField("envGroupLimits");
+            envGroupLimitsField.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            java.util.Map<Environment, java.util.Map<String, Integer>> envGroupLimits =
+                    (java.util.Map<Environment, java.util.Map<String, Integer>>) envGroupLimitsField.get(settings);
+            envGroupLimits.computeIfAbsent(Environment.NORMAL, k -> new java.util.HashMap<>())
+                    .put("testanimals", 2);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
 
         // Pre-fill with 2 entities in the group (1 CHICKEN + 1 COW)
-        LivingEntity chickenEntity = mockEntity(EntityType.CHICKEN, location);
-        LivingEntity cowEntity = mockEntity(EntityType.COW, location);
-        List<Entity> entities = new ArrayList<>();
-        entities.add(chickenEntity);
-        entities.add(cowEntity);
-        when(world.getNearbyEntities(any())).thenReturn(entities);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.CHICKEN);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.COW);
 
         // Try to spawn another CHICKEN
         LivingEntity newChicken = mockEntity(EntityType.CHICKEN, location);
@@ -537,7 +553,7 @@ public class EntityLimitListenerTest {
     }
 
     @Test
-    public void testEntityGroupLimitAllowsSpawnWhenGroupUnderLimit() {
+    void testEntityGroupLimitAllowsSpawnWhenGroupUnderLimit() {
         // Create a custom group "testanimals" covering CHICKEN and COW with limit 3
         EntityGroup testGroup = new EntityGroup("testanimals", Set.of(EntityType.CHICKEN, EntityType.COW), 3, Material.BARRIER);
         Settings settings = addon.getSettings();
@@ -570,6 +586,175 @@ public class EntityLimitListenerTest {
         when(entity.getWorld()).thenReturn(world);
         when(entity.getUniqueId()).thenReturn(UUID.randomUUID());
         return entity;
+    }
+
+    // --- Golem / snowman block-removal tests (#127) ---
+
+    @Test
+    void testDetectIronGolemRemovesAllBlocksWhenSpawnedAtBody() throws Exception {
+        grid = new HashMap<>();
+        Block base = setBlock(0, 64, 0, Material.IRON_BLOCK);
+        Block body = setBlock(0, 65, 0, Material.IRON_BLOCK);
+        Block head = setBlock(0, 66, 0, Material.CARVED_PUMPKIN);
+        Block arm1 = setBlock(0, 65, -1, Material.IRON_BLOCK); // NORTH
+        Block arm2 = setBlock(0, 65, 1, Material.IRON_BLOCK); // SOUTH
+
+        // Vanilla can spawn the golem at the BODY block; the old base-anchored search missed
+        // everything except the spawn block, leaving the base, arms and pumpkin behind (#127).
+        invokeDetect("detectIronGolem", spawnAt(body));
+
+        for (Block b : List.of(base, body, head, arm1, arm2)) {
+            verify(bll).removeBlock(b);
+            verify(b).setType(Material.AIR);
+        }
+    }
+
+    @Test
+    void testDetectIronGolemRemovesAllBlocksWhenSpawnedAtBase() throws Exception {
+        grid = new HashMap<>();
+        Block base = setBlock(0, 64, 0, Material.IRON_BLOCK);
+        Block body = setBlock(0, 65, 0, Material.IRON_BLOCK);
+        Block head = setBlock(0, 66, 0, Material.CARVED_PUMPKIN);
+        Block arm1 = setBlock(1, 65, 0, Material.IRON_BLOCK); // EAST
+        Block arm2 = setBlock(-1, 65, 0, Material.IRON_BLOCK); // WEST
+
+        invokeDetect("detectIronGolem", spawnAt(base));
+
+        for (Block b : List.of(base, body, head, arm1, arm2)) {
+            verify(bll).removeBlock(b);
+            verify(b).setType(Material.AIR);
+        }
+    }
+
+    @Test
+    void testDetectSnowmanRemovesAllBlocks() throws Exception {
+        grid = new HashMap<>();
+        Block base = setBlock(0, 64, 0, Material.SNOW_BLOCK);
+        Block body = setBlock(0, 65, 0, Material.SNOW_BLOCK);
+        Block head = setBlock(0, 66, 0, Material.JACK_O_LANTERN);
+
+        invokeDetect("detectSnowman", spawnAt(body));
+
+        for (Block b : List.of(base, body, head)) {
+            verify(bll).removeBlock(b);
+            verify(b).setType(Material.AIR);
+        }
+    }
+
+    @Test
+    void testDetectIronGolemLeavesUnrelatedBlocksAlone() throws Exception {
+        grid = new HashMap<>();
+        // A lone iron block with no pumpkin is not a golem — nothing may be erased.
+        Block stray = setBlock(0, 65, 0, Material.IRON_BLOCK);
+
+        invokeDetect("detectIronGolem", spawnAt(stray));
+
+        verify(stray, never()).setType(Material.AIR);
+        verify(bll, never()).removeBlock(any(Block.class));
+    }
+
+    /** Coordinate-keyed mock blocks whose getRelative() walks the shared grid. */
+    private Map<List<Integer>, Block> grid;
+
+    private Block gridBlock(int x, int y, int z) {
+        return grid.computeIfAbsent(List.of(x, y, z), k -> {
+            Block b = mock(Block.class);
+            when(b.getType()).thenReturn(Material.AIR);
+            when(b.getRelative(any(BlockFace.class))).thenAnswer(inv -> {
+                BlockFace f = inv.getArgument(0);
+                return gridBlock(x + f.getModX(), y + f.getModY(), z + f.getModZ());
+            });
+            return b;
+        });
+    }
+
+    private Block setBlock(int x, int y, int z, Material type) {
+        Block b = gridBlock(x, y, z);
+        when(b.getType()).thenReturn(type);
+        return b;
+    }
+
+    private Location spawnAt(Block block) {
+        Location loc = mock(Location.class);
+        when(loc.getBlock()).thenReturn(block);
+        return loc;
+    }
+
+    private void invokeDetect(String method, Location loc) throws Exception {
+        Method m = EntityLimitListener.class.getDeclaredMethod(method, Location.class);
+        m.setAccessible(true);
+        m.invoke(ell, loc);
+    }
+
+    // --- Spawn-egg interact guard tests (#134) ---
+
+    @Test
+    void testSpawnEggOnEntityAtLimitIsCancelled() {
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.ENDERMAN, 4); // seeded count is 4 -> at limit
+        Player p = eggPlayer(Material.ENDERMAN_SPAWN_EGG, EquipmentSlot.HAND);
+        Entity clicked = mock(Entity.class);
+        when(clicked.getLocation()).thenReturn(location);
+        PlayerInteractEntityEvent e = new PlayerInteractEntityEvent(p, clicked, EquipmentSlot.HAND);
+
+        ell.onSpawnEggUseOnEntity(e);
+
+        // Cancelled before the egg is consumed, rather than only blocking the later spawn.
+        assertTrue(e.isCancelled());
+    }
+
+    @Test
+    void testSpawnEggOnEntityUnderLimitNotCancelled() {
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.ENDERMAN, 10); // count 4 < 10
+        Player p = eggPlayer(Material.ENDERMAN_SPAWN_EGG, EquipmentSlot.HAND);
+        Entity clicked = mock(Entity.class);
+        when(clicked.getLocation()).thenReturn(location);
+        PlayerInteractEntityEvent e = new PlayerInteractEntityEvent(p, clicked, EquipmentSlot.HAND);
+
+        ell.onSpawnEggUseOnEntity(e);
+
+        assertFalse(e.isCancelled());
+    }
+
+    @Test
+    void testNonSpawnEggOnEntityIgnored() {
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.ENDERMAN, 4);
+        Player p = eggPlayer(Material.STICK, EquipmentSlot.HAND);
+        Entity clicked = mock(Entity.class);
+        when(clicked.getLocation()).thenReturn(location);
+        PlayerInteractEntityEvent e = new PlayerInteractEntityEvent(p, clicked, EquipmentSlot.HAND);
+
+        ell.onSpawnEggUseOnEntity(e);
+
+        assertFalse(e.isCancelled());
+    }
+
+    @Test
+    void testSpawnEggOnBlockAtLimitIsCancelled() {
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.ENDERMAN, 4);
+        Player p = mock(Player.class);
+        when(p.isOp()).thenReturn(false);
+        when(p.hasPermission(anyString())).thenReturn(false);
+        when(p.getUniqueId()).thenReturn(UUID.randomUUID());
+        Block clicked = mock(Block.class);
+        when(clicked.getLocation()).thenReturn(location);
+        PlayerInteractEvent e = new PlayerInteractEvent(p, Action.RIGHT_CLICK_BLOCK,
+                new ItemStack(Material.ENDERMAN_SPAWN_EGG), clicked, BlockFace.UP);
+
+        ell.onSpawnEggUseOnBlock(e);
+
+        // PlayerInteractEvent.isCancelled() is deprecated; cancelling denies the item-in-hand use
+        assertEquals(Event.Result.DENY, e.useItemInHand());
+    }
+
+    private Player eggPlayer(Material item, EquipmentSlot hand) {
+        Player p = mock(Player.class);
+        when(p.isOp()).thenReturn(false);
+        when(p.hasPermission(anyString())).thenReturn(false);
+        when(p.getUniqueId()).thenReturn(UUID.randomUUID());
+        PlayerInventory inv = mock(PlayerInventory.class);
+        when(p.getInventory()).thenReturn(inv);
+        when(inv.getItem(hand)).thenReturn(new ItemStack(item));
+        return p;
     }
 
 }

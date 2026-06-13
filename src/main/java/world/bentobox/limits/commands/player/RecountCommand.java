@@ -9,6 +9,7 @@ import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.calculators.Pipeliner;
+import world.bentobox.limits.calculators.Results;
 
 /**
  *
@@ -65,9 +66,10 @@ public class RecountCommand extends CompositeCommand {
             if (results == null) {
                 user.sendMessage("island.limits.recount.in-progress");
             } else {
-                switch (results.getState()) {
-                case TIMEOUT -> user.sendMessage("admin.limits.calc.timeout");
-                default -> user.sendMessage("admin.limits.calc.finished");
+                if (results.getState() == Results.Result.TIMEOUT) {
+                    user.sendMessage("admin.limits.calc.timeout");
+                } else {
+                    user.sendMessage("admin.limits.calc.finished");
                 }
             }
         });

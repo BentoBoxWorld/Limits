@@ -4,40 +4,41 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.bukkit.World.Environment;
 import org.junit.jupiter.api.Test;
 
 import world.bentobox.limits.calculators.Results.Result;
 
-public class ResultsTest {
+class ResultsTest {
 
     @Test
-    public void testDefaultConstructorStateIsAvailable() {
+    void testDefaultConstructorStateIsAvailable() {
         Results results = new Results();
         assertEquals(Result.AVAILABLE, results.getState());
     }
 
     @Test
-    public void testConstructorWithState() {
+    void testConstructorWithState() {
         Results results = new Results(Result.IN_PROGRESS);
         assertEquals(Result.IN_PROGRESS, results.getState());
     }
 
     @Test
-    public void testGetMdCountReturnsEmptyMultiset() {
+    void testGetBlockCountReturnsEmptyMultiset() {
         Results results = new Results();
-        assertNotNull(results.getMdCount());
-        assertTrue(results.getMdCount().isEmpty());
+        assertNotNull(results.getBlockCount(Environment.NORMAL));
+        assertTrue(results.getBlockCount(Environment.NORMAL).isEmpty());
     }
 
     @Test
-    public void testGetEntityCountReturnsEmptyMultiset() {
+    void testGetEntityCountReturnsEmptyMultiset() {
         Results results = new Results();
-        assertNotNull(results.getEntityCount());
-        assertTrue(results.getEntityCount().isEmpty());
+        assertNotNull(results.getEntityCount(Environment.NORMAL));
+        assertTrue(results.getEntityCount(Environment.NORMAL).isEmpty());
     }
 
     @Test
-    public void testResultEnumValues() {
+    void testResultEnumValues() {
         Result[] values = Result.values();
         assertEquals(3, values.length);
         assertNotNull(Result.valueOf("AVAILABLE"));

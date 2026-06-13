@@ -3,9 +3,9 @@ package world.bentobox.limits.objects;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import org.bukkit.NamespacedKey;
+import org.bukkit.World.Environment;
 import org.bukkit.entity.EntityType;
 
 import com.google.gson.annotations.Expose;
@@ -15,47 +15,91 @@ import world.bentobox.bentobox.database.objects.DataObject;
 import world.bentobox.bentobox.database.objects.Table;
 
 /**
- * @author tastybento
+ * Per-island, per-environment block and entity tracking.
  *
+ * <p>Each map is keyed by {@link Environment} so overworld, nether, and end have
+ * independent counts, limits and offsets. Pre-1.x data stored a single map per
+ * field (no environment); on first load that legacy data is migrated into the
+ * {@link Environment#NORMAL} slot.
+ *
+ * @author tastybento
  */
 @Table(name = "IslandBlockCount")
 public class IslandBlockCount implements DataObject {
 
+    /* New env-keyed primary storage. */
+
     @Expose
+    @JsonAdapter(EnvNamespacedKeyMapAdapter.class)
+    private Map<Environment, Map<NamespacedKey, Integer>> envBlockCounts = new EnumMap<>(Environment.class);
+
+    @Expose
+    @JsonAdapter(EnvNamespacedKeyMapAdapter.class)
+    private Map<Environment, Map<NamespacedKey, Integer>> envBlockLimits = new EnumMap<>(Environment.class);
+
+    @Expose
+    @JsonAdapter(EnvNamespacedKeyMapAdapter.class)
+    private Map<Environment, Map<NamespacedKey, Integer>> envBlockLimitsOffset = new EnumMap<>(Environment.class);
+
+    @Expose
+    private Map<Environment, Map<EntityType, Integer>> envEntityCounts = new EnumMap<>(Environment.class);
+
+    @Expose
+    private Map<Environment, Map<EntityType, Integer>> envEntityLimits = new EnumMap<>(Environment.class);
+
+    @Expose
+    private Map<Environment, Map<EntityType, Integer>> envEntityLimitsOffset = new EnumMap<>(Environment.class);
+
+    @Expose
+    private Map<Environment, Map<String, Integer>> envEntityGroupLimits = new EnumMap<>(Environment.class);
+
+    @Expose
+    private Map<Environment, Map<String, Integer>> envEntityGroupLimitsOffset = new EnumMap<>(Environment.class);
+
+    /* Legacy fields kept to deserialize pre-env data; never written back. */
+
+    @Expose(serialize = false)
     @JsonAdapter(NamespacedKeyMapAdapter.class)
-    private Map<NamespacedKey, Integer> blockCounts = new HashMap<>();
+    private Map<NamespacedKey, Integer> blockCounts;
 
-    /**
-     * Permission based limits
-     */
-    @Expose
+    @Expose(serialize = false)
     @JsonAdapter(NamespacedKeyMapAdapter.class)
-    private Map<NamespacedKey, Integer> blockLimits = new HashMap<>();
+    private Map<NamespacedKey, Integer> blockLimits;
 
-    @Expose
+    @Expose(serialize = false)
     @JsonAdapter(NamespacedKeyMapAdapter.class)
-    private Map<NamespacedKey, Integer> blockLimitsOffset = new HashMap<>();
+    private Map<NamespacedKey, Integer> blockLimitsOffset;
 
-    private boolean changed;
+    @Expose(serialize = false)
+    private Map<EntityType, Integer> entityLimits;
 
-    @Expose
-    private Map<String, Integer> entityGroupLimits = new HashMap<>();
-    @Expose
-    private Map<String, Integer> entityGroupLimitsOffset = new HashMap<>();
-    @Expose
-    private Map<EntityType, Integer> entityLimits = new EnumMap<>(EntityType.class);
-    @Expose
-    private Map<EntityType, Integer> entityLimitsOffset = new EnumMap<>(EntityType.class);
+    @Expose(serialize = false)
+    private Map<EntityType, Integer> entityLimitsOffset;
+
+    @Expose(serialize = false)
+    private Map<String, Integer> entityGroupLimits;
+
+    @Expose(serialize = false)
+    private Map<String, Integer> entityGroupLimitsOffset;
+
     @Expose
     private String gameMode;
+
     @Expose
     private String uniqueId;
 
+    private boolean changed;
+    private boolean migrated;
+
     /**
-     * Create an island block count object
-     * 
-     * @param islandId - unique Island ID string
-     * @param gameMode - Game mode name from gm.getDescription().getName()
+     * Required by Gson.
+     */
+    public IslandBlockCount() {
+    }
+
+    /**
+     * @param islandId unique island ID
+     * @param gameMode game mode addon name
      */
     public IslandBlockCount(String islandId, String gameMode) {
         this.uniqueId = islandId;
@@ -63,370 +107,394 @@ public class IslandBlockCount implements DataObject {
         setChanged();
     }
 
+    /* =========================================================================
+     * Migration
+     * ========================================================================= */
+
     /**
-     * Add a material to the count
-     * 
-     * @param material - material
+     * Move any legacy single-map data into Environment.NORMAL. Idempotent.
      */
-    public void add(NamespacedKey material) {
-         getBlockCounts().merge(material, 1, Integer::sum);
+    private void migrateIfNeeded() {
+        if (migrated) return;
+        migrated = true;
+        moveLegacy(blockCounts, envBlockCounts);
+        moveLegacy(blockLimits, envBlockLimits);
+        moveLegacy(blockLimitsOffset, envBlockLimitsOffset);
+        moveLegacy(entityLimits, envEntityLimits);
+        moveLegacy(entityLimitsOffset, envEntityLimitsOffset);
+        moveLegacy(entityGroupLimits, envEntityGroupLimits);
+        moveLegacy(entityGroupLimitsOffset, envEntityGroupLimitsOffset);
+        blockCounts = null;
+        blockLimits = null;
+        blockLimitsOffset = null;
+        entityLimits = null;
+        entityLimitsOffset = null;
+        entityGroupLimits = null;
+        entityGroupLimitsOffset = null;
+    }
+
+    private static <K> void moveLegacy(Map<K, Integer> legacy, Map<Environment, Map<K, Integer>> target) {
+        if (legacy == null || legacy.isEmpty()) return;
+        target.computeIfAbsent(Environment.NORMAL, e -> newInner(legacy)).putAll(legacy);
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private static <K> Map<K, Integer> newInner(Map<K, Integer> sample) {
+        Object first = sample.keySet().iterator().next();
+        if (first instanceof EntityType) {
+            Map<EntityType, Integer> enumMap = new EnumMap<>(EntityType.class);
+            return (Map<K, Integer>) enumMap;
+        }
+        return new HashMap<>();
+    }
+
+    /* =========================================================================
+     * Block counts
+     * ========================================================================= */
+
+    public Map<Environment, Map<NamespacedKey, Integer>> getAllBlockCounts() {
+        migrateIfNeeded();
+        if (envBlockCounts == null) envBlockCounts = new EnumMap<>(Environment.class);
+        return envBlockCounts;
+    }
+
+    public Map<NamespacedKey, Integer> getBlockCounts(Environment env) {
+        return getAllBlockCounts().computeIfAbsent(env, e -> new HashMap<>());
+    }
+
+    public int getBlockCount(Environment env, NamespacedKey key) {
+        return getBlockCounts(env).getOrDefault(key, 0);
+    }
+
+    public int getBlockCount(NamespacedKey key) {
+        int total = 0;
+        for (Map<NamespacedKey, Integer> m : getAllBlockCounts().values()) {
+            total += m.getOrDefault(key, 0);
+        }
+        return total;
+    }
+
+    public void add(Environment env, NamespacedKey material) {
+        getBlockCounts(env).merge(material, 1, Integer::sum);
+        setChanged();
+    }
+
+    public void remove(Environment env, NamespacedKey material) {
+        Map<NamespacedKey, Integer> m = getBlockCounts(env);
+        if (m.containsKey(material)) {
+            m.computeIfPresent(material, (k, count) -> count - 1 > 0 ? count - 1 : null);
+            setChanged();
+        }
+    }
+
+    public void clearAllBlockCounts() {
+        getAllBlockCounts().values().forEach(Map::clear);
+        setChanged();
+    }
+
+    /* =========================================================================
+     * Block limits
+     * ========================================================================= */
+
+    public Map<Environment, Map<NamespacedKey, Integer>> getAllBlockLimits() {
+        migrateIfNeeded();
+        if (envBlockLimits == null) envBlockLimits = new EnumMap<>(Environment.class);
+        return envBlockLimits;
+    }
+
+    public Map<NamespacedKey, Integer> getBlockLimits(Environment env) {
+        return getAllBlockLimits().computeIfAbsent(env, e -> new HashMap<>());
+    }
+
+    /**
+     * @return -1 if no env has a limit, otherwise the lowest limit defined across envs.
+     */
+    public int getBlockLimit(Environment env, NamespacedKey key) {
+        return getBlockLimits(env).getOrDefault(key, -1);
+    }
+
+    public boolean isBlockLimited(Environment env, NamespacedKey key) {
+        return getBlockLimits(env).containsKey(key);
+    }
+
+    public void setBlockLimit(Environment env, NamespacedKey key, int limit) {
+        getBlockLimits(env).put(key, limit);
         setChanged();
     }
 
     /**
-     * Clear all island-specific entity group limits
+     * Set the same limit for every standard environment (overworld, nether, end).
+     * Used by 5-segment, env-unspecified permissions and global config defaults.
      */
-    public void clearEntityGroupLimits() {
-        entityGroupLimits.clear();
+    public void setBlockLimitAllEnvs(NamespacedKey key, int limit) {
+        for (Environment env : Environment.values()) {
+            if (env == Environment.CUSTOM) continue;
+            setBlockLimit(env, key, limit);
+        }
+    }
+
+    public void clearAllBlockLimits() {
+        getAllBlockLimits().values().forEach(Map::clear);
+        setChanged();
+    }
+
+    /* =========================================================================
+     * Block limit offsets (env-agnostic in storage; offsets apply per env)
+     * ========================================================================= */
+
+    public Map<Environment, Map<NamespacedKey, Integer>> getAllBlockLimitsOffset() {
+        migrateIfNeeded();
+        if (envBlockLimitsOffset == null) envBlockLimitsOffset = new EnumMap<>(Environment.class);
+        return envBlockLimitsOffset;
+    }
+
+    public Map<NamespacedKey, Integer> getBlockLimitsOffset(Environment env) {
+        return getAllBlockLimitsOffset().computeIfAbsent(env, e -> new HashMap<>());
+    }
+
+    public int getBlockLimitOffset(Environment env, NamespacedKey key) {
+        return getBlockLimitsOffset(env).getOrDefault(key, 0);
+    }
+
+    public void setBlockLimitsOffset(Environment env, NamespacedKey key, int offset) {
+        getBlockLimitsOffset(env).put(key, offset);
         setChanged();
     }
 
     /**
-     * Clear all island-specific entity type limits
+     * Apply the same offset to every standard environment. Used by /offset which is env-agnostic.
      */
-    public void clearEntityLimits() {
-        entityLimits.clear();
+    public void setBlockLimitsOffsetAllEnvs(NamespacedKey key, int offset) {
+        for (Environment env : Environment.values()) {
+            if (env == Environment.CUSTOM) continue;
+            setBlockLimitsOffset(env, key, offset);
+        }
+    }
+
+    /* =========================================================================
+     * Entity counts (persistent)
+     * ========================================================================= */
+
+    public Map<Environment, Map<EntityType, Integer>> getAllEntityCounts() {
+        migrateIfNeeded();
+        if (envEntityCounts == null) envEntityCounts = new EnumMap<>(Environment.class);
+        return envEntityCounts;
+    }
+
+    public Map<EntityType, Integer> getEntityCounts(Environment env) {
+        return getAllEntityCounts().computeIfAbsent(env, e -> new EnumMap<>(EntityType.class));
+    }
+
+    public int getEntityCount(Environment env, EntityType type) {
+        return getEntityCounts(env).getOrDefault(type, 0);
+    }
+
+    public int getEntityCount(EntityType type) {
+        int total = 0;
+        for (Map<EntityType, Integer> m : getAllEntityCounts().values()) {
+            total += m.getOrDefault(type, 0);
+        }
+        return total;
+    }
+
+    public void incrementEntity(Environment env, EntityType type) {
+        getEntityCounts(env).merge(type, 1, Integer::sum);
         setChanged();
     }
 
-    /**
-     * Get the block count for this material for this island
-     * 
-     * @param m - material
-     * @return count
-     */
-    public Integer getBlockCount(NamespacedKey m) {
-        return getBlockCounts().getOrDefault(m, 0);
-    }
-
-    /**
-     * @return the blockCount
-     */
-    public Map<NamespacedKey, Integer> getBlockCounts() {
-        if (blockCounts == null) {
-            blockCounts = new HashMap<>();
+    public void decrementEntity(Environment env, EntityType type) {
+        Map<EntityType, Integer> m = getEntityCounts(env);
+        if (m.containsKey(type)) {
+            m.computeIfPresent(type, (k, c) -> c - 1 > 0 ? c - 1 : null);
+            setChanged();
         }
-        return blockCounts;
     }
 
-    /**
-     * Get the block limit for this material for this island
-     * 
-     * @param m - material
-     * @return limit or -1 for unlimited
-     */
-    public int getBlockLimit(NamespacedKey m) {
-         return getBlockLimits().getOrDefault(m, -1);
+    public void clearAllEntityCounts() {
+        getAllEntityCounts().values().forEach(Map::clear);
+        setChanged();
     }
 
-    /**
-     * Get the block offset for this material for this island
-     * 
-     * @param m - material
-     * @return offset
-     */
-    public int getBlockLimitOffset(NamespacedKey m) {
-        return getBlockLimitsOffset().getOrDefault(m, 0);
+    /* =========================================================================
+     * Entity limits
+     * ========================================================================= */
+
+    public Map<Environment, Map<EntityType, Integer>> getAllEntityLimits() {
+        migrateIfNeeded();
+        if (envEntityLimits == null) envEntityLimits = new EnumMap<>(Environment.class);
+        return envEntityLimits;
     }
 
-    /**
-     * @return the blockLimits
-     */
-    public Map<NamespacedKey, Integer> getBlockLimits() {
-        if (blockLimits == null) {
-            blockLimits = new HashMap<>();
+    public Map<EntityType, Integer> getEntityLimits(Environment env) {
+        return getAllEntityLimits().computeIfAbsent(env, e -> new EnumMap<>(EntityType.class));
+    }
+
+    public int getEntityLimit(Environment env, EntityType type) {
+        return getEntityLimits(env).getOrDefault(type, -1);
+    }
+
+    public void setEntityLimit(Environment env, EntityType type, int limit) {
+        getEntityLimits(env).put(type, limit);
+        setChanged();
+    }
+
+    public void setEntityLimitAllEnvs(EntityType type, int limit) {
+        for (Environment env : Environment.values()) {
+            if (env == Environment.CUSTOM) continue;
+            setEntityLimit(env, type, limit);
         }
-        return blockLimits;
     }
 
-    /**
-     * @return the blockLimitsOffset
-     */
-    public Map<NamespacedKey, Integer> getBlockLimitsOffset() {
-        if (blockLimitsOffset == null) {
-            blockLimitsOffset = new HashMap<>();
+    public void clearAllEntityLimits() {
+        getAllEntityLimits().values().forEach(Map::clear);
+        setChanged();
+    }
+
+    /* =========================================================================
+     * Entity limit offsets
+     * ========================================================================= */
+
+    public Map<Environment, Map<EntityType, Integer>> getAllEntityLimitsOffset() {
+        migrateIfNeeded();
+        if (envEntityLimitsOffset == null) envEntityLimitsOffset = new EnumMap<>(Environment.class);
+        return envEntityLimitsOffset;
+    }
+
+    public Map<EntityType, Integer> getEntityLimitsOffset(Environment env) {
+        return getAllEntityLimitsOffset().computeIfAbsent(env, e -> new EnumMap<>(EntityType.class));
+    }
+
+    public int getEntityLimitOffset(Environment env, EntityType type) {
+        return getEntityLimitsOffset(env).getOrDefault(type, 0);
+    }
+
+    public void setEntityLimitsOffset(Environment env, EntityType type, int offset) {
+        getEntityLimitsOffset(env).put(type, offset);
+        setChanged();
+    }
+
+    public void setEntityLimitsOffsetAllEnvs(EntityType type, int offset) {
+        for (Environment env : Environment.values()) {
+            if (env == Environment.CUSTOM) continue;
+            setEntityLimitsOffset(env, type, offset);
         }
-        return blockLimitsOffset;
     }
 
-    /**
-     * Get the limit for an entity group
-     * 
-     * @param name - entity group
-     * @return limit or -1 for unlimited
-     */
-    public int getEntityGroupLimit(String name) {
-        return getEntityGroupLimits().getOrDefault(name, -1);
+    /* =========================================================================
+     * Entity group limits
+     * ========================================================================= */
+
+    public Map<Environment, Map<String, Integer>> getAllEntityGroupLimits() {
+        migrateIfNeeded();
+        if (envEntityGroupLimits == null) envEntityGroupLimits = new EnumMap<>(Environment.class);
+        return envEntityGroupLimits;
     }
 
-    /**
-     * Get the offset for an entity group
-     * 
-     * @param name - entity group
-     * @return offset
-     */
-    public int getEntityGroupLimitOffset(String name) {
-        return getEntityGroupLimitsOffset().getOrDefault(name, 0);
+    public Map<String, Integer> getEntityGroupLimits(Environment env) {
+        return getAllEntityGroupLimits().computeIfAbsent(env, e -> new HashMap<>());
     }
 
-    /**
-     * @return the entityGroupLimits
-     */
-    public Map<String, Integer> getEntityGroupLimits() {
-        return Objects.requireNonNullElse(entityGroupLimits, new HashMap<>());
+    public int getEntityGroupLimit(Environment env, String name) {
+        return getEntityGroupLimits(env).getOrDefault(name, -1);
     }
 
-    /**
-     * @return the entityGroupLimitsOffset
-     */
-    public Map<String, Integer> getEntityGroupLimitsOffset() {
-        if (entityGroupLimitsOffset == null) {
-            entityGroupLimitsOffset = new HashMap<>();
+    public void setEntityGroupLimit(Environment env, String name, int limit) {
+        getEntityGroupLimits(env).put(name, limit);
+        setChanged();
+    }
+
+    public void setEntityGroupLimitAllEnvs(String name, int limit) {
+        for (Environment env : Environment.values()) {
+            if (env == Environment.CUSTOM) continue;
+            setEntityGroupLimit(env, name, limit);
         }
-        return entityGroupLimitsOffset;
     }
 
-    /**
-     * Get the limit for an entity type
-     * 
-     * @param t - entity type
-     * @return limit or -1 for unlimited
-     */
-    public int getEntityLimit(EntityType t) {
-        return getEntityLimits().getOrDefault(t, -1);
+    public void clearAllEntityGroupLimits() {
+        getAllEntityGroupLimits().values().forEach(Map::clear);
+        setChanged();
     }
 
-    /**
-     * Get the limit offset for an entity type
-     * 
-     * @param t - entity type
-     * @return offset
-     */
-    public int getEntityLimitOffset(EntityType t) {
-        return getEntityLimitsOffset().getOrDefault(t, 0);
+    /* =========================================================================
+     * Entity group limit offsets
+     * ========================================================================= */
+
+    public Map<Environment, Map<String, Integer>> getAllEntityGroupLimitsOffset() {
+        migrateIfNeeded();
+        if (envEntityGroupLimitsOffset == null) envEntityGroupLimitsOffset = new EnumMap<>(Environment.class);
+        return envEntityGroupLimitsOffset;
     }
 
-    /**
-     * @return the entityLimits
-     */
-    public Map<EntityType, Integer> getEntityLimits() {
-        return Objects.requireNonNullElse(entityLimits, new EnumMap<>(EntityType.class));
+    public Map<String, Integer> getEntityGroupLimitsOffset(Environment env) {
+        return getAllEntityGroupLimitsOffset().computeIfAbsent(env, e -> new HashMap<>());
     }
 
-    /**
-     * @return the entityLimitsOffset
-     */
-    public Map<EntityType, Integer> getEntityLimitsOffset() {
-        if (entityLimitsOffset == null) {
-            entityLimitsOffset = new EnumMap<>(EntityType.class);
+    public int getEntityGroupLimitOffset(Environment env, String name) {
+        return getEntityGroupLimitsOffset(env).getOrDefault(name, 0);
+    }
+
+    public void setEntityGroupLimitsOffset(Environment env, String name, int offset) {
+        getEntityGroupLimitsOffset(env).put(name, offset);
+        setChanged();
+    }
+
+    public void setEntityGroupLimitsOffsetAllEnvs(String name, int offset) {
+        for (Environment env : Environment.values()) {
+            if (env == Environment.CUSTOM) continue;
+            setEntityGroupLimitsOffset(env, name, offset);
         }
-        return entityLimitsOffset;
     }
 
-    /**
-     * @return the gameMode
-     */
+    /* =========================================================================
+     * "At limit" helpers
+     * ========================================================================= */
+
+    public boolean isAtLimit(Environment env, NamespacedKey key) {
+        if (!isBlockLimited(env, key)) return false;
+        return getBlockCount(env, key) >= getBlockLimit(env, key) + getBlockLimitOffset(env, key);
+    }
+
+    public boolean isAtLimit(Environment env, NamespacedKey key, int limit) {
+        return getBlockCount(env, key) >= limit + getBlockLimitOffset(env, key);
+    }
+
+    /* =========================================================================
+     * Misc
+     * ========================================================================= */
+
     public String getGameMode() {
         return gameMode;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see world.bentobox.bentobox.database.objects.DataObject#getUniqueId()
-     */
-    @Override
-    public String getUniqueId() {
-        return uniqueId;
-    }
-
-    /**
-     * Check if no more of this material can be added to this island
-     * 
-     * @param m - material
-     * @return true if no more material can be added
-     */
-    public boolean isAtLimit(NamespacedKey m) {
-        return getBlockLimits().containsKey(m)
-                && getBlockCount(m) >= getBlockLimit(m) + this.getBlockLimitOffset(m);
-    }
-
-    /**
-     * Check if this material is at or over a limit
-     * 
-     * @param material - block material
-     * @param limit    - limit to check
-     * @return true if count is >= limit
-     */
-    public boolean isAtLimit(NamespacedKey material, int limit) {
-        return getBlockCount(material) >= limit + this.getBlockLimitOffset(material);
-    }
-
-    public boolean isBlockLimited(NamespacedKey m) {
-        return getBlockLimits().containsKey(m);
-    }
-
-    /**
-     * @return the changed
-     */
-    public boolean isChanged() {
-        return changed;
+    public void setGameMode(String gameMode) {
+        this.gameMode = gameMode;
+        setChanged();
     }
 
     public boolean isGameMode(String gameMode) {
         return getGameMode().equals(gameMode);
     }
 
-    /**
-     * Remove a material from the count
-     * 
-     * @param material - material
-     */
-    public void remove(NamespacedKey material) {
-        // Check if this material is currently tracked
-        boolean existed = getBlockCounts().containsKey(material);
-        // Otherwise, decrement/remove individual block
-        getBlockCounts().computeIfPresent(material, (m, count) -> {
-            int newCount = count - 1;
-            return (newCount > 0) ? newCount : null; // null removes the entry
-        });
-        // Mark this object as changed only if a modification actually occurred
-        if (existed) {
-            setChanged();
-        }
+    @Override
+    public String getUniqueId() {
+        return uniqueId;
     }
 
-    /**
-     * @param blockCounts the blockCount to set
-     */
-    public void setBlockCounts(Map<NamespacedKey, Integer> blockCounts) {
-        this.blockCounts = blockCounts;
-        setChanged();
-    }
-
-    /**
-     * Set the block limit for this material for this island
-     * 
-     * @param m     - material
-     * @param limit - maximum number allowed
-     */
-    public void setBlockLimit(NamespacedKey m, int limit) {
-        getBlockLimits().put(m, limit);
-        setChanged();
-    }
-
-    /**
-     * @param blockLimits the blockLimits to set
-     */
-    public void setBlockLimits(Map<NamespacedKey, Integer> blockLimits) {
-        this.blockLimits = blockLimits;
-        setChanged();
-    }
-
-    /**
-     * Set an offset to a block limit. This will increase/decrease the value of the
-     * limit.
-     * 
-     * @param m                 material
-     * @param blockLimitsOffset the blockLimitsOffset to set
-     */
-    public void setBlockLimitsOffset(NamespacedKey m, Integer blockLimitsOffset) {
-        getBlockLimitsOffset().put(m, blockLimitsOffset);
-    }
-
-    /**
-     * Mark changed
-     */
-    public void setChanged() {
-        this.changed = true;
-    }
-
-    /**
-     * @param changed the changed to set
-     */
-    public void setChanged(boolean changed) {
-        this.changed = changed;
-    }
-
-    /**
-     * Set an island-specific entity group limit
-     * 
-     * @param name  - entity group
-     * @param limit - limit
-     */
-    public void setEntityGroupLimit(String name, int limit) {
-        getEntityGroupLimits().put(name, limit);
-        setChanged();
-    }
-
-    /**
-     * @param entityGroupLimits the entityGroupLimits to set
-     */
-    public void setEntityGroupLimits(Map<String, Integer> entityGroupLimits) {
-        this.entityGroupLimits = entityGroupLimits;
-        setChanged();
-    }
-
-    /**
-     * Set an offset to an entity group limit. This will increase/decrease the value
-     * of the limit.
-     * 
-     * @param name                    group name
-     * @param entityGroupLimitsOffset the entityGroupLimitsOffset to set
-     */
-    public void setEntityGroupLimitsOffset(String name, Integer entityGroupLimitsOffset) {
-        getEntityGroupLimitsOffset().put(name, entityGroupLimitsOffset);
-    }
-
-    /**
-     * Set an island-specific entity type limit
-     * 
-     * @param t     - entity type
-     * @param limit - limit
-     */
-    public void setEntityLimit(EntityType t, int limit) {
-        getEntityLimits().put(t, limit);
-        setChanged();
-    }
-
-    /**
-     * @param entityLimits the entityLimits to set
-     */
-    public void setEntityLimits(Map<EntityType, Integer> entityLimits) {
-        this.entityLimits = entityLimits;
-        setChanged();
-    }
-
-    /**
-     * Set an offset to an entity limit. This will increase/decrease the value of
-     * the limit.
-     * 
-     * @param type               Entity Type
-     * @param entityLimitsOffset the entityLimitsOffset to set
-     */
-    public void setEntityLimitsOffset(EntityType type, Integer entityLimitsOffset) {
-        this.getEntityLimitsOffset().put(type, entityLimitsOffset);
-    }
-
-    /**
-     * @param gameMode the gameMode to set
-     */
-    public void setGameMode(String gameMode) {
-        this.gameMode = gameMode;
-        setChanged();
-    }
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * world.bentobox.bentobox.database.objects.DataObject#setUniqueId(java.lang.
-     * String)
-     */
     @Override
     public void setUniqueId(String uniqueId) {
         this.uniqueId = uniqueId;
         setChanged();
     }
 
- }
+    public boolean isChanged() {
+        return changed;
+    }
+
+    public void setChanged() {
+        this.changed = true;
+    }
+
+    public void setChanged(boolean changed) {
+        this.changed = changed;
+    }
+}

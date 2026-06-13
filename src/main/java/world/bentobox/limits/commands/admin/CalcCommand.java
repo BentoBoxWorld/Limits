@@ -20,7 +20,6 @@ import world.bentobox.limits.calculators.Results;
 public class CalcCommand extends CompositeCommand {
 
     private final Limits addon;
-    private Island island;
 
     /**
      * Admin command
@@ -54,7 +53,7 @@ public class CalcCommand extends CompositeCommand {
                 user.sendMessage("general.errors.unknown-player", args.get(0));
                 return true;
             }
-            island = addon.getIslands().getIsland(getWorld(), playerUUID);
+            Island island = addon.getIslands().getIsland(getWorld(), playerUUID);
             if (island == null) {
                 user.sendMessage("general.errors.player-has-no-island");
                 return false;
@@ -77,9 +76,10 @@ public class CalcCommand extends CompositeCommand {
         if (results == null) {
             user.sendMessage("island.limits.recount.in-progress");
         } else {
-            switch (results.getState()) {
-                case TIMEOUT -> user.sendMessage("admin.limits.calc.timeout");
-                default -> user.sendMessage("admin.limits.calc.finished");
+            if (results.getState() == Results.Result.TIMEOUT) {
+                user.sendMessage("admin.limits.calc.timeout");
+            } else {
+                user.sendMessage("admin.limits.calc.finished");
             }
         }
     }

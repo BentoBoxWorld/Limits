@@ -151,8 +151,8 @@ public class OffsetCommand extends CompositeCommand
 
             int offset = Integer.parseInt(args.get(2));
 
-            if (material != null && offset == islandData.getBlockLimitOffset(material.getKey()) ||
-                entityType != null && offset == islandData.getEntityLimitOffset(entityType))
+            if (material != null && offset == islandData.getBlockLimitOffset(org.bukkit.World.Environment.NORMAL, material.getKey()) ||
+                entityType != null && offset == islandData.getEntityLimitOffset(org.bukkit.World.Environment.NORMAL, entityType))
             {
                 user.sendMessage("admin.limits.offset.set.same",
                     TextVariables.NAME,
@@ -164,7 +164,7 @@ public class OffsetCommand extends CompositeCommand
 
             if (material != null)
             {
-                islandData.setBlockLimitsOffset(material.getKey(), offset);
+                islandData.setBlockLimitsOffsetAllEnvs(material.getKey(), offset);
                 islandData.setChanged();
 
                 user.sendMessage("admin.limits.offset.set.success",
@@ -173,7 +173,7 @@ public class OffsetCommand extends CompositeCommand
             }
             else
             {
-                islandData.setEntityLimitsOffset(entityType, offset);
+                islandData.setEntityLimitsOffsetAllEnvs(entityType, offset);
                 islandData.setChanged();
 
                 user.sendMessage("admin.limits.offset.set.success",
@@ -188,7 +188,7 @@ public class OffsetCommand extends CompositeCommand
         @Override
         public Optional<List<String>> tabComplete(User user, String alias, List<String> args)
         {
-            return OffsetCommand.craftTabComplete(user, alias, args);
+            return OffsetCommand.craftTabComplete(user, args);
         }
 
 
@@ -277,9 +277,9 @@ public class OffsetCommand extends CompositeCommand
 
             if (material != null)
             {
-                offset += islandData.getBlockLimitOffset(material.getKey());
+                offset += islandData.getBlockLimitOffset(org.bukkit.World.Environment.NORMAL, material.getKey());
 
-                islandData.setBlockLimitsOffset(material.getKey(), offset);
+                islandData.setBlockLimitsOffsetAllEnvs(material.getKey(), offset);
                 islandData.setChanged();
 
                 user.sendMessage("admin.limits.offset.add.success",
@@ -288,9 +288,9 @@ public class OffsetCommand extends CompositeCommand
             }
             else
             {
-                offset += islandData.getEntityLimitOffset(entityType);
+                offset += islandData.getEntityLimitOffset(org.bukkit.World.Environment.NORMAL, entityType);
 
-                islandData.setEntityLimitsOffset(entityType, offset);
+                islandData.setEntityLimitsOffsetAllEnvs(entityType, offset);
                 islandData.setChanged();
 
                 user.sendMessage("admin.limits.offset.add.success",
@@ -305,7 +305,7 @@ public class OffsetCommand extends CompositeCommand
         @Override
         public Optional<List<String>> tabComplete(User user, String alias, List<String> args)
         {
-            return OffsetCommand.craftTabComplete(user, alias, args);
+            return OffsetCommand.craftTabComplete(user, args);
         }
 
 
@@ -394,9 +394,9 @@ public class OffsetCommand extends CompositeCommand
 
             if (material != null)
             {
-                offset = islandData.getBlockLimitOffset(material.getKey()) - offset;
+                offset = islandData.getBlockLimitOffset(org.bukkit.World.Environment.NORMAL, material.getKey()) - offset;
 
-                islandData.setBlockLimitsOffset(material.getKey(), offset);
+                islandData.setBlockLimitsOffsetAllEnvs(material.getKey(), offset);
                 islandData.setChanged();
 
                 user.sendMessage("admin.limits.offset.remove.success",
@@ -405,9 +405,9 @@ public class OffsetCommand extends CompositeCommand
             }
             else
             {
-                offset = islandData.getEntityLimitOffset(entityType) - offset;
+                offset = islandData.getEntityLimitOffset(org.bukkit.World.Environment.NORMAL, entityType) - offset;
 
-                islandData.setEntityLimitsOffset(entityType, offset);
+                islandData.setEntityLimitsOffsetAllEnvs(entityType, offset);
                 islandData.setChanged();
 
                 user.sendMessage("admin.limits.offset.remove.success",
@@ -422,7 +422,7 @@ public class OffsetCommand extends CompositeCommand
         @Override
         public Optional<List<String>> tabComplete(User user, String alias, List<String> args)
         {
-            return OffsetCommand.craftTabComplete(user, alias, args);
+            return OffsetCommand.craftTabComplete(user, args);
         }
 
 
@@ -502,7 +502,7 @@ public class OffsetCommand extends CompositeCommand
 
             if (material != null)
             {
-                islandData.setBlockLimitsOffset(material.getKey(), 0);
+                islandData.setBlockLimitsOffsetAllEnvs(material.getKey(), 0);
                 islandData.setChanged();
 
                 user.sendMessage("admin.limits.offset.reset.success",
@@ -510,7 +510,7 @@ public class OffsetCommand extends CompositeCommand
             }
             else
             {
-                islandData.setEntityLimitsOffset(entityType, 0);
+                islandData.setEntityLimitsOffsetAllEnvs(entityType, 0);
                 islandData.setChanged();
 
                 user.sendMessage("admin.limits.offset.reset.success",
@@ -524,7 +524,7 @@ public class OffsetCommand extends CompositeCommand
         @Override
         public Optional<List<String>> tabComplete(User user, String alias, List<String> args)
         {
-            return OffsetCommand.craftTabComplete(user, alias, args);
+            return OffsetCommand.craftTabComplete(user, args);
         }
 
 
@@ -604,14 +604,14 @@ public class OffsetCommand extends CompositeCommand
 
             if (material != null)
             {
-                int offset = islandData.getBlockLimitOffset(material.getKey());
+                int offset = islandData.getBlockLimitOffset(org.bukkit.World.Environment.NORMAL, material.getKey());
                 user.sendMessage("admin.limits.offset.view.message",
                     TextVariables.NAME, material.name(),
                     TextVariables.NUMBER, String.valueOf(offset));
             }
             else
             {
-                int offset = islandData.getEntityLimitOffset(entityType);
+                int offset = islandData.getEntityLimitOffset(org.bukkit.World.Environment.NORMAL, entityType);
                 user.sendMessage("admin.limits.offset.view.message",
                     TextVariables.NAME, entityType.name(),
                     TextVariables.NUMBER, String.valueOf(offset));
@@ -624,7 +624,7 @@ public class OffsetCommand extends CompositeCommand
         @Override
         public Optional<List<String>> tabComplete(User user, String alias, List<String> args)
         {
-            return OffsetCommand.craftTabComplete(user, alias, args);
+            return OffsetCommand.craftTabComplete(user, args);
         }
 
 
@@ -660,11 +660,10 @@ public class OffsetCommand extends CompositeCommand
     /**
      * This method crafts tab complete for all subcommands
      * @param user User who runs command.
-     * @param alias Command alias.
      * @param args List of args.
      * @return Optional list of strings.
      */
-    private static Optional<List<String>> craftTabComplete(User user, String alias, List<String> args)
+    private static Optional<List<String>> craftTabComplete(User user, List<String> args)
     {
         String lastArg = !args.isEmpty() ? args.get(args.size() - 1) : "";
 
@@ -686,7 +685,7 @@ public class OffsetCommand extends CompositeCommand
 
             options.addAll(Arrays.stream(EntityType.values()).
                 map(Enum::name).
-                collect(Collectors.toList()));
+                toList());
 
             return Optional.of(Util.tabLimit(options, lastArg));
         }

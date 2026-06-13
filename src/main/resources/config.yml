@@ -10,10 +10,16 @@ gamemodes:
 ignore-center-block: true
 
 # Permissions
-# Island owners can be given permissions that override all general settings
-# Format is GAME-MODE-NAME.island.limit.MATERIAL.LIMIT
-# example: bskyblock.island.limit.hopper.10
-# permission activates when player logs in.
+# Island owners can be given permissions that override all general settings.
+#
+# Two formats are supported:
+#   1. <gamemode>.island.limit.<KEY>.<NUMBER>           — applied to every environment.
+#      e.g.  bskyblock.island.limit.hopper.20
+#   2. <gamemode>.island.limit.<env>.<KEY>.<NUMBER>     — applied to one environment only.
+#      e.g.  bskyblock.island.limit.nether.hopper.5
+#      <env> is one of: overworld, nether, end
+#
+# Permissions activate when the island owner logs in.
 #
 # Cooldown for player recount command in seconds
 cooldown: 120
@@ -27,31 +33,55 @@ async-golums: true
 # General block limiting
 # Use this section to limit how many blocks can be added to an island.
 # 0 means the item will be blocked from placement completely.
-# These limits apply to every game mode world
-# The following general terms can be used: STAIRS, DOORS, SIGNS, LOGS, SNOW, LEAVES, SHULKER_BOXES,
-# BANNERS, RAILS, ICE, BUTTONS, CANDLE_CAKES, CAMPFIRES, SLABS, STONE_BRICKS,
+# These limits apply independently in every environment (overworld, nether, end).
+# A HOPPER limit of 10 means the player can place up to 10 hoppers in each of overworld,
+# nether, and end — 30 hoppers total across the island.
+# Use blocklimits-nether / blocklimits-end below to override per environment.
+# The following general terms can be used: STAIRS, DOORS, SIGNS, LOGS, SNOW, LEAVES,
+# SHULKER_BOXES, BANNERS, RAILS, ICE, BUTTONS, CANDLE_CAKES, CAMPFIRES, SLABS, STONE_BRICKS
 blocklimits:
   HOPPER: 10
-# This section is for world-specific limits and overrides the general limit
-# Specify each world you want to limit individually (including nether and end worlds)
-# If these worlds are not covered by the game modes above, nothing will happen
+
+# Override block limits in the nether for this game mode.
+# Uncomment and add entries to set nether-only limits.
+#blocklimits-nether:
+#  HOPPER: 5
+
+# Override block limits in the end for this game mode.
+#blocklimits-end:
+#  HOPPER: 5
+
+# This section is for world-named limits and overrides any environment-default limit
+# above for that specific world. Specify each world you want to limit individually
+# (including nether and end worlds). If these worlds are not covered by the game modes
+# above, nothing will happen.
 worlds:
   AcidIsland_world:
     HOPPER: 11
 
 # Default entity limits within a player's island space (protected area and to island limit).
-# A limit of 5 will allow up to 5 entities in over world, 5 in nether and 5 in the end.
+# Limits apply independently per environment, the same way blocklimits do.
 # Affects all types of creature spawning. Also includes entities like MINECARTS.
 # Note: Only the first 49 limited blocks and entities are shown in the limits GUI.
 entitylimits:
   ENDERMAN: 5
   CHICKEN: 10
 
+# Override entity limits in the nether.
+#entitylimits-nether:
+#  PIGLIN: 20
+#  HOGLIN: 5
+
+# Override entity limits in the end.
+#entitylimits-end:
+#  ENDERMAN: 50
+
 # Entity Groups
 # Name the group anything you like
 # Select an icon, which is a Bukkit Material
 # Select the limit for the total group
 # List the entities in the group using Bukkit EntityTypes
+# Group limits apply independently per environment.
 entitygrouplimits:
   Monsters:
     icon: ROTTEN_FLESH
@@ -131,6 +161,10 @@ entitygrouplimits:
     - TROPICAL_FISH
     - GLOW_SQUID
 
-    
-
-  
+# Override an entity group's limit per environment. The group must already be defined
+# in entitygrouplimits above; only the numeric limit can be overridden, not the icon
+# or member set.
+#entitygrouplimits-nether:
+#  Monsters: 100
+#entitygrouplimits-end:
+#  Monsters: 50

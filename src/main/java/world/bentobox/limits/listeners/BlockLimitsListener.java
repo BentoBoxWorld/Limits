@@ -1,12 +1,12 @@
 package world.bentobox.limits.listeners;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -14,13 +14,13 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.Tag;
 import org.bukkit.World;
+import org.bukkit.World.Environment;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.TechnicalPiston;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.event.Cancellable;
-import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -43,6 +43,8 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
+import com.google.common.base.Enums;
+
 import world.bentobox.bentobox.api.events.island.IslandDeleteEvent;
 import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.user.User;
@@ -50,40 +52,85 @@ import world.bentobox.bentobox.database.Database;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Util;
 import world.bentobox.limits.Limits;
+import world.bentobox.limits.Settings;
 import world.bentobox.limits.objects.IslandBlockCount;
 
 /**
  * @author tastybento
- *
  */
 public class BlockLimitsListener implements Listener {
 
-    /**
-     * Blocks that are not counted
-     */
-    private static final List<NamespacedKey> DO_NOT_COUNT = List.of(Material.LAVA.getKey(), Material.WATER.getKey(), Material.AIR.getKey(), Material.FIRE.getKey(), Material.END_PORTAL.getKey(), Material.NETHER_PORTAL.getKey());
+    /** Blocks that are not counted */
+    private static final List<NamespacedKey> DO_NOT_COUNT = List.of(Material.LAVA.getKey(), Material.WATER.getKey(),
+            Material.AIR.getKey(), Material.FIRE.getKey(), Material.END_PORTAL.getKey(),
+            Material.NETHER_PORTAL.getKey());
     private static final List<NamespacedKey> STACKABLE = List.of(Material.SUGAR_CANE.getKey(), Material.BAMBOO.getKey());
 
-    /**
-     * Save every 10 blocks of change
+    /*
+     * Materials added in Minecraft 1.21.9 ("Copper Age"). Resolved by name so the
+     * addon links and runs on older servers (< 1.21.9) where these constants are
+     * absent, instead of throwing NoSuchFieldError. Absent Optional == not on this server.
      */
+    @Nullable
+    private static final Material COPPER_WALL_TORCH = Enums.getIfPresent(Material.class, "COPPER_WALL_TORCH").orNull();
+    @Nullable
+    private static final Material COPPER_TORCH = Enums.getIfPresent(Material.class, "COPPER_TORCH").orNull();
+    @Nullable
+    private static final Material COPPER_CHEST = Enums.getIfPresent(Material.class, "COPPER_CHEST").orNull();
+    /** All weathered/waxed copper chest variants that normalise to {@link #COPPER_CHEST}. */
+    private static final List<Material> COPPER_CHEST_VARIANTS = List.of("EXPOSED_COPPER_CHEST", "WEATHERED_COPPER_CHEST",
+            "OXIDIZED_COPPER_CHEST", "WAXED_COPPER_CHEST", "WAXED_EXPOSED_COPPER_CHEST", "WAXED_WEATHERED_COPPER_CHEST",
+            "WAXED_OXIDIZED_COPPER_CHEST").stream().map(name -> Enums.getIfPresent(Material.class, name).orNull())
+            .filter(Objects::nonNull).toList();
+
+    /**
+     * Variant block materials mapped to the canonical material we count them as.
+     * Pistons are handled separately because the canonical form depends on block data.
+     */
+    private static final Map<Material, Material> VARIANT_MAP = new EnumMap<>(Material.class);
+    static {
+        VARIANT_MAP.put(Material.CHIPPED_ANVIL, Material.ANVIL);
+        VARIANT_MAP.put(Material.DAMAGED_ANVIL, Material.ANVIL);
+        VARIANT_MAP.put(Material.REDSTONE_WALL_TORCH, Material.REDSTONE_TORCH);
+        VARIANT_MAP.put(Material.WALL_TORCH, Material.TORCH);
+        VARIANT_MAP.put(Material.ZOMBIE_WALL_HEAD, Material.ZOMBIE_HEAD);
+        VARIANT_MAP.put(Material.CREEPER_WALL_HEAD, Material.CREEPER_HEAD);
+        VARIANT_MAP.put(Material.PLAYER_WALL_HEAD, Material.PLAYER_HEAD);
+        VARIANT_MAP.put(Material.DRAGON_WALL_HEAD, Material.DRAGON_HEAD);
+        VARIANT_MAP.put(Material.BAMBOO_SAPLING, Material.BAMBOO);
+        // 1.21.9 materials: only mapped when present on this server
+        if (COPPER_WALL_TORCH != null && COPPER_TORCH != null) {
+            VARIANT_MAP.put(COPPER_WALL_TORCH, COPPER_TORCH);
+        }
+        if (COPPER_CHEST != null) {
+            COPPER_CHEST_VARIANTS.forEach(variant -> VARIANT_MAP.put(variant, COPPER_CHEST));
+        }
+    }
+
+    /** Save every 10 blocks of change */
     private static final Integer CHANGE_LIMIT = 9;
     private final Limits addon;
     private final Map<String, IslandBlockCount> islandCountMap = new HashMap<>();
     private final Map<String, Integer> saveMap = new HashMap<>();
     private final Database<IslandBlockCount> handler;
     private final Map<World, Map<NamespacedKey, Integer>> worldLimitMap = new HashMap<>();
-    private Map<NamespacedKey, Integer> defaultLimitMap = new HashMap<>();
+    /**
+     * Per-environment default limits. The "blocklimits" section seeds every env;
+     * "blocklimits-nether" / "blocklimits-end" sections override one env each.
+     */
+    private final Map<Environment, Map<NamespacedKey, Integer>> envDefaultLimitMap = new EnumMap<>(Environment.class);
 
     public BlockLimitsListener(Limits addon) {
         this.addon = addon;
+        for (Environment env : Settings.ENVIRONMENTS) {
+            envDefaultLimitMap.put(env, new HashMap<>());
+        }
         handler = new Database<>(addon, IslandBlockCount.class);
         List<String> toBeDeleted = new ArrayList<>();
         handler.loadObjects().forEach(ibc -> {
-            // Clean up
             if (addon.isCoveredGameMode(ibc.getGameMode())) {
-                ibc.getBlockCounts().keySet().removeIf(DO_NOT_COUNT::contains);
-                // Store
+                // Strip uncountable types from every env's count map
+                ibc.getAllBlockCounts().values().forEach(m -> m.keySet().removeIf(DO_NOT_COUNT::contains));
                 islandCountMap.put(ibc.getUniqueId(), ibc);
             } else {
                 toBeDeleted.add(ibc.getUniqueId());
@@ -97,142 +144,143 @@ public class BlockLimitsListener implements Listener {
      * Loads the default and world-specific limits
      */
     private void loadAllLimits() {
-        // Load the default limits
-        addon.log("Loading default limits");
+        // Pass 1: "blocklimits" applies to every env as the global default
         if (addon.getConfig().isConfigurationSection("blocklimits")) {
             ConfigurationSection limitConfig = addon.getConfig().getConfigurationSection("blocklimits");
-            defaultLimitMap = loadLimits(Objects.requireNonNull(limitConfig));
+            Map<NamespacedKey, Integer> base = loadLimits(Objects.requireNonNull(limitConfig));
+            for (Environment env : Settings.ENVIRONMENTS) {
+                envDefaultLimitMap.get(env).putAll(base);
+            }
+            addon.log("Loading default block limits");
         }
+        // Pass 2: env-specific sections override the base for that env
+        loadEnvSection("blocklimits-nether", Environment.NETHER);
+        loadEnvSection("blocklimits-end", Environment.THE_END);
 
-        // Load specific worlds
+        // Per-world named overrides
         if (addon.getConfig().isConfigurationSection("worlds")) {
             ConfigurationSection worlds = addon.getConfig().getConfigurationSection("worlds");
             for (String worldName : Objects.requireNonNull(worlds).getKeys(false)) {
                 World world = Bukkit.getWorld(worldName);
                 if (world != null && addon.inGameModeWorld(world)) {
                     addon.log("Loading limits for " + world.getName());
-                    worldLimitMap.putIfAbsent(world, new HashMap<>());
                     ConfigurationSection matsConfig = worlds.getConfigurationSection(worldName);
                     worldLimitMap.put(world, loadLimits(Objects.requireNonNull(matsConfig)));
                 }
             }
         }
-
     }
-    /*
-    private static final Set<Tag<Material>> TAGS = Set.of(Tag.ANVIL, 
-            Tag.BAMBOO_BLOCKS, Tag.BANNERS, Tag.BEDS, Tag.BEEHIVES, Tag.BUTTONS, Tag.CAMPFIRES, Tag.CANDLE_CAKES, 
-            Tag.CORALS, Tag.CAULDRONS, Tag.CAVE_VINES, Tag.DIRT, Tag.DOORS,
-            Tag.FENCE_GATES, Tag.FENCES, Tag.ICE, Tag.LEAVES, Tag.LOGS,
-            Tag.NYLIUM, Tag.PLANKS, Tag.PORTALS, Tag.RAILS, Tag.SAND, Tag.SAPLINGS, Tag.SHULKER_BOXES,
-            Tag.SIGNS, Tag.SLABS, Tag.SNOW, Tag.STAIRS, Tag.STONE_BRICKS, 
-            Tag.PRESSURE_PLATES, Tag.TERRACOTTA, Tag.TRAPDOORS, Tag.WALLS,
-            Tag.WART_BLOCKS, Tag.WOOL, Tag.WOOL_CARPETS);*/
+
+    private void loadEnvSection(String section, Environment env) {
+        if (!addon.getConfig().isConfigurationSection(section)) return;
+        ConfigurationSection cs = addon.getConfig().getConfigurationSection(section);
+        addon.log("Loading " + env + " block limit overrides from " + section);
+        envDefaultLimitMap.get(env).putAll(loadLimits(Objects.requireNonNull(cs)));
+    }
+
     /**
      * Loads limit map from configuration section
-     *
-     * @param cs - configuration section
-     * @return limit map
      */
     private Map<NamespacedKey, Integer> loadLimits(ConfigurationSection cs) {
         Map<NamespacedKey, Integer> limits = new HashMap<>();
         for (String key : cs.getKeys(false)) {
-            int limit = cs.getInt(key);
-            NamespacedKey nsKey;
-            if (key.contains(":")) {
-                // Config already has a full namespaced key
-                nsKey = NamespacedKey.fromString(key.toLowerCase(Locale.ROOT));
-                if (nsKey == null) {
-                    Bukkit.getLogger().warning("Invalid namespaced key in config, skipping: " + key);
-                    continue;
-                }
-            } else {
-                // Assume "minecraft" namespace if none provided
-                nsKey = new NamespacedKey(NamespacedKey.MINECRAFT, key.toLowerCase(Locale.ROOT));
-            }
-
-            boolean matched = false;
-
-            // Try match to Material - only accept block materials that are not in DO_NOT_COUNT
-            Material mat = Registry.MATERIAL.get(nsKey);
-            if (mat != null) {
-                matched = true;
-                if (!mat.isBlock()) {
-                    Bukkit.getLogger().warning("Non-block material in block limits config: " + key);
-                } else if (DO_NOT_COUNT.contains(mat.getKey())) {
-                    Bukkit.getLogger().warning("Uncountable material in block limits config: " + key);
-                } else {
-                    limits.put(mat.getKey(), limit);
-                }
-            }
-
-            // Try match to a Tag<Material>
-            if (!matched) {
-                Tag<Material> tag = Bukkit.getTag("blocks", nsKey, Material.class);
-                if (tag != null) {
-                    limits.put(tag.getKey(), limit);
-                    matched = true;
-                }
-            }
-
-
-            // Log warning if nothing matched
-            if (!matched) {
-                Bukkit.getLogger().warning("Unknown material or tag in config: " + key);
+            NamespacedKey nsKey = parseConfigKey(key);
+            if (nsKey != null) {
+                registerLimit(limits, nsKey, key, cs.getInt(key));
             }
         }
         return limits;
     }
 
+    /** Parse a config key into a NamespacedKey, or null if it is an invalid namespaced key. */
+    private NamespacedKey parseConfigKey(String key) {
+        if (key.contains(":")) {
+            NamespacedKey nsKey = NamespacedKey.fromString(key.toLowerCase(Locale.ROOT));
+            if (nsKey == null) {
+                Bukkit.getLogger().warning(() -> "Invalid namespaced key in config, skipping: " + key);
+            }
+            return nsKey;
+        }
+        return new NamespacedKey(NamespacedKey.MINECRAFT, key.toLowerCase(Locale.ROOT));
+    }
 
-    /**
-     * Save the count database completely
-     */
+    /** Resolve a key to a material or block tag and store its limit, warning on any mismatch. */
+    private void registerLimit(Map<NamespacedKey, Integer> limits, NamespacedKey nsKey, String key, int limit) {
+        Material mat = Registry.MATERIAL.get(nsKey);
+        if (mat != null) {
+            if (!mat.isBlock()) {
+                Bukkit.getLogger().warning(() -> "Non-block material in block limits config: " + key);
+            } else if (DO_NOT_COUNT.contains(mat.getKey())) {
+                Bukkit.getLogger().warning(() -> "Uncountable material in block limits config: " + key);
+            } else {
+                limits.put(mat.getKey(), limit);
+            }
+            return;
+        }
+        Tag<Material> tag = Bukkit.getTag("blocks", nsKey, Material.class);
+        if (tag != null) {
+            limits.put(tag.getKey(), limit);
+            return;
+        }
+        Bukkit.getLogger().warning(() -> "Unknown material or tag in config: " + key);
+    }
+
+    /** Save the count database completely */
     public void save() {
         islandCountMap.values().stream().filter(IslandBlockCount::isChanged).forEach(handler::saveObjectAsync);
+    }
+
+    /** Resolve the env, normalising any non-standard values to NORMAL. */
+    private Environment envOf(World w) {
+        Environment env = w.getEnvironment();
+        return Settings.ENVIRONMENTS.contains(env) ? env : Environment.NORMAL;
     }
 
     // Player-related events
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockPlaceEvent e) {
+        // BlockMultiPlaceEvent is a subclass of BlockPlaceEvent and shares its HandlerList,
+        // so it is delivered here too. Let the dedicated handler count it once (see #86).
+        if (e instanceof BlockMultiPlaceEvent) {
+            return;
+        }
         notify(e, User.getInstance(e.getPlayer()), process(e.getBlock(), true), e.getBlock().getType());
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockBreakEvent e) {
         if (e.getBlock().hasMetadata("blockbreakevent-ignore")) {
-            // Ignore event due to Advanced Enchantments. See https://ae.advancedplugins.net/for-developers/plugin-compatiblity-issues
-            // @since 1.28.0
             return;
         }
-        handleBreak(e, e.getBlock());
+        handleBreak(e.getBlock());
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onTurtleEggBreak(PlayerInteractEvent e) {
-        if (e.getAction().equals(Action.PHYSICAL) && e.getClickedBlock() != null && e.getClickedBlock().getType().equals(Material.TURTLE_EGG)) {
-            handleBreak(e, e.getClickedBlock());
+        if (e.getAction().equals(Action.PHYSICAL) && e.getClickedBlock() != null
+                && e.getClickedBlock().getType().equals(Material.TURTLE_EGG)) {
+            handleBreak(e.getClickedBlock());
         }
     }
 
-    private void handleBreak(Event e, Block b) {
+    private void handleBreak(Block b) {
         if (!addon.inGameModeWorld(b.getWorld())) {
             return;
         }
         Material mat = b.getType();
-
-        // Check for stackable plants
         if (STACKABLE.contains(b.getType().getKey())) {
-            // Check for blocks above
             Block block = b;
-            while(block.getRelative(BlockFace.UP).getType().equals(mat) && block.getY() < b.getWorld().getMaxHeight()) {
+            while (block.getRelative(BlockFace.UP).getType().equals(mat)
+                    && block.getY() < b.getWorld().getMaxHeight()) {
                 block = block.getRelative(BlockFace.UP);
                 process(block, false);
             }
         }
         process(b, false);
-        // Player breaks a block and there was a redstone dust/repeater/... above
-        if (b.getRelative(BlockFace.UP).getType() == Material.REDSTONE_WIRE || b.getRelative(BlockFace.UP).getType() == Material.REPEATER || b.getRelative(BlockFace.UP).getType() == Material.COMPARATOR || b.getRelative(BlockFace.UP).getType() == Material.REDSTONE_TORCH) {
+        if (b.getRelative(BlockFace.UP).getType() == Material.REDSTONE_WIRE
+                || b.getRelative(BlockFace.UP).getType() == Material.REPEATER
+                || b.getRelative(BlockFace.UP).getType() == Material.COMPARATOR
+                || b.getRelative(BlockFace.UP).getType() == Material.REDSTONE_TORCH) {
             process(b.getRelative(BlockFace.UP), false);
         }
         if (b.getRelative(BlockFace.EAST).getType() == Material.REDSTONE_WALL_TORCH) {
@@ -254,13 +302,6 @@ public class BlockLimitsListener implements Listener {
         notify(e, User.getInstance(e.getPlayer()), process(e.getBlock(), true), e.getBlock().getType());
     }
 
-    /**
-     * Cancel the event and notify the user of failure
-     * @param e event
-     * @param user user
-     * @param limit maximum limit allowed
-     * @param m material
-     */
     private void notify(Cancellable e, User user, int limit, Material m) {
         if (limit > -1) {
             user.notify("block-limits.hit-limit",
@@ -288,32 +329,31 @@ public class BlockLimitsListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockFormEvent e) {
-        // EntityBlockFormEvent and BlockSpreadEvent extend BlockFormEvent; skip here to avoid double-processing
         if (e instanceof EntityBlockFormEvent || e instanceof BlockSpreadEvent) {
             return;
         }
-        // Remove the old block state count
         process(e.getBlock(), false);
-        // Add the new block state count; cancel if the new state exceeds its limit
         if (process(e.getBlock(), e.getNewState().getBlockData(), true) > -1) {
             e.setCancelled(true);
-            process(e.getBlock(), true); // Restore old count
+            process(e.getBlock(), true);
         }
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockSpreadEvent e) {
-        process(e.getBlock(), true);
+        process(e.getBlock(), false);
+        if (process(e.getBlock(), e.getNewState().getBlockData(), true) > -1) {
+            e.setCancelled(true);
+            process(e.getBlock(), true);
+        }
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(EntityBlockFormEvent e) {
-        // Remove the old block state count
         process(e.getBlock(), false);
-        // Add the new block state count; cancel if the new state exceeds its limit
         if (process(e.getBlock(), e.getNewState().getBlockData(), true) > -1) {
             e.setCancelled(true);
-            process(e.getBlock(), true); // Restore old count
+            process(e.getBlock(), true);
         }
     }
 
@@ -339,24 +379,14 @@ public class BlockLimitsListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(EntityChangeBlockEvent e) {
-        // First, if the entity is changing the block to a non-AIR material,
-        // attempt to add the new block state and enforce limits.
         if (e.getTo() != Material.AIR) {
             int limit = process(e.getBlock(), e.getBlockData(), true);
-            // If a non-negative value is returned, the limit would be exceeded.
-            // Cancel the event and keep the existing block/counts unchanged.
             if (limit > -1) {
                 e.setCancelled(true);
                 return;
             }
         }
-
-        // At this point either the block is being removed (to AIR) or the new
-        // state was accepted. Now remove the old block from the counts.
         process(e.getBlock(), false);
-
-        // If the block was farmland and the change is allowed, also remove the
-        // block above (e.g., crops) from the counts.
         if (!e.isCancelled() && e.getBlock().getType().equals(Material.FARMLAND)) {
             process(e.getBlock().getRelative(BlockFace.UP), false);
         }
@@ -366,104 +396,60 @@ public class BlockLimitsListener implements Listener {
     public void onBlock(BlockFromToEvent e) {
         if (e.getBlock().isLiquid()
                 && (e.getToBlock().getType() == Material.REDSTONE_WIRE
-                || e.getToBlock().getType() == Material.REPEATER
-                || e.getToBlock().getType() == Material.COMPARATOR
-                || e.getToBlock().getType() == Material.REDSTONE_TORCH
-                || e.getToBlock().getType() == Material.REDSTONE_WALL_TORCH)) {
+                        || e.getToBlock().getType() == Material.REPEATER
+                        || e.getToBlock().getType() == Material.COMPARATOR
+                        || e.getToBlock().getType() == Material.REDSTONE_TORCH
+                        || e.getToBlock().getType() == Material.REDSTONE_WALL_TORCH)) {
             process(e.getToBlock(), false);
         }
     }
 
     /**
-     * Return equivalents. Maps things like wall materials to their non-wall equivalents
-     * @param b block data
-     * @return material that matches the block data
+     * Map variant materials to their canonical form.
      */
     public NamespacedKey fixMaterial(BlockData b) {
         Material mat = b.getMaterial();
-        if (mat.equals(Material.CHIPPED_ANVIL) || mat.equals(Material.DAMAGED_ANVIL)) {
-            return Material.ANVIL.getKey();
-        } else if (mat == Material.REDSTONE_WALL_TORCH) {
-            return Material.REDSTONE_TORCH.getKey();
-        } else if (mat == Material.WALL_TORCH) {
-            return Material.TORCH.getKey();
-        } else if (mat == Material.COPPER_WALL_TORCH) {
-            return Material.COPPER_TORCH.getKey();
-        } else if (mat == Material.ZOMBIE_WALL_HEAD) {
-            return Material.ZOMBIE_HEAD.getKey();
-        } else if (mat == Material.CREEPER_WALL_HEAD) {
-            return Material.CREEPER_HEAD.getKey();
-        } else if (mat == Material.PLAYER_WALL_HEAD) {
-            return Material.PLAYER_HEAD.getKey();
-        } else if (mat == Material.DRAGON_WALL_HEAD) {
-            return Material.DRAGON_HEAD.getKey();
-        } else if (mat == Material.BAMBOO_SAPLING) {
-            return Material.BAMBOO.getKey();
-        } else if (mat == Material.PISTON_HEAD || mat == Material.MOVING_PISTON) {
+        if (mat == Material.PISTON_HEAD || mat == Material.MOVING_PISTON) {
             TechnicalPiston tp = (TechnicalPiston) b;
-            if (tp.getType() == TechnicalPiston.Type.NORMAL) {
-                return Material.PISTON.getKey();
-            } else {
-                return Material.STICKY_PISTON.getKey();
-            }
-        } else if (mat == Material.EXPOSED_COPPER_CHEST || mat == Material.WEATHERED_COPPER_CHEST
-                || mat == Material.OXIDIZED_COPPER_CHEST || mat == Material.WAXED_COPPER_CHEST
-                || mat == Material.WAXED_EXPOSED_COPPER_CHEST || mat == Material.WAXED_WEATHERED_COPPER_CHEST
-                || mat == Material.WAXED_OXIDIZED_COPPER_CHEST) {
-            return Material.COPPER_CHEST.getKey();
+            return (tp.getType() == TechnicalPiston.Type.NORMAL ? Material.PISTON : Material.STICKY_PISTON).getKey();
         }
-        return mat.getKey();
+        return VARIANT_MAP.getOrDefault(mat, mat).getKey();
     }
 
-    /**
-     * Check if a block can be
-     *
-     * @param b - block
-     * @param add - true to add a block, false to remove
-     * @return limit amount if over limit, or -1 if no limitation
-     */
     private int process(Block b, boolean add) {
         return process(b, b.getBlockData(), add);
     }
 
     /**
      * Check if a block can be placed or needs to be removed based on limits.
-     * This variant allows specifying block data different from the block's current data,
-     * which is needed for block state transitions (e.g., copper oxidation or waxing).
      *
-     * @param b - block (used for location and world)
-     * @param blockData - block data to use for material checks
-     * @param add - true to add a block, false to remove
      * @return limit amount if over limit, or -1 if no limitation
      */
     private int process(Block b, BlockData blockData, boolean add) {
         if (DO_NOT_COUNT.contains(fixMaterial(blockData)) || !addon.inGameModeWorld(b.getWorld())) {
             return -1;
         }
-        // Check if on island
+        Environment env = envOf(b.getWorld());
         return addon.getIslands().getIslandAt(b.getLocation()).map(i -> {
             String id = i.getUniqueId();
             String gameMode = addon.getGameModeName(b.getWorld());
             if (gameMode.isEmpty()) {
-                // Invalid world
                 return -1;
             }
-            // Ignore the center block - usually bedrock, but for AOneBlock it's the magic block
-            if (addon.getConfig().getBoolean("ignore-center-block", true) && i.getCenter().equals(b.getLocation())) {
+            if (addon.getConfig().getBoolean("ignore-center-block", true)
+                    && i.getCenter().equals(b.getLocation())) {
                 return -1;
             }
             islandCountMap.putIfAbsent(id, new IslandBlockCount(id, gameMode));
+            NamespacedKey key = fixMaterial(blockData);
             if (add) {
-                // Check limit
-                int limit = checkLimit(b.getWorld(), fixMaterial(blockData), id);
+                int limit = checkLimit(b.getWorld(), env, key, id);
                 if (limit > -1) {
                     return limit;
                 }
-                islandCountMap.get(id).add(fixMaterial(blockData));
+                islandCountMap.get(id).add(env, key);
             } else {
-                if (islandCountMap.containsKey(id)) {
-                    islandCountMap.get(id).remove(fixMaterial(blockData));
-                }
+                islandCountMap.get(id).remove(env, key);
             }
             updateSaveMap(id);
             return -1;
@@ -471,22 +457,20 @@ public class BlockLimitsListener implements Listener {
     }
 
     /**
-     * Removed a block from any island limit count
-     * @param b - block to remove
+     * Remove a block from any island limit count
      */
     public void removeBlock(Block b) {
-        // Get island
         addon.getIslands().getIslandAt(b.getLocation()).ifPresent(i -> {
             String id = i.getUniqueId();
             String gameMode = addon.getGameModeName(b.getWorld());
-            if (gameMode.isEmpty()) {
-                // Invalid world
-                return;
-            }
-            islandCountMap.computeIfAbsent(id, k -> new IslandBlockCount(id, gameMode)).remove(fixMaterial(b.getBlockData()));
+            if (gameMode.isEmpty()) return;
+            Environment env = envOf(b.getWorld());
+            islandCountMap.computeIfAbsent(id, k -> new IslandBlockCount(id, gameMode))
+                    .remove(env, fixMaterial(b.getBlockData()));
             updateSaveMap(id);
         });
     }
+
     private void updateSaveMap(String id) {
         saveMap.putIfAbsent(id, 0);
         if (saveMap.merge(id, 1, Integer::sum) > CHANGE_LIMIT) {
@@ -495,67 +479,69 @@ public class BlockLimitsListener implements Listener {
         }
     }
 
-
     /**
-     * Check if this material is at its limit for world on this island
+     * Resolve the active limit for this material in this world for this island.
+     * Priority: island-env limit, world-named limit, env-default, none.
      *
-     * @param w - world
-     * @param m - material
-     * @param id - island id
-     * @return limit amount if at limit or -1 if no limit
+     * @return limit if at or over, or -1 if no limit
      */
-    private int checkLimit(World w, NamespacedKey m, String id) {
-        // Check island limits
+    private int checkLimit(World w, Environment env, NamespacedKey m, String id) {
         IslandBlockCount ibc = islandCountMap.get(id);
-        if (ibc.isBlockLimited(m)) {
-            return ibc.isAtLimit(m) ? ibc.getBlockLimit(m) + ibc.getBlockLimitOffset(m) : -1;
+        if (ibc.isBlockLimited(env, m)) {
+            int offset = ibc.getBlockLimitOffset(env, m);
+            return ibc.isAtLimit(env, m) ? ibc.getBlockLimit(env, m) + offset : -1;
         }
-        // Check specific world limits
-        if (worldLimitMap.containsKey(w) && worldLimitMap.get(w).containsKey(m)) {
-            // Material is overridden in world
-            return ibc.isAtLimit(m, worldLimitMap.get(w).get(m)) ? worldLimitMap.get(w).get(m) + ibc.getBlockLimitOffset(m) : -1;
+        Map<NamespacedKey, Integer> worldMap = worldLimitMap.get(w);
+        if (worldMap != null && worldMap.containsKey(m)) {
+            int worldLimit = worldMap.get(m);
+            int offset = ibc.getBlockLimitOffset(env, m);
+            return ibc.isAtLimit(env, m, worldLimit) ? worldLimit + offset : -1;
         }
-        // Check default limit map
-        if (defaultLimitMap.containsKey(m) && ibc.isAtLimit(m, defaultLimitMap.get(m))) {
-            return defaultLimitMap.get(m) + ibc.getBlockLimitOffset(m);
+        Map<NamespacedKey, Integer> envDefaults = envDefaultLimitMap.get(env);
+        if (envDefaults != null && envDefaults.containsKey(m)) {
+            int envLimit = envDefaults.get(m);
+            int offset = ibc.getBlockLimitOffset(env, m);
+            if (ibc.isAtLimit(env, m, envLimit)) {
+                return envLimit + offset;
+            }
         }
-        // No limit
         return -1;
     }
 
     /**
-     * Gets an aggregate map of the limits for this island
-     *
-     * @param w - world
-     * @param id - island id
-     * @return map of limits for materials
+     * Aggregate map of the resolved limits for this island in the given world.
      */
     public Map<NamespacedKey, Integer> getMaterialLimits(World w, String id) {
-        // Merge limits
+        Environment env = envOf(w);
         Map<NamespacedKey, Integer> result = new HashMap<>();
-        // Default
-        result.putAll(defaultLimitMap);
-        // World
-        if (worldLimitMap.containsKey(w)) {
-            result.putAll(worldLimitMap.get(w));
+        Map<NamespacedKey, Integer> envDefaults = envDefaultLimitMap.get(env);
+        if (envDefaults != null) {
+            result.putAll(envDefaults);
         }
-        // Island
-        if (islandCountMap.containsKey(id)) {
-            IslandBlockCount islandBlockCount = islandCountMap.get(id);
-            result.putAll(islandBlockCount.getBlockLimits());
-
-            // Add offsets to the every limit.
-            islandBlockCount.getBlockLimitsOffset().forEach((material, offset) ->
-            result.put(material, result.getOrDefault(material, 0) + offset));
+        Map<NamespacedKey, Integer> worldMap = worldLimitMap.get(w);
+        if (worldMap != null) {
+            result.putAll(worldMap);
+        }
+        IslandBlockCount ibc = islandCountMap.get(id);
+        if (ibc != null) {
+            result.putAll(ibc.getBlockLimits(env));
+            ibc.getBlockLimitsOffset(env).forEach(
+                    (material, offset) -> result.put(material, result.getOrDefault(material, 0) + offset));
         }
         return result;
     }
 
     /**
-     * Removes island from the database
-     *
-     * @param e - island delete event
+     * Per-environment map of the env-default limits, used for tests and external introspection.
      */
+    public Map<Environment, Map<NamespacedKey, Integer>> getEnvDefaultLimitMap() {
+        return envDefaultLimitMap;
+    }
+
+    public Map<World, Map<NamespacedKey, Integer>> getWorldLimitMap() {
+        return worldLimitMap;
+    }
+
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onIslandDelete(IslandDeleteEvent e) {
         islandCountMap.remove(e.getIsland().getUniqueId());
@@ -565,36 +551,19 @@ public class BlockLimitsListener implements Listener {
         }
     }
 
-    /**
-     * Set the island block count values
-     *
-     * @param islandId - island unique id
-     * @param ibc - island block count
-     */
     public void setIsland(String islandId, IslandBlockCount ibc) {
         islandCountMap.put(islandId, ibc);
         handler.saveObjectAsync(ibc);
     }
 
-    /**
-     * Get the island block count
-     *
-     * @param islandId - island unique id
-     * @return island block count or null if there is none yet
-     */
     @Nullable
     public IslandBlockCount getIsland(String islandId) {
         return islandCountMap.get(islandId);
     }
 
-    /**
-     * Get the island block count for island and make one if it does not exist
-     * @param island island
-     * @return island block count
-     */
     @NonNull
     public IslandBlockCount getIsland(Island island) {
-        return islandCountMap.computeIfAbsent(island.getUniqueId(), k -> new IslandBlockCount(k, island.getGameMode()));
+        return islandCountMap.computeIfAbsent(island.getUniqueId(),
+                k -> new IslandBlockCount(k, island.getGameMode()));
     }
-
 }

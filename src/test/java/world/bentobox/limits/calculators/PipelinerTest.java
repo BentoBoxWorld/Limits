@@ -28,7 +28,7 @@ import org.mockbukkit.mockbukkit.MockBukkit;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-public class PipelinerTest {
+class PipelinerTest {
 
     @Mock
     private Limits addon;

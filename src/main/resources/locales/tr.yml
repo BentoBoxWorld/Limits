@@ -1,10 +1,10 @@
 ---
 block-limits:
-  hit-limit: "&e[material] &4eşyasından &5[number] &4koyabilirsin!"
+  hit-limit: "<yellow>[material] <dark_red>eşyasından <dark_purple>[number] <dark_red>koyabilirsin!"
 entity-limits:
-  hit-limit: "&e[entity] &4varlığından &5[number] &4tane koyabilirsin!"
+  hit-limit: "<yellow>[entity] <dark_red>varlığından <dark_purple>[number] <dark_red>tane koyabilirsin!"
 limits:
-  panel-title: "&eAda limiti"
+  panel-title: "<yellow>Ada limiti"
 admin:
   limits:
     main:
@@ -13,53 +13,57 @@ admin:
     calc:
       parameters: "<player>"
       description: Oyuncu için ada limitlerini tekrar hesapla.
-      finished: "&aAda hesaplaması başarıyla yapıldı."
+      finished: "<green>Ada hesaplaması başarıyla yapıldı."
     offset:
-      unknown: "&c Bilinmeyen malzeme veya varlık [name]."
+      unknown: "<red> Bilinmeyen malzeme veya varlık [name]."
+      description: "malzemeler ve varlıklar için limit ofsetlerini yönetmeye olanak tanır"
       main:
         description: malzemeler ve varlıklar için limit ofsetlerini yönetmeye olanak
           tanır
       set:
         parameters: "<oyuncu> <malzeme|varlık> <sayı>"
         description: malzeme veya varlık sınırı için yeni ofset ayarlar
-        success: "&[name] için Limit ofseti [number] olarak ayarlandı."
-        same: "&c [name] için sınır ofseti zaten [number]'dır."
+        success: "<green>[name] için Limit ofseti [number] olarak ayarlandı."
+        same: "<red> [name] için sınır ofseti zaten [number]'dır."
       add:
         parameters: "<oyuncu> <malzeme|varlık> <sayı>"
         description: malzeme veya varlık sınırı için ofset ekler
-        success: "&[name] için Limit ofseti [number]'ya kadar artırıldı."
+        success: "<green>[name] için Limit ofseti [number]'ya kadar artırıldı."
       remove:
         parameters: "<oyuncu> <malzeme|varlık> <sayı>"
         description: malzeme veya varlık sınırı için ofseti azaltır
-        success: "&[name] için limit ofseti [number]'ya kadar azaltıldı."
+        success: "<green>[name] için limit ofseti [number]'ya kadar azaltıldı."
       reset:
         parameters: "<oyuncu> <malzeme|varlık>"
         description: malzeme veya varlık için ofseti kaldırır
-        success: "&[name] için Limit ofseti 0 olarak ayarlandı."
+        success: "<green>[name] için Limit ofseti 0 olarak ayarlandı."
       view:
         parameters: "<oyuncu> <malzeme|varlık>"
         description: malzeme veya varlık için ofseti görüntüler
-        message: "&a [name] ofseti [number] olarak ayarlandı."
+        message: "<green> [name] ofseti [number] olarak ayarlandı."
 island:
   limits:
     description: Ada limitlerini gör.
-    max-color: "&c"
-    regular-color: "&9"
-    block-limit-syntax: "&5[number]&7/&e[limit]"
-    no-limits: "&c Bu dünyada hiçbir sınır belirlenmedi"
+    max-color: "<red>"
+    regular-color: "<blue>"
+    block-limit-syntax: "<dark_purple>[number]<gray>/<yellow>[limit]"
+    no-limits: "<red> Bu dünyada hiçbir sınır belirlenmedi"
     panel:
       title-syntax: "[title] [sort]"
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
+      env-overworld: "Ana Dünya"
+      env-nether: "Nether"
+      env-end: "End"
       A2Z: a > z
       Z2A: z > a
     errors:
-      no-owner: "&c O adanın bir sahibi yok"
-      not-on-island: "&c Bu lokasyonun belirlenmiş bir sınırı yok."
+      no-owner: "<red> O adanın bir sahibi yok"
+      not-on-island: "<red> Bu lokasyonun belirlenmiş bir sınırı yok."
     recount:
       description: Ada limitlerini tekrardan hesaplar.
-      now-recounting: "&b Şimdi anlatmaya başlıyorum. Biraz zaman alabilir, lütfen
+      now-recounting: "<aqua> Şimdi anlatmaya başlıyorum. Biraz zaman alabilir, lütfen
         bekleyin..."
-      in-progress: "&c Ada geri kazanımı devam ediyor. Lütfen bekleyin..."
-      time-out: "&c Anlatırken zaman aşımı. Ada gerçekten büyük mü?"
+      in-progress: "<red> Ada geri kazanımı devam ediyor. Lütfen bekleyin..."
+      time-out: "<red> Anlatırken zaman aşımı. Ada gerçekten büyük mü?"

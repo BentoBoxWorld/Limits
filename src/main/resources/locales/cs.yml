@@ -1,8 +1,8 @@
 ---
 block-limits:
-  hit-limit: "&c[material] omezen na [number]!"
+  hit-limit: "<red>[material] omezen na [number]!"
 entity-limits:
-  hit-limit: "&cSpawnování [entity] omezeno na [number]!"
+  hit-limit: "<red>Spawnování [entity] omezeno na [number]!"
 limits:
   panel-title: Omezení ostrovů
 admin:
@@ -13,51 +13,55 @@ admin:
     calc:
       parameters: "<player>"
       description: přepočítat omezení ostrova hráče
-      finished: "&aPřepočítání ostrova úspěšně dokončeno!"
+      finished: "<green>Přepočítání ostrova úspěšně dokončeno!"
     offset:
-      unknown: "&c Neznámý materiál nebo entita [name]."
+      unknown: "<red> Neznámý materiál nebo entita [name]."
+      description: "umožňuje spravovat limity offsetů pro materiály a entity"
       main:
         description: umožňuje spravovat limity offsetů pro materiály a entity
       set:
         parameters: "<hráč> <materiál|entita> <číslo>"
         description: nastaví nový offset pro limit materiálu nebo entity
-        success: "&a Mezní posun pro [name] je nastaven na [number]."
-        same: "&c Mezní posun pro [name] je již [number]."
+        success: "<green> Mezní posun pro [name] je nastaven na [number]."
+        same: "<red> Mezní posun pro [name] je již [number]."
       add:
         parameters: "<hráč> <materiál|entita> <číslo>"
         description: přidá offset pro limit materiálu nebo entity
-        success: "&a Posun limitu pro [name] se zvýší na [number]."
+        success: "<green> Posun limitu pro [name] se zvýší na [number]."
       remove:
         parameters: "<hráč> <materiál|entita> <číslo>"
         description: snižuje offset pro limit materiálu nebo entity
-        success: "&a Posun limitu pro [name] se sníží na [number]."
+        success: "<green> Posun limitu pro [name] se sníží na [number]."
       reset:
         parameters: "<hráč> <materiál|entita>"
         description: odstraní offset pro materiál nebo entitu
-        success: "&a Mezní posun pro [jméno] je nastaven na 0."
+        success: "<green> Mezní posun pro [jméno] je nastaven na 0."
       view:
         parameters: "<hráč> <materiál|entita>"
         description: zobrazuje posun pro materiál nebo entitu
-        message: "&odsazení [name] je nastaveno na [number]."
+        message: "<italic>dsazení [name] je nastaveno na [number]."
 island:
   limits:
     description: ukázat omezení tvého ostrova
-    max-color: "&c"
-    regular-color: "&a"
+    max-color: "<red>"
+    regular-color: "<green>"
     block-limit-syntax: "[number]/[limit]"
-    no-limits: "&c V tomto světě nejsou stanovena žádná omezení"
+    no-limits: "<red> V tomto světě nejsou stanovena žádná omezení"
     panel:
       title-syntax: "[title] [sort]"
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
+      env-overworld: "Přesvět"
+      env-nether: "Nether"
+      env-end: "Konec"
       A2Z: a > z
       Z2A: z > a
     errors:
-      no-owner: "&c Tento ostrov nemá vlastníka"
-      not-on-island: "&c Toto umístění nemá nastavena omezení."
+      no-owner: "<red> Tento ostrov nemá vlastníka"
+      not-on-island: "<red> Toto umístění nemá nastavena omezení."
     recount:
       description: přepočítá omezení tvého ostrova
-      now-recounting: "&b Nyní vyprávění. Může to chvíli trvat, čekejte prosím..."
-      in-progress: "&c Probíhá obnovení ostrova. Čekejte prosím..."
-      time-out: "&c Časový limit při přepočítávání. Je ostrov opravdu velký?"
+      now-recounting: "<aqua> Nyní vyprávění. Může to chvíli trvat, čekejte prosím..."
+      in-progress: "<red> Probíhá obnovení ostrova. Čekejte prosím..."
+      time-out: "<red> Časový limit při přepočítávání. Je ostrov opravdu velký?"

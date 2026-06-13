@@ -2,17 +2,15 @@ package world.bentobox.limits.commands.player;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
-import java.util.Map;
 import java.util.UUID;
 
-import org.bukkit.NamespacedKey;
 import org.bukkit.World;
+import org.bukkit.World.Environment;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +33,7 @@ import org.mockbukkit.mockbukkit.MockBukkit;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-public class LimitPanelTest {
+class LimitPanelTest {
 
     @Mock
     private Limits addon;
@@ -104,8 +102,8 @@ public class LimitPanelTest {
     void testShowLimitsNoLimits() {
         when(im.getIsland(world, targetUUID)).thenReturn(island);
         when(island.getUniqueId()).thenReturn("island-id");
-        when(bll.getMaterialLimits(eq(world), eq("island-id"))).thenReturn(Collections.emptyMap());
-        when(settings.getLimits()).thenReturn(Collections.emptyMap());
+        when(bll.getMaterialLimits(world, "island-id")).thenReturn(Collections.emptyMap());
+        when(settings.getLimits(Environment.NORMAL)).thenReturn(Collections.emptyMap());
         // Target player is offline (MockBukkit returns null by default when no players added)
 
         limitPanel.showLimits(gm, user, targetUUID);
@@ -117,8 +115,8 @@ public class LimitPanelTest {
     void testShowLimitsTargetPlayerOfflineDoesNotCallCheckPerms() {
         when(im.getIsland(world, targetUUID)).thenReturn(island);
         when(island.getUniqueId()).thenReturn("island-id");
-        when(bll.getMaterialLimits(eq(world), eq("island-id"))).thenReturn(Collections.emptyMap());
-        when(settings.getLimits()).thenReturn(Collections.emptyMap());
+        when(bll.getMaterialLimits(world, "island-id")).thenReturn(Collections.emptyMap());
+        when(settings.getLimits(Environment.NORMAL)).thenReturn(Collections.emptyMap());
         // Target player is offline (MockBukkit returns null by default when no players added)
 
         limitPanel.showLimits(gm, user, targetUUID);

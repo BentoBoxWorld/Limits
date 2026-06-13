@@ -1,6 +1,10 @@
 package world.bentobox.limits.calculators;
 
+import java.util.EnumMap;
+import java.util.Map;
+
 import org.bukkit.NamespacedKey;
+import org.bukkit.World.Environment;
 import org.bukkit.entity.EntityType;
 
 import com.google.common.collect.HashMultiset;
@@ -8,21 +12,15 @@ import com.google.common.collect.Multiset;
 
 public class Results {
     public enum Result {
-        /**
-         * A level calc is already in progress
-         */
         IN_PROGRESS,
-        /**
-         * Results will be available
-         */
         AVAILABLE,
-        /**
-         * Result if calculation timed out
-         */
         TIMEOUT
     }
-    final Multiset<NamespacedKey> mdCount = HashMultiset.create();
-    final Multiset<EntityType> entityCount = HashMultiset.create();
+
+    /** Block counts per environment, populated by the chunk scan. */
+    final Map<Environment, Multiset<NamespacedKey>> envBlockCount = new EnumMap<>(Environment.class);
+    /** Entity counts per environment, populated by the entity scan. */
+    final Map<Environment, Multiset<EntityType>> envEntityCount = new EnumMap<>(Environment.class);
 
     final Result state;
 
@@ -33,25 +31,24 @@ public class Results {
     public Results() {
         this.state = Result.AVAILABLE;
     }
-    /**
-     * @return the mdCount
-     */
-    public Multiset<NamespacedKey> getMdCount() {
-        return mdCount;
+
+    public Multiset<NamespacedKey> getBlockCount(Environment env) {
+        return envBlockCount.computeIfAbsent(env, e -> HashMultiset.create());
     }
 
-    /**
-     * @return the state
-     */
+    public Multiset<EntityType> getEntityCount(Environment env) {
+        return envEntityCount.computeIfAbsent(env, e -> HashMultiset.create());
+    }
+
+    public Map<Environment, Multiset<NamespacedKey>> getEnvBlockCount() {
+        return envBlockCount;
+    }
+
+    public Map<Environment, Multiset<EntityType>> getEnvEntityCount() {
+        return envEntityCount;
+    }
+
     public Result getState() {
         return state;
     }
-
-    /**
-     * @return the entityCount
-     */
-    public Multiset<EntityType> getEntityCount() {
-        return entityCount;
-    }
-
 }

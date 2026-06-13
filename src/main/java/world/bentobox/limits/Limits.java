@@ -3,13 +3,14 @@ package world.bentobox.limits;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Locale;
+import java.util.Map;
 
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.World;
-import org.bukkit.entity.Entity;
+import org.bukkit.World.Environment;
 import org.bukkit.entity.EntityType;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -17,7 +18,6 @@ import world.bentobox.bentobox.api.addons.Addon;
 import world.bentobox.bentobox.api.addons.GameModeAddon;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
-import world.bentobox.bentobox.managers.IslandWorldManager;
 import world.bentobox.limits.commands.admin.AdminCommand;
 import world.bentobox.limits.commands.player.PlayerCommand;
 import world.bentobox.limits.listeners.BlockLimitsListener;
@@ -26,9 +26,8 @@ import world.bentobox.limits.listeners.JoinListener;
 import world.bentobox.limits.listeners.PaperShulkerLimitListener;
 import world.bentobox.limits.objects.IslandBlockCount;
 
-
 /**
- * Addon to BentoBox that monitors and enforces limits
+ * Addon to BentoBox that monitors and enforces limits.
  *
  * @author tastybento
  */
@@ -40,7 +39,6 @@ public class Limits extends Addon {
     private List<GameModeAddon> gameModes = new ArrayList<>();
     private BlockLimitsListener blockLimitListener;
     private JoinListener joinListener;
-    private IslandWorldManager islandWorldManager;
 
     @Override
     public void onDisable() {
@@ -51,35 +49,23 @@ public class Limits extends Addon {
 
     @Override
     public void onEnable() {
-        // Load the plugin's config
         saveDefaultConfig();
-        this.islandWorldManager = getPlugin().getIWM();
-        // Load settings
         settings = new Settings(this);
-        // Register worlds from GameModes
         gameModes = getPlugin().getAddonsManager().getGameModeAddons().stream()
                 .filter(gm -> settings.getGameModes().contains(gm.getDescription().getName()))
-                .collect(Collectors.toList());
-        gameModes.forEach(gm ->
-                {
-                    // Register commands
-                    gm.getAdminCommand().ifPresent(a -> new AdminCommand(this, a));
-                    gm.getPlayerCommand().ifPresent(a -> new PlayerCommand(this, a));
-                    registerPlaceholders(gm);
-                    log("Limits will apply to " + gm.getDescription().getName());
-                }
-        );
-        // Register listener
+                .toList();
+        gameModes.forEach(gm -> {
+            gm.getAdminCommand().ifPresent(a -> new AdminCommand(this, a));
+            gm.getPlayerCommand().ifPresent(a -> new PlayerCommand(this, a));
+            registerPlaceholders(gm);
+            log("Limits will apply to " + gm.getDescription().getName());
+        });
         blockLimitListener = new BlockLimitsListener(this);
         registerListener(blockLimitListener);
         joinListener = new JoinListener(this);
         registerListener(joinListener);
         EntityLimitListener entityLimitListener = new EntityLimitListener(this);
         registerListener(entityLimitListener);
-        // Register Paper-specific listener for shulker duplication limiting if running on Paper.
-        // ShulkerDuplicateEvent fires before the original shulker teleports, giving an accurate
-        // entity count. CreatureSpawnEvent fires after the teleport, so the original shulker may
-        // have already left the island bounding box, causing the count to be off by one.
         try {
             Class.forName("io.papermc.paper.event.entity.ShulkerDuplicateEvent");
             registerListener(new PaperShulkerLimitListener(this, entityLimitListener));
@@ -87,230 +73,183 @@ public class Limits extends Addon {
         } catch (ClassNotFoundException e) {
             // Not running on Paper; CreatureSpawnEvent handles duplication on Spigot.
         }
-        // Done
     }
 
-    /**
-     * @return the settings
-     */
     public Settings getSettings() {
         return settings;
     }
 
-    /**
-     * @return the gameModes
-     */
     public List<GameModeAddon> getGameModes() {
         return gameModes;
     }
 
-    /**
-     * @return the blockLimitListener
-     */
     public BlockLimitsListener getBlockLimitListener() {
         return blockLimitListener;
     }
 
-    /**
-     * Checks if this world is covered by the activated game modes
-     *
-     * @param world - world
-     * @return true or false
-     */
     public boolean inGameModeWorld(World world) {
         return gameModes.stream().anyMatch(gm -> gm.inWorld(world));
     }
 
-    /**
-     * Get the name of the game mode for this world
-     *
-     * @param world - world
-     * @return game mode name or empty string if none
-     */
     public String getGameModeName(World world) {
-        return gameModes.stream().filter(gm -> gm.inWorld(world)).findFirst().map(gm -> gm.getDescription().getName()).orElse("");
+        return gameModes.stream().filter(gm -> gm.inWorld(world)).findFirst()
+                .map(gm -> gm.getDescription().getName()).orElse("");
     }
 
-    /**
-     * Get the permission prefix for this world
-     *
-     * @param world - world
-     * @return permisdsion prefix or empty string if none
-     */
     public String getGameModePermPrefix(World world) {
-        return gameModes.stream().filter(gm -> gm.inWorld(world)).findFirst().map(GameModeAddon::getPermissionPrefix).orElse("");
+        return gameModes.stream().filter(gm -> gm.inWorld(world)).findFirst()
+                .map(GameModeAddon::getPermissionPrefix).orElse("");
     }
 
-
-    /**
-     * Check if any of the game modes covered have this name
-     *
-     * @param gameMode - name of game mode
-     * @return true or false
-     */
     public boolean isCoveredGameMode(String gameMode) {
         return gameModes.stream().anyMatch(gm -> gm.getDescription().getName().equals(gameMode));
     }
 
-    /**
-     * @return the joinListener
-     */
     public JoinListener getJoinListener() {
         return joinListener;
     }
+
+    /* =========================================================================
+     * Placeholders
+     * ========================================================================= */
 
     private void registerPlaceholders(GameModeAddon gm) {
         if (getPlugin().getPlaceholdersManager() == null) return;
         Registry.MATERIAL.stream()
                 .filter(Material::isBlock)
                 .forEach(m -> registerCountAndLimitPlaceholders(m.getKey(), gm));
-
         Arrays.stream(EntityType.values())
                 .forEach(e -> registerCountAndLimitPlaceholders(e, gm));
     }
 
+    private static final List<String> ENV_SUFFIXES = List.of("", "_overworld", "_nether", "_end");
+
     /**
-     * Registers placeholders for the count and limit of the material
-     * in the format of %Limits_(gamemode prefix)_island_(lowercase material name)_count%
-     * and %Limits_(gamemode prefix)_island_(lowercase material name)_limit%
-     * <p>
-     * Example: registerCountAndLimitPlaceholders("HOPPER", gm);
-     * Placeholders:
-     * "Limits_bskyblock_island_hopper_count"
-     * "Limits_bskyblock_island_hopper_limit"
-     * "Limits_bskyblock_island_hopper_base_limit"
-     * "Limits_bskyblock_island_zombie_limit"
+     * Registers placeholders for the count and limit of the material.
      *
-     * @param m  material
-     * @param gm game mode
+     * <p>Env-aware naming:
+     * <ul>
+     *   <li>{@code Limits_<gm>_island_<key>_count} — total across all envs (back-compat)</li>
+     *   <li>{@code Limits_<gm>_island_<key>_overworld_count} — overworld only</li>
+     *   <li>{@code Limits_<gm>_island_<key>_nether_count} — nether only</li>
+     *   <li>{@code Limits_<gm>_island_<key>_end_count} — end only</li>
+     * </ul>
+     * Same pattern for {@code _limit} and {@code _base_limit}.
      */
     private void registerCountAndLimitPlaceholders(NamespacedKey m, GameModeAddon gm) {
-        getPlugin().getPlaceholdersManager().registerPlaceholder(this,
-                gm.getDescription().getName().toLowerCase() + ISLAND_PLACEHOLDER + m.toString().toLowerCase() + "_count",
-                user -> String.valueOf(getCount(user, m, gm)));
-        getPlugin().getPlaceholdersManager().registerPlaceholder(this,
-                gm.getDescription().getName().toLowerCase() + ISLAND_PLACEHOLDER + m.toString().toLowerCase() + "_limit",
-                user -> getLimit(user, m, gm));
-        getPlugin().getPlaceholdersManager().registerPlaceholder(this,
-                gm.getDescription().getName().toLowerCase() + ISLAND_PLACEHOLDER + m.toString().toLowerCase() + "_base_limit",
-                user -> getBaseLimit(user, m, gm));
+        for (String suffix : ENV_SUFFIXES) {
+            Environment env = envForSuffix(suffix);
+            String base = gm.getDescription().getName().toLowerCase(Locale.ROOT) + ISLAND_PLACEHOLDER
+                    + m.toString().toLowerCase(Locale.ROOT);
+            getPlugin().getPlaceholdersManager().registerPlaceholder(this,
+                    base + suffix + "_count",
+                    user -> String.valueOf(getCount(user, m, gm, env)));
+            getPlugin().getPlaceholdersManager().registerPlaceholder(this,
+                    base + suffix + "_limit",
+                    user -> getLimit(user, m, gm, env));
+            getPlugin().getPlaceholdersManager().registerPlaceholder(this,
+                    base + suffix + "_base_limit",
+                    user -> getBaseLimit(user, m, gm, env));
+        }
     }
 
     private void registerCountAndLimitPlaceholders(EntityType e, GameModeAddon gm) {
-        getPlugin().getPlaceholdersManager().registerPlaceholder(this,
-                gm.getDescription().getName().toLowerCase() + ISLAND_PLACEHOLDER + e.toString().toLowerCase() + "_limit",
-                user -> getLimit(user, e, gm));
-        getPlugin().getPlaceholdersManager().registerPlaceholder(this,
-                gm.getDescription().getName().toLowerCase() + ISLAND_PLACEHOLDER + e.toString().toLowerCase() + "_base_limit",
-                user -> getBaseLimit(user, e, gm));
-        getPlugin().getPlaceholdersManager().registerPlaceholder(this,
-                gm.getDescription().getName().toLowerCase() + ISLAND_PLACEHOLDER + e.toString().toLowerCase() + "_count",
-                user -> String.valueOf(getCount(user, e, gm)));
+        for (String suffix : ENV_SUFFIXES) {
+            Environment env = envForSuffix(suffix);
+            String base = gm.getDescription().getName().toLowerCase(Locale.ROOT) + ISLAND_PLACEHOLDER
+                    + e.toString().toLowerCase(Locale.ROOT);
+            getPlugin().getPlaceholdersManager().registerPlaceholder(this,
+                    base + suffix + "_count",
+                    user -> String.valueOf(getCount(user, e, gm, env)));
+            getPlugin().getPlaceholdersManager().registerPlaceholder(this,
+                    base + suffix + "_limit",
+                    user -> getLimit(user, e, gm, env));
+            getPlugin().getPlaceholdersManager().registerPlaceholder(this,
+                    base + suffix + "_base_limit",
+                    user -> getBaseLimit(user, e, gm, env));
+        }
     }
 
-    /**
-     * @param user - Used to identify the island the user belongs to
-     * @param m    - The material we are trying to count on the island
-     * @param gm   Game Mode Addon
-     * @return Number of blocks of the specified material on the given user's island
-     */
-    private int getCount(@Nullable User user, NamespacedKey m, GameModeAddon gm) {
-        Island is = gm.getIslands().getIsland(gm.getOverWorld(), user);
-        if (is == null) {
-            return 0;
-        }
-        @Nullable IslandBlockCount ibc = getBlockLimitListener().getIsland(is.getUniqueId());
-        if (ibc == null) {
-            return 0;
-        }
-        return ibc.getBlockCount(m);
+    /** {@code null} env means "sum/aggregate across all envs". */
+    @Nullable
+    private static Environment envForSuffix(String suffix) {
+        return switch (suffix) {
+            case "_overworld" -> Environment.NORMAL;
+            case "_nether" -> Environment.NETHER;
+            case "_end" -> Environment.THE_END;
+            default -> null;
+        };
     }
 
-    private long getCount(@Nullable User user, EntityType e, GameModeAddon gm) {
+    private int getCount(@Nullable User user, NamespacedKey m, GameModeAddon gm, @Nullable Environment env) {
         Island is = gm.getIslands().getIsland(gm.getOverWorld(), user);
-        if (is == null || e.getEntityClass() == null) {
-            return 0;
-        }
-        Class<? extends Entity> entityClass = e.getEntityClass();
-        long count = is.getWorld().getEntitiesByClass(entityClass).stream()
-                .filter(ent -> is.inIslandSpace(ent.getLocation())).count();
-        /*  NETHER  */
-        if (islandWorldManager.isNetherIslands(is.getWorld()) && islandWorldManager.getNetherWorld(is.getWorld()) != null) {
-            count += islandWorldManager.getNetherWorld(is.getWorld()).getEntitiesByClass(entityClass).stream()
-                    .filter(ent -> is.inIslandSpace(ent.getLocation())).count();
-        }
-        /*  END  */
-        if (islandWorldManager.isEndIslands(is.getWorld()) && islandWorldManager.getEndWorld(is.getWorld()) != null) {
-            count += islandWorldManager.getEndWorld(is.getWorld()).getEntitiesByClass(entityClass).stream()
-                    .filter(ent -> is.inIslandSpace(ent.getLocation())).count();
-        }
-        return count;
+        if (is == null) return 0;
+        IslandBlockCount ibc = getBlockLimitListener().getIsland(is.getUniqueId());
+        if (ibc == null) return 0;
+        return env == null ? ibc.getBlockCount(m) : ibc.getBlockCount(env, m);
     }
 
-
-    /**
-     * @param user - Used to identify the island the user belongs to
-     * @param m    - The material whose limit we are querying
-     * @param gm   Game Mode Addon
-     * @return The limit of the specified material on the given user's island
-     */
-    private String getLimit(@Nullable User user, NamespacedKey m, GameModeAddon gm) {
+    private long getCount(@Nullable User user, EntityType e, GameModeAddon gm, @Nullable Environment env) {
         Island is = gm.getIslands().getIsland(gm.getOverWorld(), user);
-        if (is == null) {
-            return LIMIT_NOT_SET;
-        }
+        if (is == null) return 0;
+        IslandBlockCount ibc = getBlockLimitListener().getIsland(is.getUniqueId());
+        if (ibc == null) return 0;
+        return env == null ? ibc.getEntityCount(e) : ibc.getEntityCount(env, e);
+    }
+
+    private String getLimit(@Nullable User user, NamespacedKey m, GameModeAddon gm, @Nullable Environment env) {
+        Island is = gm.getIslands().getIsland(gm.getOverWorld(), user);
+        if (is == null) return LIMIT_NOT_SET;
         if (user != null) {
-            // Check the permissions of the user and update
-            this.getJoinListener().checkPerms(user.getPlayer(), gm.getPermissionPrefix() + "island.limit.",
+            getJoinListener().checkPerms(user.getPlayer(), gm.getPermissionPrefix() + "island.limit.",
                     is.getUniqueId(), gm.getDescription().getName());
         }
-        int limit = this.getBlockLimitListener().
-                getMaterialLimits(is.getWorld(), is.getUniqueId()).getOrDefault(m, -1);
-
+        World w = worldForEnv(gm, env);
+        int limit = getBlockLimitListener().getMaterialLimits(w, is.getUniqueId()).getOrDefault(m, -1);
         return limit == -1 ? LIMIT_NOT_SET : String.valueOf(limit);
     }
 
-    private String getBaseLimit(@Nullable User user, NamespacedKey m, GameModeAddon gm) {
+    private String getBaseLimit(@Nullable User user, NamespacedKey m, GameModeAddon gm, @Nullable Environment env) {
         Island is = gm.getIslands().getIsland(gm.getOverWorld(), user);
-        if (is == null) {
-            return LIMIT_NOT_SET;
-        }
-
-        int limit = this.getBlockLimitListener().
-                getMaterialLimits(is.getWorld(), is.getUniqueId()).
-                getOrDefault(m, -1);
-
+        if (is == null) return LIMIT_NOT_SET;
+        World w = worldForEnv(gm, env);
+        int limit = getBlockLimitListener().getMaterialLimits(w, is.getUniqueId()).getOrDefault(m, -1);
         if (limit > 0) {
-            limit -= this.getBlockLimitListener().getIsland(is).getBlockLimitOffset(m);
+            IslandBlockCount ibc = getBlockLimitListener().getIsland(is);
+            int offset = ibc.getBlockLimitOffset(env == null ? Environment.NORMAL : env, m);
+            limit -= offset;
         }
-
         return limit == -1 ? LIMIT_NOT_SET : String.valueOf(limit);
     }
 
-    private String getLimit(@Nullable User user, EntityType e, GameModeAddon gm) {
+    private String getLimit(@Nullable User user, EntityType e, GameModeAddon gm, @Nullable Environment env) {
         Island is = gm.getIslands().getIsland(gm.getOverWorld(), user);
-        if (is == null) {
-            return LIMIT_NOT_SET;
+        if (is == null) return LIMIT_NOT_SET;
+        IslandBlockCount ibc = getBlockLimitListener().getIsland(is);
+        Environment effective = env == null ? Environment.NORMAL : env;
+        int limit = ibc.getEntityLimit(effective, e);
+        if (limit < 0) {
+            Map<EntityType, Integer> envLimits = getSettings().getLimits(effective);
+            if (envLimits.containsKey(e)) limit = envLimits.get(e);
         }
-
-        int limit = this.getBlockLimitListener().getIsland(is).getEntityLimit(e);
-        if (limit < 0 && this.getSettings().getLimits().containsKey(e)) {
-            limit = this.getSettings().getLimits().get(e);
-        }
-
         return limit == -1 ? LIMIT_NOT_SET : String.valueOf(limit);
     }
 
-    private String getBaseLimit(@Nullable User user, EntityType e, GameModeAddon gm) {
+    private String getBaseLimit(@Nullable User user, EntityType e, GameModeAddon gm, @Nullable Environment env) {
         Island is = gm.getIslands().getIsland(gm.getOverWorld(), user);
-        if (is == null || !this.getSettings().getLimits().containsKey(e)) {
-            return LIMIT_NOT_SET;
-        }
-
-        int limit = this.getSettings().getLimits().get(e);
-
+        Environment effective = env == null ? Environment.NORMAL : env;
+        Map<EntityType, Integer> envLimits = getSettings().getLimits(effective);
+        if (is == null || !envLimits.containsKey(e)) return LIMIT_NOT_SET;
+        int limit = envLimits.get(e);
         return limit == -1 ? LIMIT_NOT_SET : String.valueOf(limit);
     }
 
-
+    private World worldForEnv(GameModeAddon gm, @Nullable Environment env) {
+        if (env == null) return gm.getOverWorld();
+        return switch (env) {
+            case NETHER -> gm.getNetherWorld() != null ? gm.getNetherWorld() : gm.getOverWorld();
+            case THE_END -> gm.getEndWorld() != null ? gm.getEndWorld() : gm.getOverWorld();
+            default -> gm.getOverWorld();
+        };
+    }
 }

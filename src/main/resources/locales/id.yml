@@ -1,8 +1,8 @@
 ---
 block-limits:
-  hit-limit: "&c[material] dibatasi sampai [number]!"
+  hit-limit: "<red>[material] dibatasi sampai [number]!"
 entity-limits:
-  hit-limit: "&c[entity] spawning dibatasi  sampai [number]!"
+  hit-limit: "<red>[entity] spawning dibatasi  sampai [number]!"
 limits:
   panel-title: Batasan Pulau
 admin:
@@ -13,53 +13,57 @@ admin:
     calc:
       parameters: "<pemain>"
       description: menghitung ulang batasan pulau untuk pemain
-      finished: "&aPenghitungan ulang pulau selesai tanpa masalah!"
+      finished: "<green>Penghitungan ulang pulau selesai tanpa masalah!"
     offset:
-      unknown: "&c Material atau entitas tidak dikenal [name]."
+      unknown: "<red> Material atau entitas tidak dikenal [name]."
+      description: "memungkinkan untuk mengelola batas offset untuk material dan entitas"
       main:
         description: memungkinkan untuk mengelola batas offset untuk material dan
           entitas
       set:
         parameters: "<pemain> <material|entitas> <angka>"
         description: menetapkan offset baru untuk batasan material atau entitas
-        success: "&a Batas offset untuk [name] ditetapkan ke [number]."
-        same: "&a Batas offset untuk [name] ditetapkan ke [number]."
+        success: "<green> Batas offset untuk [name] ditetapkan ke [number]."
+        same: "<green> Batas offset untuk [name] ditetapkan ke [number]."
       add:
         parameters: "<pemain> <material|entitas> <angka>"
         description: menambahkan offset untuk batasan material atau entitas
-        success: "&a Batas offset untuk [name] ditingkatkan hingga [number]."
+        success: "<green> Batas offset untuk [name] ditingkatkan hingga [number]."
       remove:
         parameters: "<pemain> <material|entitas> <angka>"
         description: mengurangi offset untuk batas material atau entitas
-        success: "&a Batas offset untuk [name] dikurangi hingga [number]."
+        success: "<green> Batas offset untuk [name] dikurangi hingga [number]."
       reset:
         parameters: "<pemain> <material|entitas>"
         description: menghapus offset untuk material atau entitas
-        success: "&a Batas offset untuk [name] ditetapkan ke 0."
+        success: "<green> Batas offset untuk [name] ditetapkan ke 0."
       view:
         parameters: "<pemain> <material|entitas>"
         description: menampilkan offset untuk material atau entitas
-        message: "&a [name] offset diatur ke [number]."
+        message: "<green> [name] offset diatur ke [number]."
 island:
   limits:
     description: menampilkan batasan pulau kamu
-    max-color: "&c"
-    regular-color: "&a"
+    max-color: "<red>"
+    regular-color: "<green>"
     block-limit-syntax: "[number]/[limit]"
-    no-limits: "&c Tidak ada batasan yang ditetapkan di dunia ini"
+    no-limits: "<red> Tidak ada batasan yang ditetapkan di dunia ini"
     panel:
       title-syntax: "[title] [sort]"
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
+      env-overworld: "Dunia Atas"
+      env-nether: "Nether"
+      env-end: "End"
       A2Z: a > z
       Z2A: z > a
     errors:
-      no-owner: "&c Pulau itu tidak memiliki pemilik"
-      not-on-island: "&c Lokasi ini tidak memiliki batasan yang ditetapkan."
+      no-owner: "<red> Pulau itu tidak memiliki pemilik"
+      not-on-island: "<red> Lokasi ini tidak memiliki batasan yang ditetapkan."
     recount:
       description: menghitung ulang batasan untuk pulau kamu
-      now-recounting: "&b Menghitung ulang. Membutuhkan waktu beberapa saat, silahkan
+      now-recounting: "<aqua> Menghitung ulang. Membutuhkan waktu beberapa saat, silahkan
         tunggu..."
-      in-progress: "&c Perhitungan pulau sedang diproses. Silahkan tunggu..."
-      time-out: "&c Gagal menghitung ulang. Apakah pulau terlalu besar?"
+      in-progress: "<red> Perhitungan pulau sedang diproses. Silahkan tunggu..."
+      time-out: "<red> Gagal menghitung ulang. Apakah pulau terlalu besar?"
