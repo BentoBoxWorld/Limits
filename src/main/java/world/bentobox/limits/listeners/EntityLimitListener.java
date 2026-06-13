@@ -48,6 +48,8 @@ public class EntityLimitListener implements Listener {
     /** Cardinal directions used for block structure detection. */
     private static final List<BlockFace> CARDINALS = List.of(BlockFace.UP, BlockFace.NORTH, BlockFace.SOUTH,
             BlockFace.EAST, BlockFace.WEST, BlockFace.DOWN);
+    /** One block face per horizontal axis, used to find golem arms regardless of facing. */
+    private static final List<BlockFace> HORIZONTAL = List.of(BlockFace.NORTH, BlockFace.EAST);
 
     public EntityLimitListener(Limits addon) {
         this.addon = addon;
@@ -289,61 +291,70 @@ public class EntityLimitListener implements Listener {
     }
 
     private void detectIronGolem(Location location) {
-        Block legs = location.getBlock();
-        addon.getBlockLimitListener().removeBlock(legs);
-        legs.setType(Material.AIR);
-        for (BlockFace bf : CARDINALS) {
-            Block body = legs.getRelative(bf);
-            if (body.getType().equals(Material.IRON_BLOCK)) {
-                Block head = body.getRelative(bf);
-                if (isGolemHead(head) && eraseGolemIfArmsMatch(body, head, bf)) {
-                    return;
-                }
+        // Anchor on the carved pumpkin: body and base are the two iron blocks below it,
+        // arms are two opposite iron blocks beside the body on a horizontal axis.
+        Block head = findPumpkinHead(location, Material.IRON_BLOCK);
+        if (head == null) {
+            return;
+        }
+        Block body = head.getRelative(BlockFace.DOWN);
+        Block base = body.getRelative(BlockFace.DOWN);
+        if (base.getType() != Material.IRON_BLOCK) {
+            return;
+        }
+        for (BlockFace bf : HORIZONTAL) {
+            Block arm1 = body.getRelative(bf);
+            Block arm2 = body.getRelative(bf.getOppositeFace());
+            if (arm1.getType() == Material.IRON_BLOCK && arm2.getType() == Material.IRON_BLOCK) {
+                eraseBlocks(head, body, base, arm1, arm2);
+                return;
             }
         }
+    }
+
+    private void detectSnowman(Location location) {
+        // Anchor on the carved pumpkin: the two snow blocks below it are the body and base.
+        Block head = findPumpkinHead(location, Material.SNOW_BLOCK);
+        if (head == null) {
+            return;
+        }
+        Block body = head.getRelative(BlockFace.DOWN);
+        Block base = body.getRelative(BlockFace.DOWN);
+        if (base.getType() != Material.SNOW_BLOCK) {
+            return;
+        }
+        eraseBlocks(head, body, base);
+    }
+
+    /**
+     * Locate the carved pumpkin / jack o'lantern that tops a freshly built golem or snowman.
+     *
+     * <p>The {@link CreatureSpawnEvent} location for a built mob is not guaranteed to be a
+     * particular block of the structure, so we anchor on the unambiguous pumpkin rather than
+     * assuming the spawn block is the base. Scan the spawn block and the two blocks above it
+     * for a head that sits directly on top of the expected body material.
+     *
+     * @return the pumpkin block, or {@code null} if none is found
+     */
+    private Block findPumpkinHead(Location location, Material bodyMaterial) {
+        Block b = location.getBlock();
+        for (int i = 0; i < 3; i++) {
+            if (isGolemHead(b) && b.getRelative(BlockFace.DOWN).getType() == bodyMaterial) {
+                return b;
+            }
+            b = b.getRelative(BlockFace.UP);
+        }
+        return null;
     }
 
     private boolean isGolemHead(Block block) {
         return block.getType() == Material.CARVED_PUMPKIN || block.getType() == Material.JACK_O_LANTERN;
     }
 
-    private boolean eraseGolemIfArmsMatch(Block body, Block head, BlockFace bf) {
-        for (BlockFace bf2 : CARDINALS) {
-            Block arm1 = body.getRelative(bf2);
-            Block arm2 = body.getRelative(bf2.getOppositeFace());
-            if (arm1.getType() == Material.IRON_BLOCK && arm2.getType() == Material.IRON_BLOCK
-                    && arm1.getRelative(bf.getOppositeFace()).isEmpty()
-                    && arm2.getRelative(bf.getOppositeFace()).isEmpty()) {
-                addon.getBlockLimitListener().removeBlock(body);
-                addon.getBlockLimitListener().removeBlock(arm1);
-                addon.getBlockLimitListener().removeBlock(arm2);
-                addon.getBlockLimitListener().removeBlock(head);
-                body.setType(Material.AIR);
-                arm1.setType(Material.AIR);
-                arm2.setType(Material.AIR);
-                head.setType(Material.AIR);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private void detectSnowman(Location location) {
-        Block legs = location.getBlock();
-        addon.getBlockLimitListener().removeBlock(legs);
-        legs.setType(Material.AIR);
-        for (BlockFace bf : CARDINALS) {
-            Block body = legs.getRelative(bf);
-            if (body.getType().equals(Material.SNOW_BLOCK)) {
-                Block head = body.getRelative(bf);
-                if (head.getType() == Material.CARVED_PUMPKIN || head.getType() == Material.JACK_O_LANTERN) {
-                    addon.getBlockLimitListener().removeBlock(body);
-                    addon.getBlockLimitListener().removeBlock(head);
-                    body.setType(Material.AIR);
-                    head.setType(Material.AIR);
-                    return;
-                }
-            }
+    private void eraseBlocks(Block... blocks) {
+        for (Block b : blocks) {
+            addon.getBlockLimitListener().removeBlock(b);
+            b.setType(Material.AIR);
         }
     }
 
