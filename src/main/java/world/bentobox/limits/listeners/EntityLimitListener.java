@@ -1,5 +1,6 @@
 package world.bentobox.limits.listeners;
 
+import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 import org.bukkit.*;
 import org.bukkit.World.Environment;
 import org.bukkit.block.Block;
@@ -273,6 +274,31 @@ public class EntityLimitListener implements Listener {
                     ibc.incrementEntity(envOf(w), entity.getType());
                     entityIslandMap.put(entity.getUniqueId(), island.getUniqueId());
                 });
+    }
+
+    /**
+     * Populate {@link #entityIslandMap} for entities loaded from chunks on
+     * server start or chunk reload. Freshly spawned entities go through
+     * {@link #trackSpawn} and are already in the map, so we skip them to
+     * avoid an unnecessary {@code getIslandAt} lookup.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onEntityAddToWorld(EntityAddToWorldEvent e) {
+        Entity entity = e.getEntity();
+        if (!(entity instanceof LivingEntity) && !(entity instanceof Vehicle)
+                && !(entity instanceof Hanging)) {
+            return;
+        }
+
+        UUID uuid = entity.getUniqueId();
+        if (entityIslandMap.containsKey(uuid)) return;
+
+        World w = entity.getWorld();
+        if (!addon.inGameModeWorld(w)) return;
+
+        addon.getIslands().getIslandAt(entity.getLocation())
+                .filter(island -> !island.isSpawn())
+                .ifPresent(island -> entityIslandMap.put(uuid, island.getUniqueId()));
     }
 
     /* =========================================================================
