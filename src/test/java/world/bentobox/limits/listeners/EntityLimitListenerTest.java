@@ -32,9 +32,11 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityBreedEvent;
+import org.bukkit.event.entity.EntityRemoveEvent;
 import org.bukkit.event.Event;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.hanging.HangingPlaceEvent;
@@ -575,6 +577,110 @@ class EntityLimitListenerTest {
         ell.onCreatureSpawn(event);
 
         assertFalse(event.isCancelled());
+    }
+
+    // --- EntityAddToWorldEvent / restart-drift tests (#270) ---
+
+    @Test
+    void testEntityAddToWorldPopulatesMapForLoadedEntity() throws Exception {
+        LivingEntity enderman = mockEntity(EntityType.ENDERMAN, location);
+        EntityAddToWorldEvent event = new EntityAddToWorldEvent(enderman, world);
+
+        ell.onEntityAddToWorld(event);
+
+        assertEquals("test-island-id", entityIslandMap().get(enderman.getUniqueId()));
+    }
+
+    @Test
+    void testEntityAddToWorldIgnoresNonTrackedEntity() throws Exception {
+        // A projectile/item is neither LivingEntity, Vehicle nor Hanging — never mapped, no lookup.
+        Entity arrow = mock(Entity.class);
+        when(arrow.getUniqueId()).thenReturn(UUID.randomUUID());
+        EntityAddToWorldEvent event = new EntityAddToWorldEvent(arrow, world);
+
+        ell.onEntityAddToWorld(event);
+
+        assertTrue(entityIslandMap().isEmpty());
+        verify(islandsManager, never()).getIslandAt(any(Location.class));
+    }
+
+    @Test
+    void testEntityAddToWorldOutsideGameModeWorldIgnored() throws Exception {
+        when(addon.inGameModeWorld(world)).thenReturn(false);
+        LivingEntity enderman = mockEntity(EntityType.ENDERMAN, location);
+        EntityAddToWorldEvent event = new EntityAddToWorldEvent(enderman, world);
+
+        ell.onEntityAddToWorld(event);
+
+        assertTrue(entityIslandMap().isEmpty());
+    }
+
+    @Test
+    void testEntityAddToWorldOnSpawnIslandNotMapped() throws Exception {
+        when(island.isSpawn()).thenReturn(true);
+        LivingEntity enderman = mockEntity(EntityType.ENDERMAN, location);
+        EntityAddToWorldEvent event = new EntityAddToWorldEvent(enderman, world);
+
+        ell.onEntityAddToWorld(event);
+
+        assertTrue(entityIslandMap().isEmpty());
+    }
+
+    @Test
+    void testEntityAddToWorldSkipsAlreadyMappedEntity() throws Exception {
+        LivingEntity enderman = mockEntity(EntityType.ENDERMAN, location);
+        entityIslandMap().put(enderman.getUniqueId(), "existing-island");
+        EntityAddToWorldEvent event = new EntityAddToWorldEvent(enderman, world);
+
+        ell.onEntityAddToWorld(event);
+
+        // Mapping is untouched and no redundant getIslandAt lookup is performed.
+        assertEquals("existing-island", entityIslandMap().get(enderman.getUniqueId()));
+        verify(islandsManager, never()).getIslandAt(any(Location.class));
+    }
+
+    @Test
+    void testEntityRemoveUnloadEvictsMappingWithoutDecrement() throws Exception {
+        LivingEntity enderman = mockEntity(EntityType.ENDERMAN, location);
+        entityIslandMap().put(enderman.getUniqueId(), "test-island-id");
+        int before = ibc.getEntityCount(Environment.NORMAL, EntityType.ENDERMAN);
+
+        ell.onEntityRemove(new EntityRemoveEvent(enderman, EntityRemoveEvent.Cause.UNLOAD));
+
+        // Mapping dropped so it can't leak, but the count is untouched — the entity is still alive,
+        // just unloaded with its chunk; onEntityAddToWorld re-populates it on reload.
+        assertFalse(entityIslandMap().containsKey(enderman.getUniqueId()));
+        assertEquals(before, ibc.getEntityCount(Environment.NORMAL, EntityType.ENDERMAN));
+    }
+
+    @Test
+    void testReloadedEntityDecrementsWhenItDiesOffIsland() throws Exception {
+        // Simulate a restart: the in-memory map starts empty and the entity is reloaded from a chunk.
+        LivingEntity enderman = mockEntity(EntityType.ENDERMAN, location);
+        ell.onEntityAddToWorld(new EntityAddToWorldEvent(enderman, world));
+        assertEquals("test-island-id", entityIslandMap().get(enderman.getUniqueId()));
+
+        int before = ibc.getEntityCount(Environment.NORMAL, EntityType.ENDERMAN);
+
+        // It wanders off the island and dies there, so getIslandAt no longer resolves an island.
+        Location offIsland = mock(Location.class);
+        when(offIsland.getWorld()).thenReturn(world);
+        when(islandsManager.getIslandAt(offIsland)).thenReturn(Optional.empty());
+        when(enderman.getLocation()).thenReturn(offIsland);
+
+        ell.onEntityRemove(new EntityRemoveEvent(enderman, EntityRemoveEvent.Cause.DEATH));
+
+        // The cached mapping lets the decrement happen even though the death was off-island —
+        // before #270 this entry was lost on restart and the count drifted upward.
+        assertEquals(before - 1, ibc.getEntityCount(Environment.NORMAL, EntityType.ENDERMAN));
+        assertFalse(entityIslandMap().containsKey(enderman.getUniqueId()));
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<UUID, String> entityIslandMap() throws Exception {
+        Field f = EntityLimitListener.class.getDeclaredField("entityIslandMap");
+        f.setAccessible(true);
+        return (Map<UUID, String>) f.get(ell);
     }
 
     // --- helper methods ---

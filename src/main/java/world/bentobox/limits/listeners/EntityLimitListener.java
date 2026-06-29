@@ -282,7 +282,7 @@ public class EntityLimitListener implements Listener {
      * {@link #trackSpawn} and are already in the map, so we skip them to
      * avoid an unnecessary {@code getIslandAt} lookup.
      */
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onEntityAddToWorld(EntityAddToWorldEvent e) {
         Entity entity = e.getEntity();
         if (!(entity instanceof LivingEntity) && !(entity instanceof Vehicle)
@@ -307,9 +307,14 @@ public class EntityLimitListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onEntityRemove(EntityRemoveEvent e) {
-        // Entities unloaded with their chunk are still alive — don't decrement.
-        if (e.getCause() == EntityRemoveEvent.Cause.UNLOAD) return;
         Entity entity = e.getEntity();
+        // Entities unloaded with their chunk are still alive — don't decrement. Drop the cached
+        // island mapping so it can't leak for entities that never load again; onEntityAddToWorld
+        // re-populates it on chunk reload.
+        if (e.getCause() == EntityRemoveEvent.Cause.UNLOAD) {
+            entityIslandMap.remove(entity.getUniqueId());
+            return;
+        }
         World w = entity.getWorld();
         if (!addon.inGameModeWorld(w)) return;
 
