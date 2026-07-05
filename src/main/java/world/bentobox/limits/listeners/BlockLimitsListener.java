@@ -566,4 +566,14 @@ public class BlockLimitsListener implements Listener {
         return islandCountMap.computeIfAbsent(island.getUniqueId(),
                 k -> new IslandBlockCount(k, island.getGameMode()));
     }
+
+    /**
+     * Notify that the island's data has changed so it gets batched for a save.
+     * Called from {@link EntityLimitListener} when entity counts are incremented
+     * or decremented — block changes go through {@link #process} which already
+     * calls this internally.
+     */
+    public void markChanged(String islandId) {
+        updateSaveMap(islandId);
+    }
 }
