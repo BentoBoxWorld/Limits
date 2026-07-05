@@ -273,6 +273,7 @@ public class EntityLimitListener implements Listener {
                     IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(island);
                     ibc.incrementEntity(envOf(w), entity.getType());
                     entityIslandMap.put(entity.getUniqueId(), island.getUniqueId());
+                    addon.getBlockLimitListener().markChanged(island.getUniqueId());
                 });
     }
 
@@ -326,6 +327,7 @@ public class EntityLimitListener implements Listener {
             IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(islandId);
             if (ibc != null) {
                 ibc.decrementEntity(envOf(w), entity.getType());
+                addon.getBlockLimitListener().markChanged(islandId);
             }
             return;
         }
@@ -336,6 +338,7 @@ public class EntityLimitListener implements Listener {
                     IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(island.getUniqueId());
                     if (ibc != null) {
                         ibc.decrementEntity(envOf(w), entity.getType());
+                        addon.getBlockLimitListener().markChanged(island.getUniqueId());
                     }
                 });
     }
@@ -367,6 +370,7 @@ public class EntityLimitListener implements Listener {
                         IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(island.getUniqueId());
                         if (ibc != null) {
                             ibc.decrementEntity(fromEnv, entity.getType());
+                            addon.getBlockLimitListener().markChanged(island.getUniqueId());
                         }
                     });
         }
@@ -378,6 +382,7 @@ public class EntityLimitListener implements Listener {
                         IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(island);
                         ibc.incrementEntity(toEnv, entity.getType());
                         entityIslandMap.put(entity.getUniqueId(), island.getUniqueId());
+                        addon.getBlockLimitListener().markChanged(island.getUniqueId());
                     });
         }
     }
