@@ -35,6 +35,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.TechnicalPiston;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.ExplosionResult;
 import org.bukkit.entity.Entity;
@@ -1306,6 +1307,81 @@ class BlockLimitsListenerTest {
         // Verify the Database mock's saveObjectAsync was called
         Database<?> dbMock = mockedDb.constructed().get(0);
         // saveObjectAsync is called once by setIsland and once by save
+        verify(dbMock, atLeastOnce()).saveObjectAsync(any());
+    }
+
+    // --- Entity count persistence tests ---
+
+    @Test
+    void testIncrementEntityCreatesRecordAndCounts() {
+        when(island.getGameMode()).thenReturn("BSkyBlock");
+
+        listener.incrementEntity(island, Environment.NORMAL, EntityType.CHICKEN);
+
+        IslandBlockCount ibc = listener.getIsland("test-island-id");
+        assertNotNull(ibc);
+        assertEquals(1, ibc.getEntityCount(Environment.NORMAL, EntityType.CHICKEN));
+    }
+
+    @Test
+    void testDecrementEntityLowersCount() {
+        when(island.getGameMode()).thenReturn("BSkyBlock");
+        listener.incrementEntity(island, Environment.NORMAL, EntityType.CHICKEN);
+        listener.incrementEntity(island, Environment.NORMAL, EntityType.CHICKEN);
+
+        listener.decrementEntity("test-island-id", Environment.NORMAL, EntityType.CHICKEN);
+
+        assertEquals(1, listener.getIsland("test-island-id").getEntityCount(Environment.NORMAL, EntityType.CHICKEN));
+    }
+
+    @Test
+    void testDecrementEntityWithoutRecordIsNoOp() {
+        // No record exists and repeated no-op decrements must not count toward the batch save
+        for (int i = 0; i < 20; i++) {
+            listener.decrementEntity("unknown-island", Environment.NORMAL, EntityType.CHICKEN);
+        }
+
+        assertNull(listener.getIsland("unknown-island"));
+        Database<?> dbMock = mockedDb.constructed().get(0);
+        verify(dbMock, never()).saveObjectAsync(any());
+    }
+
+    @Test
+    void testEntityChangesBatchSaveAfterThreshold() {
+        when(island.getGameMode()).thenReturn("BSkyBlock");
+        // CHANGE_LIMIT = 9, so the 10th change triggers a save — entity changes must
+        // join the same batch-save cycle as block changes (they used to be persisted
+        // only on addon disable, losing counts on a crash)
+        for (int i = 0; i < 10; i++) {
+            listener.incrementEntity(island, Environment.NORMAL, EntityType.CHICKEN);
+        }
+
+        Database<?> dbMock = mockedDb.constructed().get(0);
+        verify(dbMock, atLeastOnce()).saveObjectAsync(any());
+    }
+
+    @Test
+    void testEntityChangesNoSaveBeforeThreshold() {
+        when(island.getGameMode()).thenReturn("BSkyBlock");
+        for (int i = 0; i < 9; i++) {
+            listener.incrementEntity(island, Environment.NORMAL, EntityType.CHICKEN);
+        }
+
+        Database<?> dbMock = mockedDb.constructed().get(0);
+        verify(dbMock, never()).saveObjectAsync(any());
+    }
+
+    @Test
+    void testMixedEntityIncrementAndDecrementCountTowardBatchSave() {
+        when(island.getGameMode()).thenReturn("BSkyBlock");
+        for (int i = 0; i < 5; i++) {
+            listener.incrementEntity(island, Environment.NORMAL, EntityType.CHICKEN);
+        }
+        for (int i = 0; i < 5; i++) {
+            listener.decrementEntity("test-island-id", Environment.NORMAL, EntityType.CHICKEN);
+        }
+
+        Database<?> dbMock = mockedDb.constructed().get(0);
         verify(dbMock, atLeastOnce()).saveObjectAsync(any());
     }
 }
