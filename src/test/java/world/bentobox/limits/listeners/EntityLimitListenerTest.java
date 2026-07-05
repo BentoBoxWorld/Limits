@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -116,6 +117,20 @@ class EntityLimitListenerTest {
         ibc.incrementEntity(Environment.NORMAL, EntityType.ENDERMAN);
         when(bll.getIsland(anyString())).thenReturn(ibc);
         when(addon.getBlockLimitListener()).thenReturn(bll);
+        // Delegate the count-mutation wrappers to the real IslandBlockCount so tests
+        // can assert on counts. Mirrors BlockLimitsListener's contract: increment
+        // creates the record, decrement is a no-op when there is none.
+        doAnswer(inv -> {
+            ibc.incrementEntity(inv.getArgument(1), inv.getArgument(2));
+            return null;
+        }).when(bll).incrementEntity(any(Island.class), any(Environment.class), any(EntityType.class));
+        doAnswer(inv -> {
+            IslandBlockCount target = bll.getIsland((String) inv.getArgument(0));
+            if (target != null) {
+                target.decrementEntity(inv.getArgument(1), inv.getArgument(2));
+            }
+            return null;
+        }).when(bll).decrementEntity(anyString(), any(Environment.class), any(EntityType.class));
 
         FileConfiguration config = new YamlConfiguration();
         config.load("src/main/resources/config.yml");

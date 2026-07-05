@@ -112,7 +112,9 @@ Two cancellable events are fired so other plugins can intercept limit applicatio
 
 ### Data Persistence
 
-`IslandBlockCount` is persisted via BentoBox's `Database<IslandBlockCount>` (JSON flat-file by default, configurable in BentoBox). Saves are batched: every 10 block changes triggers an async save (`CHANGE_LIMIT = 9`). A full save of all changed islands occurs on addon disable.
+`IslandBlockCount` is persisted via BentoBox's `Database<IslandBlockCount>` (JSON flat-file by default, configurable in BentoBox). Saves are batched: every 10 changes to an island (block or entity) triggers an async save (`CHANGE_LIMIT = 9`). A full save of all changed islands occurs on addon disable.
+
+Entity count mutations must go through `BlockLimitsListener.incrementEntity(Island, Environment, EntityType)` / `decrementEntity(String, Environment, EntityType)` — these mutate the count *and* enroll the change in the batch-save cycle. Never call `IslandBlockCount.incrementEntity`/`decrementEntity` directly from a listener, or the change is only persisted on addon disable and is lost on a crash. (`RecountCalculator` is the exception: it rebuilds a fresh `IslandBlockCount` and saves it wholesale via `setIsland`.)
 
 ### Testing
 

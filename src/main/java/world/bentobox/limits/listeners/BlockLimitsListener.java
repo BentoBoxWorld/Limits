@@ -37,6 +37,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.block.EntityBlockFormEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
+import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -472,7 +473,6 @@ public class BlockLimitsListener implements Listener {
     }
 
     private void updateSaveMap(String id) {
-        saveMap.putIfAbsent(id, 0);
         if (saveMap.merge(id, 1, Integer::sum) > CHANGE_LIMIT) {
             handler.saveObjectAsync(islandCountMap.get(id));
             saveMap.remove(id);
@@ -568,12 +568,26 @@ public class BlockLimitsListener implements Listener {
     }
 
     /**
-     * Notify that the island's data has changed so it gets batched for a save.
-     * Called from {@link EntityLimitListener} when entity counts are incremented
-     * or decremented — block changes go through {@link #process} which already
-     * calls this internally.
+     * Increment the island's entity count for this environment and batch the change
+     * for a save. Creates the island's count record if it does not exist yet.
+     * Entity mutations must go through this or {@link #decrementEntity} so they join
+     * the batch-save cycle — block changes go through {@link #process} which handles
+     * this internally.
      */
-    public void markChanged(String islandId) {
-        updateSaveMap(islandId);
+    public void incrementEntity(Island island, Environment env, EntityType type) {
+        getIsland(island).incrementEntity(env, type);
+        updateSaveMap(island.getUniqueId());
+    }
+
+    /**
+     * Decrement the island's entity count for this environment and batch the change
+     * for a save. No-op if the island has no count record.
+     */
+    public void decrementEntity(String islandId, Environment env, EntityType type) {
+        IslandBlockCount ibc = getIsland(islandId);
+        if (ibc != null) {
+            ibc.decrementEntity(env, type);
+            updateSaveMap(islandId);
+        }
     }
 }

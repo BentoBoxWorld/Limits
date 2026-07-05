@@ -270,10 +270,8 @@ public class EntityLimitListener implements Listener {
         addon.getIslands().getIslandAt(entity.getLocation())
                 .filter(island -> !island.isSpawn())
                 .ifPresent(island -> {
-                    IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(island);
-                    ibc.incrementEntity(envOf(w), entity.getType());
+                    addon.getBlockLimitListener().incrementEntity(island, envOf(w), entity.getType());
                     entityIslandMap.put(entity.getUniqueId(), island.getUniqueId());
-                    addon.getBlockLimitListener().markChanged(island.getUniqueId());
                 });
     }
 
@@ -324,23 +322,14 @@ public class EntityLimitListener implements Listener {
 
         String islandId = entityIslandMap.remove(entity.getUniqueId());
         if (islandId != null) {
-            IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(islandId);
-            if (ibc != null) {
-                ibc.decrementEntity(envOf(w), entity.getType());
-                addon.getBlockLimitListener().markChanged(islandId);
-            }
+            addon.getBlockLimitListener().decrementEntity(islandId, envOf(w), entity.getType());
             return;
         }
 
         addon.getIslands().getIslandAt(entity.getLocation())
                 .filter(island -> !island.isSpawn())
-                .ifPresent(island -> {
-                    IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(island.getUniqueId());
-                    if (ibc != null) {
-                        ibc.decrementEntity(envOf(w), entity.getType());
-                        addon.getBlockLimitListener().markChanged(island.getUniqueId());
-                    }
-                });
+                .ifPresent(island -> addon.getBlockLimitListener().decrementEntity(island.getUniqueId(), envOf(w),
+                        entity.getType()));
     }
 
     /* =========================================================================
@@ -366,23 +355,16 @@ public class EntityLimitListener implements Listener {
             entityIslandMap.remove(entity.getUniqueId());
             addon.getIslands().getIslandAt(entity.getLocation())
                     .filter(island -> !island.isSpawn())
-                    .ifPresent(island -> {
-                        IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(island.getUniqueId());
-                        if (ibc != null) {
-                            ibc.decrementEntity(fromEnv, entity.getType());
-                            addon.getBlockLimitListener().markChanged(island.getUniqueId());
-                        }
-                    });
+                    .ifPresent(island -> addon.getBlockLimitListener().decrementEntity(island.getUniqueId(), fromEnv,
+                            entity.getType()));
         }
         // Increment at destination if on a tracked island
         if (addon.inGameModeWorld(toWorld)) {
             addon.getIslands().getIslandAt(e.getTo())
                     .filter(island -> !island.isSpawn())
                     .ifPresent(island -> {
-                        IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(island);
-                        ibc.incrementEntity(toEnv, entity.getType());
+                        addon.getBlockLimitListener().incrementEntity(island, toEnv, entity.getType());
                         entityIslandMap.put(entity.getUniqueId(), island.getUniqueId());
-                        addon.getBlockLimitListener().markChanged(island.getUniqueId());
                     });
         }
     }
