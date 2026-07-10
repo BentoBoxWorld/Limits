@@ -81,9 +81,14 @@ public class JoinListener implements Listener {
      */
     public void mergePerms(Player player, String permissionPrefix, String islandId, String gameMode) {
         IslandBlockCount islandBlockCount = addon.getBlockLimitListener().getIsland(islandId);
+        boolean bannerLogged = false;
         for (PermissionAttachmentInfo permissionInfo : player.getEffectivePermissions()) {
             if (!permissionInfo.getValue() || !permissionInfo.getPermission().startsWith(permissionPrefix)) {
                 continue;
+            }
+            if (!bannerLogged) {
+                logIfEnabled("Setting login limit via perm for " + player.getName() + "...");
+                bannerLogged = true;
             }
             islandBlockCount = applyOnePerm(player, permissionInfo, permissionPrefix, islandId, gameMode,
                     islandBlockCount);
@@ -110,7 +115,6 @@ public class JoinListener implements Listener {
         }
 
         IslandBlockCount ibc = current != null ? current : new IslandBlockCount(islandId, gameMode);
-        logIfEnabled("Setting login limit via perm for " + player.getName() + "...");
 
         LimitsPermCheckEvent limitsPermCheckEvent = new LimitsPermCheckEvent(player, islandId, ibc, entityGroup,
                 entityType, material, parsed.value);

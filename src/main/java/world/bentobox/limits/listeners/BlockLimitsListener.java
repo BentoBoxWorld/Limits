@@ -472,6 +472,22 @@ public class BlockLimitsListener implements Listener {
      *
      * @return limit amount if at/over the limit (nothing was counted), or -1 on success
      */
+    /**
+     * True when the config ignores the island's center block and {@code loc} is that
+     * block. Compares block coordinates so entity locations (fractional coordinates,
+     * yaw/pitch) are matched correctly.
+     */
+    private boolean isIgnoredCenterBlock(Island island, Location loc) {
+        if (!addon.getConfig().getBoolean("ignore-center-block", true)) {
+            return false;
+        }
+        Location center = island.getCenter();
+        return center != null && Objects.equals(center.getWorld(), loc.getWorld())
+                && center.getBlockX() == loc.getBlockX()
+                && center.getBlockY() == loc.getBlockY()
+                && center.getBlockZ() == loc.getBlockZ();
+    }
+
     public int processKey(World world, Location location, NamespacedKey key, boolean add) {
         if (!addon.inGameModeWorld(world)) {
             return -1;
@@ -483,8 +499,7 @@ public class BlockLimitsListener implements Listener {
             if (gameMode.isEmpty()) {
                 return -1;
             }
-            if (addon.getConfig().getBoolean("ignore-center-block", true)
-                    && i.getCenter().equals(location)) {
+            if (isIgnoredCenterBlock(i, location)) {
                 return -1;
             }
             islandCountMap.putIfAbsent(id, new IslandBlockCount(id, gameMode));
@@ -522,6 +537,64 @@ public class BlockLimitsListener implements Listener {
             handler.saveObjectAsync(islandCountMap.get(id));
             saveMap.remove(id);
         }
+    }
+
+    /**
+     * The canonical copper chest material, or {@code null} on servers older than 1.21.9
+     * where copper chests (and copper golems) do not exist.
+     */
+    @Nullable
+    public Material getCopperChestMaterial() {
+        return COPPER_CHEST;
+    }
+
+    /**
+     * Read-only check of whether counting one more block of {@code key} on the island at
+     * {@code loc} would exceed the active limit. Used for blocks that appear without a
+     * place event — e.g. the copper chest a copper golem creates from a copper block, which
+     * fires no {@link BlockPlaceEvent} and so escapes the normal check (see
+     * <a href="https://github.com/BentoBoxWorld/Limits/issues/276">issue #276</a>).
+     *
+     * @return the limit value if already at/over it, otherwise -1
+     */
+    public int checkBlockLimit(Location loc, NamespacedKey key) {
+        World w = loc.getWorld();
+        if (w == null || !addon.inGameModeWorld(w)) {
+            return -1;
+        }
+        Environment env = envOf(w);
+        return addon.getIslands().getIslandAt(loc).map(i -> {
+            String id = i.getUniqueId();
+            String gameMode = addon.getGameModeName(w);
+            if (gameMode.isEmpty() || isIgnoredCenterBlock(i, loc)) {
+                return -1;
+            }
+            islandCountMap.putIfAbsent(id, new IslandBlockCount(id, gameMode));
+            return checkLimit(w, env, key, id);
+        }).orElse(-1);
+    }
+
+    /**
+     * Unconditionally count one block of {@code key} against the island at {@code loc}.
+     * Mirror of {@link #removeBlock(Block)} for blocks that are created without a place
+     * event; the block really exists, so not counting it would let the count drift below
+     * reality (see <a href="https://github.com/BentoBoxWorld/Limits/issues/276">issue #276</a>).
+     */
+    public void addBlockCount(Location loc, NamespacedKey key) {
+        World w = loc.getWorld();
+        if (w == null || !addon.inGameModeWorld(w)) {
+            return;
+        }
+        addon.getIslands().getIslandAt(loc).ifPresent(i -> {
+            String id = i.getUniqueId();
+            String gameMode = addon.getGameModeName(w);
+            if (gameMode.isEmpty() || isIgnoredCenterBlock(i, loc)) {
+                return;
+            }
+            Environment env = envOf(w);
+            islandCountMap.computeIfAbsent(id, k -> new IslandBlockCount(id, gameMode)).add(env, key);
+            updateSaveMap(id);
+        });
     }
 
     /**

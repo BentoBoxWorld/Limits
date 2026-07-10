@@ -94,8 +94,8 @@ class SettingsTest {
     }
 
     @Test
-    void testLogLimitsOnJoinDefaultsTrue() {
-        assertTrue(settings.isLogLimitsOnJoin());
+    void testLogLimitsOnJoinDefaultsFalse() {
+        assertFalse(settings.isLogLimitsOnJoin());
     }
 
     @Test

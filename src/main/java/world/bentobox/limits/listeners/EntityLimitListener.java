@@ -52,11 +52,13 @@ public class EntityLimitListener implements Listener {
     private static final String ENTITY_LIMIT_HIT = "entity-limits.hit-limit";
     /** Notification placeholder for the entity name. */
     private static final String ENTITY_PLACEHOLDER = "[entity]";
+    /** Locale reference for the block limit notification. */
+    private static final String BLOCK_LIMIT_HIT = "block-limits.hit-limit";
+    /** Notification placeholder for the block material name. */
+    private static final String BLOCK_PLACEHOLDER = "[material]";
     private final Limits addon;
     /** Entity UUIDs that have just spawned to prevent double-processing. */
     private final List<UUID> justSpawned = new ArrayList<>();
-    /** Entity UUIDs that are currently portaling to prevent double-decrement on cross-world removal. */
-    private final List<UUID> justPortaled = new ArrayList<>();
     /** Maps entity UUID to island ID so decrement works even when the entity dies off-island. */
     private final Map<UUID, String> entityIslandMap = new HashMap<>();
     /** Cardinal directions used for block structure detection. */
@@ -124,6 +126,12 @@ public class EntityLimitListener implements Listener {
                         && creatureSpawnEvent.getSpawnReason().equals(SpawnReason.BREEDING))) {
             return;
         }
+        // A copper golem turns its copper block into a copper chest with no place event,
+        // bypassing the COPPER_CHEST block limit (#276). Cancel the build if at that limit.
+        if (isBuildCopperGolem(creatureSpawnEvent.getSpawnReason())
+                && checkCopperChestLimit(creatureSpawnEvent)) {
+            return;
+        }
         if (creatureSpawnEvent.getSpawnReason().equals(SpawnReason.BUILD_SNOWMAN)
                 || creatureSpawnEvent.getSpawnReason().equals(SpawnReason.BUILD_IRONGOLEM)) {
             checkLimit(creatureSpawnEvent, creatureSpawnEvent.getEntity(), creatureSpawnEvent.getSpawnReason(),
@@ -154,11 +162,11 @@ public class EntityLimitListener implements Listener {
                 }
                 User u = User.getInstance(player);
                 if (res.getTypelimit() != null) {
-                    u.notify("block-limits.hit-limit", "[material]",
+                    u.notify(BLOCK_LIMIT_HIT, BLOCK_PLACEHOLDER,
                             DisplayNames.entity(u, hangingPlaceEvent.getEntity().getType()),
                             TextVariables.NUMBER, String.valueOf(res.getTypelimit().getValue()));
                 } else {
-                    u.notify("block-limits.hit-limit", "[material]",
+                    u.notify(BLOCK_LIMIT_HIT, BLOCK_PLACEHOLDER,
                             res.getGrouplimit().getKey().getName() + " ("
                                     + res.getGrouplimit().getKey().getTypes().stream()
                                             .map(x -> DisplayNames.entity(u, x))
@@ -260,6 +268,14 @@ public class EntityLimitListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onCreatureSpawnTrack(final CreatureSpawnEvent e) {
         trackSpawn(e.getEntity());
+        // The copper block became a copper chest as part of the (uncancelled) build; count it
+        // so the COPPER_CHEST limit is enforceable and the count stays accurate (#276).
+        if (isBuildCopperGolem(e.getSpawnReason())) {
+            Material chest = addon.getBlockLimitListener().getCopperChestMaterial();
+            if (chest != null) {
+                addon.getBlockLimitListener().addBlockCount(e.getLocation(), chest.getKey());
+            }
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -326,9 +342,6 @@ public class EntityLimitListener implements Listener {
         World w = entity.getWorld();
         if (!addon.inGameModeWorld(w)) return;
 
-        // Entity is being portaled — count transfer was already handled by onEntityPortal.
-        if (justPortaled.remove(entity.getUniqueId())) return;
-
         String islandId = entityIslandMap.remove(entity.getUniqueId());
         if (islandId != null) {
             addon.getBlockLimitListener().decrementEntity(islandId, envOf(w), entity.getType());
@@ -356,8 +369,9 @@ public class EntityLimitListener implements Listener {
         if (fromEnv == toEnv) return;
         if (!addon.inGameModeWorld(fromWorld) && !addon.inGameModeWorld(toWorld)) return;
 
-        // Prevent onEntityRemove from double-decrementing for the source-world removal.
-        justPortaled.add(entity.getUniqueId());
+        // No EntityRemoveEvent guard is needed here: Paper suppresses the event for
+        // dimension changes (RemovalReason.CHANGED_DIMENSION carries a null Bukkit cause),
+        // so the source-world removal never reaches onEntityRemove.
 
         // Decrement at source if on a tracked island
         if (addon.inGameModeWorld(fromWorld)) {
@@ -381,6 +395,61 @@ public class EntityLimitListener implements Listener {
     /* =========================================================================
      * Limit-checking core
      * ========================================================================= */
+
+    /**
+     * Whether the spawn reason is a copper golem build. Matched by name so the addon links
+     * and runs on servers older than 1.21.9, where {@code BUILD_COPPERGOLEM} is absent.
+     */
+    private static boolean isBuildCopperGolem(SpawnReason reason) {
+        return reason.name().equals("BUILD_COPPERGOLEM");
+    }
+
+    /**
+     * When a copper golem is built its copper block is replaced by a copper chest without a
+     * {@link org.bukkit.event.block.BlockPlaceEvent}, so the {@code COPPER_CHEST} block limit
+     * is never checked. Cancel the build if the island is already at that limit (#276).
+     *
+     * @return true if the spawn was cancelled because the copper chest limit was hit
+     */
+    private boolean checkCopperChestLimit(CreatureSpawnEvent e) {
+        Material chest = addon.getBlockLimitListener().getCopperChestMaterial();
+        if (chest == null) {
+            return false;
+        }
+        Location loc = e.getLocation();
+        int limit = addon.getBlockLimitListener().checkBlockLimit(loc, chest.getKey());
+        if (limit < 0) {
+            return false;
+        }
+        e.setCancelled(true);
+        tellPlayersBlockLimit(loc, chest, limit);
+        return true;
+    }
+
+    /**
+     * Notify players near {@code location} that a block limit was hit, mirroring the block
+     * listener's own {@code block-limits.hit-limit} message.
+     */
+    private void tellPlayersBlockLimit(Location location, Material material, int limit) {
+        if (!addon.getSettings().isShowLimitMessages()) {
+            return;
+        }
+        World w = location.getWorld();
+        if (w == null) {
+            return;
+        }
+        Bukkit.getScheduler().runTask(addon.getPlugin(), () -> {
+            for (Entity ent : w.getNearbyEntities(location, 5, 5, 5)) {
+                if (ent instanceof Player p) {
+                    p.updateInventory();
+                    User u = User.getInstance(p);
+                    u.notify(BLOCK_LIMIT_HIT, BLOCK_PLACEHOLDER,
+                            DisplayNames.material(u, material.getKey()),
+                            TextVariables.NUMBER, String.valueOf(limit));
+                }
+            }
+        });
+    }
 
     private boolean checkLimit(Cancellable cancelableEvent, LivingEntity livingEntity, SpawnReason spawnReason,
             boolean runAsync) {

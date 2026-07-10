@@ -100,7 +100,7 @@ public class Settings {
         loadEntityLimits(addon, "entitylimits-end", List.of(Environment.THE_END));
 
         // Log limits on join
-        logLimitsOnJoin = addon.getConfig().getBoolean("log-limits-on-join", true);
+        logLimitsOnJoin = addon.getConfig().getBoolean("log-limits-on-join", false);
         // Async Golums
         asyncGolums = addon.getConfig().getBoolean("async-golums", true);
         // Show or suppress the "hit the limit" player notifications
