@@ -51,6 +51,10 @@ public class EntityLimitListener implements Listener {
     private static final String ENTITY_LIMIT_HIT = "entity-limits.hit-limit";
     /** Notification placeholder for the entity name. */
     private static final String ENTITY_PLACEHOLDER = "[entity]";
+    /** Locale reference for the block limit notification. */
+    private static final String BLOCK_LIMIT_HIT = "block-limits.hit-limit";
+    /** Notification placeholder for the block material name. */
+    private static final String BLOCK_PLACEHOLDER = "[material]";
     private final Limits addon;
     /** Entity UUIDs that have just spawned to prevent double-processing. */
     private final List<UUID> justSpawned = new ArrayList<>();
@@ -155,11 +159,11 @@ public class EntityLimitListener implements Listener {
             if (res.hit()) {
                 hangingPlaceEvent.setCancelled(true);
                 if (res.getTypelimit() != null) {
-                    User.getInstance(player).notify("block-limits.hit-limit", "[material]",
+                    User.getInstance(player).notify(BLOCK_LIMIT_HIT, BLOCK_PLACEHOLDER,
                             Util.prettifyText(hangingPlaceEvent.getEntity().getType().toString()),
                             TextVariables.NUMBER, String.valueOf(res.getTypelimit().getValue()));
                 } else {
-                    User.getInstance(player).notify("block-limits.hit-limit", "[material]",
+                    User.getInstance(player).notify(BLOCK_LIMIT_HIT, BLOCK_PLACEHOLDER,
                             res.getGrouplimit().getKey().getName() + " ("
                                     + res.getGrouplimit().getKey().getTypes().stream()
                                             .map(x -> Util.prettifyText(x.toString()))
@@ -430,7 +434,7 @@ public class EntityLimitListener implements Listener {
             for (Entity ent : w.getNearbyEntities(location, 5, 5, 5)) {
                 if (ent instanceof Player p) {
                     p.updateInventory();
-                    User.getInstance(p).notify("block-limits.hit-limit", "[material]",
+                    User.getInstance(p).notify(BLOCK_LIMIT_HIT, BLOCK_PLACEHOLDER,
                             Util.prettifyText(material.toString()), TextVariables.NUMBER, String.valueOf(limit));
                 }
             }
