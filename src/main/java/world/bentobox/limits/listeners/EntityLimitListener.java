@@ -148,6 +148,9 @@ public class EntityLimitListener implements Listener {
             AtLimitResult res = atLimit(island, hangingPlaceEvent.getEntity());
             if (res.hit()) {
                 hangingPlaceEvent.setCancelled(true);
+                if (!addon.getSettings().isShowLimitMessages()) {
+                    return;
+                }
                 if (res.getTypelimit() != null) {
                     User.getInstance(player).notify("block-limits.hit-limit", "[material]",
                             Util.prettifyText(hangingPlaceEvent.getEntity().getType().toString()),
@@ -229,6 +232,9 @@ public class EntityLimitListener implements Listener {
     }
 
     private void notifyEntityLimit(Player player, EntityType type, AtLimitResult res) {
+        if (!addon.getSettings().isShowLimitMessages()) {
+            return;
+        }
         if (res.getTypelimit() != null) {
             User.getInstance(player).notify(ENTITY_LIMIT_HIT, ENTITY_PLACEHOLDER,
                     Util.prettifyText(type.toString()), TextVariables.NUMBER,
@@ -548,6 +554,9 @@ public class EntityLimitListener implements Listener {
     }
 
     private void tellPlayers(Location location, Entity entity, SpawnReason spawnReason, AtLimitResult res) {
+        if (!addon.getSettings().isShowLimitMessages()) {
+            return;
+        }
         if (spawnReason.equals(SpawnReason.SPAWNER) || spawnReason.equals(SpawnReason.NATURAL)
                 || spawnReason.equals(SpawnReason.INFECTION) || spawnReason.equals(SpawnReason.NETHER_PORTAL)
                 || spawnReason.equals(SpawnReason.REINFORCEMENTS) || spawnReason.equals(SpawnReason.SLIME_SPLIT)) {

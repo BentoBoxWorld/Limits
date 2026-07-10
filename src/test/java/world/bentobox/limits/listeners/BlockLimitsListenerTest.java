@@ -92,6 +92,9 @@ class BlockLimitsListenerTest {
     private Limits addon;
 
     @Mock
+    private world.bentobox.limits.Settings limitsSettings;
+
+    @Mock
     private World world;
 
     @Mock
@@ -135,6 +138,8 @@ class BlockLimitsListenerTest {
         doAnswer(invocation -> null).when(addon).log(anyString());
         doAnswer(invocation -> null).when(addon).logError(anyString());
         when(addon.isCoveredGameMode(anyString())).thenReturn(true);
+        when(addon.getSettings()).thenReturn(limitsSettings);
+        when(limitsSettings.isShowLimitMessages()).thenReturn(true);
         when(addon.inGameModeWorld(any(World.class))).thenReturn(false);
         // Override to true for our test world so event handlers don't bail early
         when(addon.inGameModeWorld(world)).thenReturn(true);
@@ -401,6 +406,48 @@ class BlockLimitsListenerTest {
         listener.onBlock(event);
 
         assertTrue(event.isCancelled());
+    }
+
+    @Test
+    void testBlockPlaceAtLimitNotifiesWhenMessagesEnabled() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        for (int i = 0; i < 10; i++) {
+            ibc.add(Environment.NORMAL, Material.HOPPER.getKey());
+        }
+        listener.setIsland("test-island-id", ibc);
+        Notifier notifier = mock(Notifier.class);
+        when(plugin.getNotifier()).thenReturn(notifier);
+
+        Block block = mockBlock(Material.HOPPER, blockLocation);
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block, new ItemStack(Material.HOPPER), player, true, EquipmentSlot.HAND);
+
+        listener.onBlock(event);
+
+        assertTrue(event.isCancelled());
+        verify(notifier).notify(any(), anyString());
+    }
+
+    @Test
+    void testBlockPlaceAtLimitSilentWhenMessagesDisabled() {
+        when(limitsSettings.isShowLimitMessages()).thenReturn(false);
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        for (int i = 0; i < 10; i++) {
+            ibc.add(Environment.NORMAL, Material.HOPPER.getKey());
+        }
+        listener.setIsland("test-island-id", ibc);
+        Notifier notifier = mock(Notifier.class);
+        when(plugin.getNotifier()).thenReturn(notifier);
+
+        Block block = mockBlock(Material.HOPPER, blockLocation);
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block, new ItemStack(Material.HOPPER), player, true, EquipmentSlot.HAND);
+
+        listener.onBlock(event);
+
+        // Still enforced, just silent
+        assertTrue(event.isCancelled());
+        verify(notifier, never()).notify(any(), anyString());
     }
 
     @Test

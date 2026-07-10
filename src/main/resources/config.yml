@@ -30,6 +30,10 @@ log-limits-on-join: true
 # Use async checks for snowmen and iron golums. Set to false if you see problems.
 async-golums: true
 
+# Show players a message when they hit a limit. Set to false to enforce limits
+# silently - placements and spawns are still blocked, but no message is sent.
+show-limit-messages: true
+
 # General block limiting
 # Use this section to limit how many blocks can be added to an island.
 # 0 means the item will be blocked from placement completely.

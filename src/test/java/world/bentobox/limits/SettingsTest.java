@@ -104,6 +104,18 @@ class SettingsTest {
     }
 
     @Test
+    void testShowLimitMessagesDefaultsTrue() {
+        assertTrue(settings.isShowLimitMessages());
+    }
+
+    @Test
+    void testShowLimitMessagesDisabled() {
+        config.set("show-limit-messages", false);
+        Settings s = new Settings(addon);
+        assertFalse(s.isShowLimitMessages());
+    }
+
+    @Test
     void testGetGeneralEmpty() {
         // Default config.yml does not have ANIMALS or MOBS entries in entitylimits
         Map<Settings.GeneralGroup, Integer> general = settings.getGeneral();
