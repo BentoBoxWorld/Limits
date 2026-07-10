@@ -233,9 +233,24 @@ public class RecountCalculator {
 
     public void tidyUp() {
         ibc = bll.getIsland(island);
+        // Custom-namespace counts (ItemsAdder/Oraxen blocks) are event-tracked and
+        // invisible to the chunk scan, so carry them across the reset untouched.
+        Map<Environment, Map<NamespacedKey, Integer>> customCounts = new EnumMap<>(Environment.class);
+        for (Environment env : List.of(Environment.NORMAL, Environment.NETHER, Environment.THE_END)) {
+            ibc.getBlockCounts(env).forEach((key, count) -> {
+                if (!NamespacedKey.MINECRAFT.equals(key.getNamespace())) {
+                    customCounts.computeIfAbsent(env, e -> new java.util.HashMap<>()).put(key, count);
+                }
+            });
+        }
         // Reset and write per-env block counts
         ibc.clearAllBlockCounts();
         results.getEnvBlockCount().forEach((env, multiset) -> multiset.forEach(key -> ibc.add(env, key)));
+        customCounts.forEach((env, m) -> m.forEach((key, count) -> {
+            for (int i = 0; i < count; i++) {
+                ibc.add(env, key);
+            }
+        }));
 
         // Recount entities (loaded only) and write per-env
         scanEntities();

@@ -53,6 +53,12 @@ apply-member-limit-perms: false
 # Use blocklimits-nether / blocklimits-end below to override per environment.
 # The following general terms can be used: STAIRS, DOORS, SIGNS, LOGS, SNOW, LEAVES,
 # SHULKER_BOXES, BANNERS, RAILS, ICE, BUTTONS, CANDLE_CAKES, CAMPFIRES, SLABS, STONE_BRICKS
+# ItemsAdder / Oraxen custom blocks can be limited too (when the plugin is installed):
+# use the ItemsAdder namespaced id, or an Oraxen id prefixed with "oraxen:", as the key.
+# Quote keys containing a colon. Custom blocks are tracked from their place/break
+# events; a recount preserves their stored counts rather than rescanning them.
+#  "iafestivities:christmas/christmas_tree/green_orb": 5
+#  "oraxen:caveblock": 10
 blocklimits:
   HOPPER: 10
 
