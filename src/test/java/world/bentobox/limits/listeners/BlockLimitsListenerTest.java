@@ -92,6 +92,9 @@ class BlockLimitsListenerTest {
     private Limits addon;
 
     @Mock
+    private world.bentobox.limits.Settings limitsSettings;
+
+    @Mock
     private World world;
 
     @Mock
@@ -135,6 +138,9 @@ class BlockLimitsListenerTest {
         doAnswer(invocation -> null).when(addon).log(anyString());
         doAnswer(invocation -> null).when(addon).logError(anyString());
         when(addon.isCoveredGameMode(anyString())).thenReturn(true);
+        // Limits settings mock: stacked-plants and block groups default off, messages on
+        when(addon.getSettings()).thenReturn(limitsSettings);
+        when(limitsSettings.isShowLimitMessages()).thenReturn(true);
         when(addon.inGameModeWorld(any(World.class))).thenReturn(false);
         // Override to true for our test world so event handlers don't bail early
         when(addon.inGameModeWorld(world)).thenReturn(true);
@@ -401,6 +407,48 @@ class BlockLimitsListenerTest {
         listener.onBlock(event);
 
         assertTrue(event.isCancelled());
+    }
+
+    @Test
+    void testBlockPlaceAtLimitNotifiesWhenMessagesEnabled() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        for (int i = 0; i < 10; i++) {
+            ibc.add(Environment.NORMAL, Material.HOPPER.getKey());
+        }
+        listener.setIsland("test-island-id", ibc);
+        Notifier notifier = mock(Notifier.class);
+        when(plugin.getNotifier()).thenReturn(notifier);
+
+        Block block = mockBlock(Material.HOPPER, blockLocation);
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block, new ItemStack(Material.HOPPER), player, true, EquipmentSlot.HAND);
+
+        listener.onBlock(event);
+
+        assertTrue(event.isCancelled());
+        verify(notifier).notify(any(), anyString());
+    }
+
+    @Test
+    void testBlockPlaceAtLimitSilentWhenMessagesDisabled() {
+        when(limitsSettings.isShowLimitMessages()).thenReturn(false);
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        for (int i = 0; i < 10; i++) {
+            ibc.add(Environment.NORMAL, Material.HOPPER.getKey());
+        }
+        listener.setIsland("test-island-id", ibc);
+        Notifier notifier = mock(Notifier.class);
+        when(plugin.getNotifier()).thenReturn(notifier);
+
+        Block block = mockBlock(Material.HOPPER, blockLocation);
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block, new ItemStack(Material.HOPPER), player, true, EquipmentSlot.HAND);
+
+        listener.onBlock(event);
+
+        // Still enforced, just silent
+        assertTrue(event.isCancelled());
+        verify(notifier, never()).notify(any(), anyString());
     }
 
     @Test
@@ -917,6 +965,164 @@ class BlockLimitsListenerTest {
         assertEquals(0, ibc.getBlockCount(Material.FARMLAND.getKey()));
         assertEquals(0, ibc.getBlockCount(Material.OAK_PLANKS.getKey()));
         assertEquals(1, ibc.getBlockCount(Material.DIRT.getKey()));
+    }
+
+    // --- Stacked plants count as one (#53) ---
+
+    @Test
+    void testStackedPlantSegmentNotCountedWhenEnabled() {
+        when(limitsSettings.isStackedPlantsCountAsOne()).thenReturn(true);
+        Block below = mockBlock(Material.SUGAR_CANE, new Location(world, 100, 64, 100));
+        Block block = mockBlock(Material.SUGAR_CANE, blockLocation);
+        when(block.getRelative(BlockFace.DOWN)).thenReturn(below);
+
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block,
+                new ItemStack(Material.SUGAR_CANE), player, true, EquipmentSlot.HAND);
+        listener.onBlock(event);
+
+        assertFalse(event.isCancelled());
+        IslandBlockCount ibc = listener.getIsland("test-island-id");
+        assertTrue(ibc == null || ibc.getBlockCount(Material.SUGAR_CANE.getKey()) == 0);
+    }
+
+    @Test
+    void testStackedPlantBaseCountedWhenEnabled() {
+        when(limitsSettings.isStackedPlantsCountAsOne()).thenReturn(true);
+        Block block = mockBlock(Material.SUGAR_CANE, blockLocation);
+        // Below is AIR from the mockBlock helper — this is the base segment
+
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block,
+                new ItemStack(Material.SUGAR_CANE), player, true, EquipmentSlot.HAND);
+        listener.onBlock(event);
+
+        assertEquals(1, listener.getIsland("test-island-id").getBlockCount(Material.SUGAR_CANE.getKey()));
+    }
+
+    @Test
+    void testStackedPlantBreakBaseDecrementsOnlyOneWhenEnabled() {
+        when(limitsSettings.isStackedPlantsCountAsOne()).thenReturn(true);
+        // Only the base was ever counted
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Environment.NORMAL, Material.SUGAR_CANE.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        when(world.getMaxHeight()).thenReturn(320);
+        Block bottomBlock = mockBlock(Material.SUGAR_CANE, new Location(world, 100, 65, 100));
+        when(bottomBlock.getY()).thenReturn(65);
+        Block midBlock = mockBlock(Material.SUGAR_CANE, new Location(world, 100, 66, 100));
+        when(midBlock.getY()).thenReturn(66);
+        when(bottomBlock.getRelative(BlockFace.UP)).thenReturn(midBlock);
+
+        BlockBreakEvent event = new BlockBreakEvent(bottomBlock, player);
+        listener.onBlock(event);
+
+        // Exactly the one counted base is removed; the stem walk must not run
+        assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.SUGAR_CANE.getKey()));
+    }
+
+    // --- Block group limits (#12) ---
+
+    private void setUpPistonGroup(int limit) {
+        world.bentobox.limits.BlockGroup group = new world.bentobox.limits.BlockGroup("Pistons",
+                java.util.Set.of(Material.PISTON.getKey(), Material.STICKY_PISTON.getKey()), limit, Material.PISTON);
+        when(limitsSettings.getBlockGroups(Material.PISTON.getKey())).thenReturn(List.of(group));
+        when(limitsSettings.getBlockGroups(Material.STICKY_PISTON.getKey())).thenReturn(List.of(group));
+        when(limitsSettings.getBlockGroupLimit(Environment.NORMAL, "Pistons")).thenReturn(limit);
+    }
+
+    @Test
+    void testBlockGroupLimitCancelsWhenGroupFull() {
+        setUpPistonGroup(10);
+        // 6 pistons + 4 sticky pistons = 10, group full
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        for (int i = 0; i < 6; i++) {
+            ibc.add(Environment.NORMAL, Material.PISTON.getKey());
+        }
+        for (int i = 0; i < 4; i++) {
+            ibc.add(Environment.NORMAL, Material.STICKY_PISTON.getKey());
+        }
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.PISTON, blockLocation);
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block,
+                new ItemStack(Material.PISTON), player, true, EquipmentSlot.HAND);
+        listener.onBlock(event);
+
+        assertTrue(event.isCancelled());
+        // Nothing was added on the cancel path
+        assertEquals(6, listener.getIsland("test-island-id").getBlockCount(Material.PISTON.getKey()));
+    }
+
+    @Test
+    void testBlockGroupLimitAllowsWhenUnderAndCounts() {
+        setUpPistonGroup(10);
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        for (int i = 0; i < 5; i++) {
+            ibc.add(Environment.NORMAL, Material.PISTON.getKey());
+        }
+        for (int i = 0; i < 4; i++) {
+            ibc.add(Environment.NORMAL, Material.STICKY_PISTON.getKey());
+        }
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.STICKY_PISTON, blockLocation);
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block,
+                new ItemStack(Material.STICKY_PISTON), player, true, EquipmentSlot.HAND);
+        listener.onBlock(event);
+
+        assertFalse(event.isCancelled());
+        assertEquals(5, listener.getIsland("test-island-id").getBlockCount(Material.STICKY_PISTON.getKey()));
+    }
+
+    @Test
+    void testIndividualLimitStillAppliesInsideGroup() {
+        setUpPistonGroup(10);
+        // Island-specific individual limit of 2 on PISTON is tighter than the group
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.setBlockLimit(Environment.NORMAL, Material.PISTON.getKey(), 2);
+        ibc.add(Environment.NORMAL, Material.PISTON.getKey());
+        ibc.add(Environment.NORMAL, Material.PISTON.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.PISTON, blockLocation);
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block,
+                new ItemStack(Material.PISTON), player, true, EquipmentSlot.HAND);
+        listener.onBlock(event);
+
+        assertTrue(event.isCancelled());
+    }
+
+    // --- Custom block keys (#176) ---
+
+    @Test
+    void testProcessKeyCustomNamespaceLimitAndCount() {
+        NamespacedKey custom = NamespacedKey.fromString("itemsadder:some_pack/tree");
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.setBlockLimit(Environment.NORMAL, custom, 1);
+        listener.setIsland("test-island-id", ibc);
+
+        // First add succeeds and counts
+        assertEquals(-1, listener.processKey(world, blockLocation, custom, true));
+        assertEquals(1, listener.getIsland("test-island-id").getBlockCount(Environment.NORMAL, custom));
+        // Second add hits the limit and must not count
+        assertEquals(1, listener.processKey(world, blockLocation, custom, true));
+        assertEquals(1, listener.getIsland("test-island-id").getBlockCount(Environment.NORMAL, custom));
+        // Removal decrements
+        assertEquals(-1, listener.processKey(world, blockLocation, custom, false));
+        assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Environment.NORMAL, custom));
+    }
+
+    @Test
+    void testCustomNamespaceKeyAcceptedInBlockLimitsConfig() {
+        config.set("blocklimits.oraxen:caveblock", 10);
+        BlockLimitsListener custom = new BlockLimitsListener(addon);
+        assertEquals(10,
+                custom.getMaterialLimits(world, "no-island").get(NamespacedKey.fromString("oraxen:caveblock")));
     }
 
     // --- Block cascade tests ---

@@ -31,6 +31,20 @@ log-limits-on-join: false
 # Use async checks for snowmen and iron golums. Set to false if you see problems.
 async-golums: true
 
+# Show players a message when they hit a limit. Set to false to enforce limits
+# silently - placements and spawns are still blocked, but no message is sent.
+show-limit-messages: true
+
+# Apply limit permissions from team members as well as the island owner.
+# When enabled, a team member's <gamemode>.island.limit.* permissions are merged into
+# the island's limits when the member logs in (the highest value wins). The owner's
+# login still recalculates the limits from scratch and then merges in the permissions
+# of any online team members.
+# Limits only recalculate on login, so removing a member (or revoking their permission)
+# takes effect the next time the owner logs in.
+# Coop and trusted players are not team members and their permissions never apply.
+apply-member-limit-perms: false
+
 # General block limiting
 # Use this section to limit how many blocks can be added to an island.
 # 0 means the item will be blocked from placement completely.
@@ -40,8 +54,20 @@ async-golums: true
 # Use blocklimits-nether / blocklimits-end below to override per environment.
 # The following general terms can be used: STAIRS, DOORS, SIGNS, LOGS, SNOW, LEAVES,
 # SHULKER_BOXES, BANNERS, RAILS, ICE, BUTTONS, CANDLE_CAKES, CAMPFIRES, SLABS, STONE_BRICKS
+# ItemsAdder / Oraxen custom blocks can be limited too (when the plugin is installed):
+# use the ItemsAdder namespaced id, or an Oraxen id prefixed with "oraxen:", as the key.
+# Quote keys containing a colon. Custom blocks are tracked from their place/break
+# events; a recount preserves their stored counts rather than rescanning them.
+#  "iafestivities:christmas/christmas_tree/green_orb": 5
+#  "oraxen:caveblock": 10
 blocklimits:
   HOPPER: 10
+
+# Count stackable plants (SUGAR_CANE, BAMBOO) as a single plant no matter how tall
+# they grow. When false (default), every segment of the plant counts toward the limit.
+# Run a recount (/<gamemode> limits recount) after changing this so stored counts
+# match the new counting rule.
+stacked-plants-count-as-one: false
 
 # Override block limits in the nether for this game mode.
 # Uncomment and add entries to set nether-only limits.
@@ -51,6 +77,36 @@ blocklimits:
 # Override block limits in the end for this game mode.
 #blocklimits-end:
 #  HOPPER: 5
+
+# Block Groups
+# Same idea as entity groups below: one shared limit across a set of block materials.
+# The counts of every member are summed and checked against the group limit, so players
+# cannot dodge a limit by converting between related blocks (e.g. grass -> dirt) or
+# splitting across variants (e.g. pistons and sticky pistons).
+# Individual blocklimits still apply on top if both are set.
+# Run a recount (/<gamemode> limits recount) after adding a group so existing blocks
+# are counted.
+#blockgrouplimits:
+#  Pistons:
+#    icon: PISTON
+#    limit: 10
+#    materials:
+#    - PISTON
+#    - STICKY_PISTON
+#  Soil:
+#    icon: GRASS_BLOCK
+#    limit: 200
+#    materials:
+#    - GRASS_BLOCK
+#    - DIRT
+#    - DIRT_PATH
+#    - FARMLAND
+# Override a block group's limit per environment. The group must already be defined
+# in blockgrouplimits; only the numeric limit can be overridden.
+#blockgrouplimits-nether:
+#  Pistons: 5
+#blockgrouplimits-end:
+#  Pistons: 5
 
 # This section is for world-named limits and overrides any environment-default limit
 # above for that specific world. Specify each world you want to limit individually

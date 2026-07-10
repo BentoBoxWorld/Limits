@@ -20,6 +20,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.eclipse.jdt.annotation.NonNull;
 
+import world.bentobox.bentobox.api.addons.GameModeAddon;
 import world.bentobox.bentobox.api.events.island.IslandEvent;
 import world.bentobox.bentobox.api.events.island.IslandEvent.Reason;
 import world.bentobox.bentobox.api.events.team.TeamSetownerEvent;
@@ -33,6 +34,12 @@ import world.bentobox.limits.objects.IslandBlockCount;
 
 /**
  * Applies permission-based block, entity, and entity-group limits to islands.
+ *
+ * <p>By default only the island owner's permissions count. When
+ * {@code apply-member-limit-perms} is enabled in the config, team members' permissions
+ * are merged in as well: a member's login merges their limits on top (highest value
+ * wins), and the owner's login recalculates from scratch and then merges the
+ * permissions of all online members.
  *
  * <p>Permission format:
  * <ul>
@@ -64,6 +71,16 @@ public class JoinListener implements Listener {
             islandBlockCount.clearAllEntityGroupLimits();
             islandBlockCount.clearAllBlockLimits();
         }
+        mergePerms(player, permissionPrefix, islandId, gameMode);
+    }
+
+    /**
+     * Reads every limit-shaped permission the player has and merges it into the island's
+     * existing permission-based limits — the highest value wins. Unlike
+     * {@link #checkPerms}, nothing is cleared first.
+     */
+    public void mergePerms(Player player, String permissionPrefix, String islandId, String gameMode) {
+        IslandBlockCount islandBlockCount = addon.getBlockLimitListener().getIsland(islandId);
         boolean bannerLogged = false;
         for (PermissionAttachmentInfo permissionInfo : player.getEffectivePermissions()) {
             if (!permissionInfo.getValue() || !permissionInfo.getPermission().startsWith(permissionPrefix)) {
@@ -255,16 +272,47 @@ public class JoinListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onPlayerJoin(PlayerJoinEvent event) {
+        UUID playerUUID = event.getPlayer().getUniqueId();
         addon.getGameModes().forEach(gameMode -> addon.getIslands()
-                .getIslands(gameMode.getOverWorld(), event.getPlayer().getUniqueId()).stream()
-                .filter(island -> event.getPlayer().getUniqueId().equals(island.getOwner()))
-                .map(Island::getUniqueId).forEach(islandId -> {
-                    IslandBlockCount islandBlockCount = addon.getBlockLimitListener().getIsland(islandId);
-                    if (!joinEventCheck(event.getPlayer(), islandId, islandBlockCount)) {
-                        checkPerms(event.getPlayer(), gameMode.getPermissionPrefix() + "island.limit.", islandId,
-                                gameMode.getDescription().getName());
-                    }
-                }));
+                .getIslands(gameMode.getOverWorld(), playerUUID).stream()
+                .filter(island -> playerUUID.equals(island.getOwner())
+                        || (addon.getSettings().isApplyMemberLimitPerms()
+                                && island.getMemberSet().contains(playerUUID)))
+                .forEach(island -> processJoin(event.getPlayer(), island, gameMode)));
+    }
+
+    private void processJoin(Player player, Island island, GameModeAddon gameMode) {
+        String islandId = island.getUniqueId();
+        IslandBlockCount islandBlockCount = addon.getBlockLimitListener().getIsland(islandId);
+        if (joinEventCheck(player, islandId, islandBlockCount)) {
+            return;
+        }
+        String permissionPrefix = gameMode.getPermissionPrefix() + "island.limit.";
+        String gameModeName = gameMode.getDescription().getName();
+        if (player.getUniqueId().equals(island.getOwner())) {
+            // Owner login recalculates the limits from scratch...
+            checkPerms(player, permissionPrefix, islandId, gameModeName);
+            // ...then merges in the perms of any online team members
+            mergeOnlineMemberPerms(island, permissionPrefix, gameModeName);
+        } else {
+            // Member login merges their perms on top of whatever is set — highest wins
+            mergePerms(player, permissionPrefix, islandId, gameModeName);
+        }
+    }
+
+    /**
+     * Merges the limit permissions of every online team member (excluding the owner)
+     * into the island's limits. No-op unless {@code apply-member-limit-perms} is enabled.
+     */
+    private void mergeOnlineMemberPerms(Island island, String permissionPrefix, String gameModeName) {
+        if (!addon.getSettings().isApplyMemberLimitPerms()) {
+            return;
+        }
+        island.getMemberSet().stream()
+                .filter(memberUUID -> !memberUUID.equals(island.getOwner()))
+                .map(Bukkit::getPlayer)
+                .filter(Objects::nonNull)
+                .forEach(member -> mergePerms(member, permissionPrefix, island.getUniqueId(), gameModeName));
     }
 
     private boolean joinEventCheck(Player player, String islandId, IslandBlockCount islandBlockCount) {
@@ -307,6 +355,7 @@ public class JoinListener implements Listener {
                 if (!permissionPrefix.isEmpty() && !gameModeName.isEmpty() && owner.getPlayer() != null) {
                     checkPerms(Objects.requireNonNull(owner.getPlayer()), permissionPrefix + "island.limit.",
                             island.getUniqueId(), gameModeName);
+                    mergeOnlineMemberPerms(island, permissionPrefix + "island.limit.", gameModeName);
                 }
             }
         }

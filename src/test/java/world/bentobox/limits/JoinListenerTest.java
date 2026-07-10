@@ -46,6 +46,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import com.google.common.collect.ImmutableSet;
+
 import world.bentobox.bentobox.api.addons.AddonDescription;
 import world.bentobox.bentobox.api.addons.GameModeAddon;
 import world.bentobox.bentobox.api.events.island.IslandEvent;
@@ -396,6 +398,97 @@ class JoinListenerTest {
         verify(ibc).setBlockLimit(Environment.NORMAL, Material.DIRT.getKey(), 34);
         verify(ibc).setEntityLimit(Environment.NORMAL, EntityType.CHICKEN, 34);
         verify(ibc).setEntityLimit(Environment.NORMAL, EntityType.CAVE_SPIDER, 4);
+    }
+
+    // --- Team member limit perms (#241) ---
+
+    private PermissionAttachmentInfo mockPerm(String permission) {
+        PermissionAttachmentInfo permAtt = mock(PermissionAttachmentInfo.class);
+        when(permAtt.getPermission()).thenReturn(permission);
+        when(permAtt.getValue()).thenReturn(true);
+        return permAtt;
+    }
+
+    @Test
+    void testOnPlayerJoinMemberIgnoredWhenDisabled() {
+        // Player is a team member, not the owner; feature off (default)
+        when(island.getOwner()).thenReturn(UUID.randomUUID());
+        when(settings.isApplyMemberLimitPerms()).thenReturn(false);
+        Set<PermissionAttachmentInfo> perms = Set.of(mockPerm("bskyblock.island.limit.STONE.24"));
+        when(player.getEffectivePermissions()).thenReturn(perms);
+
+        jl.onPlayerJoin(new PlayerJoinEvent(player, Component.text("welcome")));
+
+        verify(ibc, never()).setBlockLimit(any(), any(), anyInt());
+        verify(bll, never()).setIsland(anyString(), any());
+    }
+
+    @Test
+    void testOnPlayerJoinMemberPermsMergedWhenEnabled() {
+        // Player is a team member, not the owner; feature on
+        when(island.getOwner()).thenReturn(UUID.randomUUID());
+        when(island.getMemberSet()).thenReturn(ImmutableSet.of(uuid));
+        when(settings.isApplyMemberLimitPerms()).thenReturn(true);
+        Set<PermissionAttachmentInfo> perms = Set.of(mockPerm("bskyblock.island.limit.STONE.24"));
+        when(player.getEffectivePermissions()).thenReturn(perms);
+
+        jl.onPlayerJoin(new PlayerJoinEvent(player, Component.text("welcome")));
+
+        verify(ibc).setBlockLimit(Environment.NORMAL, Material.STONE.getKey(), 24);
+        // A member join merges — it must never clear the island's existing perm limits
+        verify(ibc, never()).clearAllBlockLimits();
+        verify(ibc, never()).clearAllEntityLimits();
+        verify(ibc, never()).clearAllEntityGroupLimits();
+    }
+
+    @Test
+    void testOnPlayerJoinMemberMergeKeepsHigherExistingLimit() {
+        // Island already has STONE at 30 (e.g. from the owner); member perm of 24 must not lower it
+        when(island.getOwner()).thenReturn(UUID.randomUUID());
+        when(island.getMemberSet()).thenReturn(ImmutableSet.of(uuid));
+        when(settings.isApplyMemberLimitPerms()).thenReturn(true);
+        when(ibc.getBlockLimit(any(Environment.class), any(NamespacedKey.class))).thenReturn(30);
+        Set<PermissionAttachmentInfo> perms = Set.of(mockPerm("bskyblock.island.limit.STONE.24"));
+        when(player.getEffectivePermissions()).thenReturn(perms);
+
+        jl.onPlayerJoin(new PlayerJoinEvent(player, Component.text("welcome")));
+
+        verify(ibc).setBlockLimit(Environment.NORMAL, Material.STONE.getKey(), 30);
+        verify(ibc, never()).setBlockLimit(Environment.NORMAL, Material.STONE.getKey(), 24);
+    }
+
+    @Test
+    void testOnPlayerJoinOwnerMergesOnlineMemberPerms() {
+        // Owner joins with no perms of their own; an online member has STONE.44
+        UUID memberUUID = UUID.randomUUID();
+        when(island.getMemberSet()).thenReturn(ImmutableSet.of(uuid, memberUUID));
+        when(settings.isApplyMemberLimitPerms()).thenReturn(true);
+        Player member = mock(Player.class);
+        when(member.getUniqueId()).thenReturn(memberUUID);
+        when(member.getName()).thenReturn("member");
+        Set<PermissionAttachmentInfo> memberPerms = Set.of(mockPerm("bskyblock.island.limit.STONE.44"));
+        when(member.getEffectivePermissions()).thenReturn(memberPerms);
+        mockedBukkit.when(() -> Bukkit.getPlayer(memberUUID)).thenReturn(member);
+
+        jl.onPlayerJoin(new PlayerJoinEvent(player, Component.text("welcome")));
+
+        // Owner join recalculates from scratch, then the member's perm is merged in
+        verify(ibc).clearAllBlockLimits();
+        verify(ibc).setBlockLimit(Environment.NORMAL, Material.STONE.getKey(), 44);
+    }
+
+    @Test
+    void testOnPlayerJoinOwnerIgnoresOfflineMemberPerms() {
+        // Owner joins; the only member is offline, so nothing extra is merged
+        UUID memberUUID = UUID.randomUUID();
+        when(island.getMemberSet()).thenReturn(ImmutableSet.of(uuid, memberUUID));
+        when(settings.isApplyMemberLimitPerms()).thenReturn(true);
+        mockedBukkit.when(() -> Bukkit.getPlayer(memberUUID)).thenReturn(null);
+
+        jl.onPlayerJoin(new PlayerJoinEvent(player, Component.text("welcome")));
+
+        verify(ibc).clearAllBlockLimits();
+        verify(ibc, never()).setBlockLimit(any(), any(), anyInt());
     }
 
     /**

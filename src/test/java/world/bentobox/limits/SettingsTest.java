@@ -104,6 +104,30 @@ class SettingsTest {
     }
 
     @Test
+    void testShowLimitMessagesDefaultsTrue() {
+        assertTrue(settings.isShowLimitMessages());
+    }
+
+    @Test
+    void testShowLimitMessagesDisabled() {
+        config.set("show-limit-messages", false);
+        Settings s = new Settings(addon);
+        assertFalse(s.isShowLimitMessages());
+    }
+
+    @Test
+    void testStackedPlantsCountAsOneDefaultsFalse() {
+        assertFalse(settings.isStackedPlantsCountAsOne());
+    }
+
+    @Test
+    void testStackedPlantsCountAsOneEnabled() {
+        config.set("stacked-plants-count-as-one", true);
+        Settings s = new Settings(addon);
+        assertTrue(s.isStackedPlantsCountAsOne());
+    }
+
+    @Test
     void testGetGeneralEmpty() {
         // Default config.yml does not have ANIMALS or MOBS entries in entitylimits
         Map<Settings.GeneralGroup, Integer> general = settings.getGeneral();
@@ -137,6 +161,59 @@ class SettingsTest {
         Settings s = new Settings(addon);
         verify(addon).logError("Entity type in entitylimits not supported: TNT - skipping...");
         assertFalse(s.getLimits(Environment.NORMAL).containsKey(EntityType.TNT));
+    }
+
+    // --- Block group limits (#12) ---
+
+    @Test
+    void testBlockGroupLimitsParsed() {
+        config.set("blockgrouplimits.Pistons.icon", "PISTON");
+        config.set("blockgrouplimits.Pistons.limit", 10);
+        config.set("blockgrouplimits.Pistons.materials", List.of("PISTON", "STICKY_PISTON"));
+        config.set("blockgrouplimits-nether.Pistons", 5);
+        Settings s = new Settings(addon);
+
+        assertEquals(1, s.getBlockGroupDefinitions().size());
+        BlockGroup group = s.getBlockGroupDefinitions().get(0);
+        assertEquals("Pistons", group.getName());
+        assertEquals(Material.PISTON, group.getIcon());
+        assertTrue(s.isInBlockGroup(Material.PISTON.getKey()));
+        assertTrue(s.isInBlockGroup(Material.STICKY_PISTON.getKey()));
+        assertFalse(s.isInBlockGroup(Material.DIRT.getKey()));
+        assertEquals(10, s.getBlockGroupLimit(Environment.NORMAL, "Pistons"));
+        assertEquals(5, s.getBlockGroupLimit(Environment.NETHER, "Pistons"));
+        assertEquals(10, s.getBlockGroupLimit(Environment.THE_END, "Pistons"));
+        assertEquals(-1, s.getBlockGroupLimit(Environment.NORMAL, "Nope"));
+    }
+
+    @Test
+    void testBlockGroupUnknownMaterialSkipped() {
+        config.set("blockgrouplimits.Bad.limit", 10);
+        config.set("blockgrouplimits.Bad.materials", List.of("NOT_A_BLOCK_XYZ"));
+        Settings s = new Settings(addon);
+        verify(addon).logError("Unknown block material in blockgrouplimits.Bad: NOT_A_BLOCK_XYZ - skipping...");
+        // All members invalid -> group not created
+        assertTrue(s.getBlockGroupDefinitions().isEmpty());
+    }
+
+    @Test
+    void testBlockGroupOverrideForUndefinedGroupLogsError() {
+        config.set("blockgrouplimits-end.Ghost", 5);
+        new Settings(addon);
+        verify(addon).logError("Group override blockgrouplimits-end.Ghost"
+                + " refers to an undefined group - define it under blockgrouplimits first.");
+    }
+
+    @Test
+    void testHangingEntityLimitsParsed() {
+        config.set("entitylimits.ITEM_FRAME", 10);
+        config.set("entitylimits.GLOW_ITEM_FRAME", 5);
+        config.set("entitylimits.PAINTING", 3);
+        Settings s = new Settings(addon);
+        Map<EntityType, Integer> limits = s.getLimits(Environment.NORMAL);
+        assertEquals(10, limits.get(EntityType.ITEM_FRAME));
+        assertEquals(5, limits.get(EntityType.GLOW_ITEM_FRAME));
+        assertEquals(3, limits.get(EntityType.PAINTING));
     }
 
     @Test

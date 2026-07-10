@@ -44,6 +44,7 @@ import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.entity.Hanging;
+import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Painting;
 import org.bukkit.entity.Villager;
@@ -576,6 +577,72 @@ class EntityLimitListenerTest {
         ell.onBlock(event);
 
         assertFalse(event.isCancelled());
+    }
+
+    // --- Item frame limiting (#66) ---
+
+    @Test
+    void testItemFramePlaceAtLimitCancels() {
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.ITEM_FRAME, 1);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.ITEM_FRAME);
+        ItemFrame frame = mockItemFrame();
+
+        Player player = mock(Player.class);
+        when(player.isOp()).thenReturn(false);
+        when(player.hasPermission(anyString())).thenReturn(false);
+
+        Block block = mock(Block.class);
+        when(block.getWorld()).thenReturn(world);
+        HangingPlaceEvent event = new HangingPlaceEvent(frame, player, block, BlockFace.SOUTH, EquipmentSlot.HAND, null);
+
+        ell.onBlock(event);
+
+        assertTrue(event.isCancelled());
+    }
+
+    @Test
+    void testItemFramePlaceUnderLimitAllowedAndTracked() {
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.ITEM_FRAME, 2);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.ITEM_FRAME);
+        ItemFrame frame = mockItemFrame();
+
+        Player player = mock(Player.class);
+        when(player.isOp()).thenReturn(false);
+        when(player.hasPermission(anyString())).thenReturn(false);
+
+        Block block = mock(Block.class);
+        when(block.getWorld()).thenReturn(world);
+        HangingPlaceEvent event = new HangingPlaceEvent(frame, player, block, BlockFace.SOUTH, EquipmentSlot.HAND, null);
+
+        ell.onBlock(event);
+        assertFalse(event.isCancelled());
+
+        // MONITOR-priority tracker counts the placed frame
+        ell.onHangingPlaceTrack(event);
+        assertEquals(2, ibc.getEntityCount(Environment.NORMAL, EntityType.ITEM_FRAME));
+    }
+
+    @Test
+    void testItemFrameRemoveDecrements() throws Exception {
+        ItemFrame frame = mockItemFrame();
+        entityIslandMap().put(frame.getUniqueId(), "test-island-id");
+        ibc.incrementEntity(Environment.NORMAL, EntityType.ITEM_FRAME);
+        int before = ibc.getEntityCount(Environment.NORMAL, EntityType.ITEM_FRAME);
+
+        // Frame popped off the wall (dropped as an item) — must decrement like any removal
+        ell.onEntityRemove(new EntityRemoveEvent(frame, EntityRemoveEvent.Cause.DROP));
+
+        assertEquals(before - 1, ibc.getEntityCount(Environment.NORMAL, EntityType.ITEM_FRAME));
+        assertFalse(entityIslandMap().containsKey(frame.getUniqueId()));
+    }
+
+    private ItemFrame mockItemFrame() {
+        ItemFrame frame = mock(ItemFrame.class);
+        when(frame.getType()).thenReturn(EntityType.ITEM_FRAME);
+        when(frame.getLocation()).thenReturn(location);
+        when(frame.getWorld()).thenReturn(world);
+        when(frame.getUniqueId()).thenReturn(UUID.randomUUID());
+        return frame;
     }
 
     // --- Entity group limit tests ---

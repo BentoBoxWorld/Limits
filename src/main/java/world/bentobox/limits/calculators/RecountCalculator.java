@@ -23,6 +23,7 @@ import org.bukkit.World.Environment;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Slab;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Hanging;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -87,8 +88,10 @@ public class RecountCalculator {
 
     private void checkBlock(Environment env, BlockData b) {
         NamespacedKey md = bll.fixMaterial(b);
-        // Only count materials that are tracked at any level (env default, world override, island).
-        if (bll.getMaterialLimits(worlds.get(env), island.getUniqueId()).containsKey(md)) {
+        // Only count materials that are tracked at any level (env default, world override,
+        // island, or block group membership).
+        if (bll.getMaterialLimits(worlds.get(env), island.getUniqueId()).containsKey(md)
+                || addon.getSettings().isInBlockGroup(md)) {
             results.getBlockCount(env).add(md);
         }
     }
@@ -160,13 +163,20 @@ public class RecountCalculator {
     }
 
     private void scanColumn(Environment env, ChunkSnapshot chunkSnapshot, int x, int z, int minY, int maxY) {
+        boolean stackedAsOne = addon.getSettings().isStackedPlantsCountAsOne();
+        NamespacedKey below = null;
         for (int y = minY; y < maxY; y++) {
             BlockData blockData = chunkSnapshot.getBlockData(x, y, z);
             if (Tag.SLABS.isTagged(blockData.getMaterial())
                     && ((Slab) blockData).getType().equals(Slab.Type.DOUBLE)) {
                 checkBlock(env, blockData);
             }
-            checkBlock(env, blockData);
+            NamespacedKey key = bll.fixMaterial(blockData);
+            // Stacked-plants-as-one: segments sitting on the same plant are not counted
+            if (!(stackedAsOne && BlockLimitsListener.STACKABLE.contains(key) && key.equals(below))) {
+                checkBlock(env, blockData);
+            }
+            below = key;
         }
     }
 
@@ -212,10 +222,9 @@ public class RecountCalculator {
             World w = e.getValue();
             for (Entity entity : w.getEntities()) {
                 if (!island.inIslandSpace(entity.getLocation())) continue;
-                if (entity instanceof LivingEntity || entity.getType().name().endsWith("_MINECART")
-                        || entity.getType().name().equals("ARMOR_STAND")
-                        || entity.getType().name().equals("ITEM_FRAME")
-                        || entity.getType().name().equals("PAINTING")) {
+                if (entity instanceof LivingEntity || entity instanceof Hanging
+                        || entity.getType().name().endsWith("_MINECART")
+                        || entity.getType().name().equals("ARMOR_STAND")) {
                     results.getEntityCount(env).add(entity.getType());
                 }
             }
@@ -224,9 +233,24 @@ public class RecountCalculator {
 
     public void tidyUp() {
         ibc = bll.getIsland(island);
+        // Custom-namespace counts (ItemsAdder/Oraxen blocks) are event-tracked and
+        // invisible to the chunk scan, so carry them across the reset untouched.
+        Map<Environment, Map<NamespacedKey, Integer>> customCounts = new EnumMap<>(Environment.class);
+        for (Environment env : List.of(Environment.NORMAL, Environment.NETHER, Environment.THE_END)) {
+            ibc.getBlockCounts(env).forEach((key, count) -> {
+                if (!NamespacedKey.MINECRAFT.equals(key.getNamespace())) {
+                    customCounts.computeIfAbsent(env, e -> new java.util.HashMap<>()).put(key, count);
+                }
+            });
+        }
         // Reset and write per-env block counts
         ibc.clearAllBlockCounts();
         results.getEnvBlockCount().forEach((env, multiset) -> multiset.forEach(key -> ibc.add(env, key)));
+        customCounts.forEach((env, m) -> m.forEach((key, count) -> {
+            for (int i = 0; i < count; i++) {
+                ibc.add(env, key);
+            }
+        }));
 
         // Recount entities (loaded only) and write per-env
         scanEntities();

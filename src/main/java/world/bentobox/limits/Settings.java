@@ -38,6 +38,8 @@ public class Settings {
 
     private static final String SKIPPING = " - skipping...";
     private static final String LIMIT_SUFFIX = ".limit";
+    private static final String LIMIT_LOG_PREFIX = "Limit ";
+    private static final String GROUP_OVERRIDE_PREFIX = "Group override ";
 
     private final Map<GeneralGroup, Integer> general = new EnumMap<>(GeneralGroup.class);
     /** Per-env entity type limits (env defaults from config). */
@@ -46,9 +48,16 @@ public class Settings {
     private final Map<EntityType, List<EntityGroup>> groupLimits = new EnumMap<>(EntityType.class);
     /** Per-env group-limit overrides (env defaults from config). */
     private final Map<Environment, Map<String, Integer>> envGroupLimits = new EnumMap<>(Environment.class);
+    /** Block group definitions and which groups each canonical block key belongs to. */
+    private final Map<org.bukkit.NamespacedKey, List<BlockGroup>> blockGroups = new java.util.HashMap<>();
+    /** Per-env block-group limits (defaults from config plus env overrides). */
+    private final Map<Environment, Map<String, Integer>> envBlockGroupLimits = new EnumMap<>(Environment.class);
     private final List<String> gameModes;
     private final boolean logLimitsOnJoin;
     private final boolean asyncGolums;
+    private final boolean showLimitMessages;
+    private final boolean stackedPlantsCountAsOne;
+    private final boolean applyMemberLimitPerms;
     private static final List<EntityType> DISALLOWED = Arrays.asList(
             EntityType.TNT,
             EntityType.EVOKER_FANGS,
@@ -70,9 +79,7 @@ public class Settings {
             EntityType.LEASH_KNOT,
             EntityType.GIANT,
             EntityType.ENDER_PEARL,
-            EntityType.ENDER_DRAGON,
-            EntityType.ITEM_FRAME,
-            EntityType.PAINTING);
+            EntityType.ENDER_DRAGON);
 
     public Settings(Limits addon) {
 
@@ -83,6 +90,7 @@ public class Settings {
         for (Environment env : ENVIRONMENTS) {
             envLimits.put(env, new EnumMap<>(EntityType.class));
             envGroupLimits.put(env, new java.util.HashMap<>());
+            envBlockGroupLimits.put(env, new java.util.HashMap<>());
         }
 
         // Pass 1: parse the unsuffixed entitylimits as the default for every env
@@ -95,10 +103,16 @@ public class Settings {
         logLimitsOnJoin = addon.getConfig().getBoolean("log-limits-on-join", false);
         // Async Golums
         asyncGolums = addon.getConfig().getBoolean("async-golums", true);
+        // Show or suppress the "hit the limit" player notifications
+        showLimitMessages = addon.getConfig().getBoolean("show-limit-messages", true);
+        // Count a stackable plant column (sugar cane, bamboo) as a single plant
+        stackedPlantsCountAsOne = addon.getConfig().getBoolean("stacked-plants-count-as-one", false);
+        // Apply team members' limit permissions, not just the owner's
+        applyMemberLimitPerms = addon.getConfig().getBoolean("apply-member-limit-perms", false);
 
         addon.log("Entity limits:");
         envLimits.forEach((env, m) -> m.entrySet().stream()
-                .map(e -> "Limit " + e.getKey() + " in " + env + " to " + e.getValue())
+                .map(e -> LIMIT_LOG_PREFIX + e.getKey() + " in " + env + " to " + e.getValue())
                 .forEach(addon::log));
 
         // Group definitions live in the unsuffixed entitygrouplimits section. The entire
@@ -110,10 +124,78 @@ public class Settings {
 
         addon.log("Entity group limits:");
         getGroupLimitDefinitions().stream()
-                .map(e -> "Limit " + e.getName() + " ("
+                .map(e -> LIMIT_LOG_PREFIX + e.getName() + " ("
                         + e.getTypes().stream().map(Enum::name).collect(Collectors.joining(", ")) + ") to "
                         + e.getLimit())
                 .forEach(addon::log);
+
+        // Block groups follow the same pattern as entity groups.
+        loadBlockGroupDefinitions(addon);
+        loadBlockGroupLimitOverrides(addon, "blockgrouplimits-nether", Environment.NETHER);
+        loadBlockGroupLimitOverrides(addon, "blockgrouplimits-end", Environment.THE_END);
+
+        addon.log("Block group limits:");
+        getBlockGroupDefinitions().stream()
+                .map(g -> LIMIT_LOG_PREFIX + g.getName() + " ("
+                        + g.getKeys().stream().map(org.bukkit.NamespacedKey::getKey)
+                                .collect(Collectors.joining(", "))
+                        + ") to " + g.getLimit())
+                .forEach(addon::log);
+    }
+
+    private void loadBlockGroupDefinitions(Limits addon) {
+        ConfigurationSection el = addon.getConfig().getConfigurationSection("blockgrouplimits");
+        if (el == null) return;
+        for (String name : el.getKeys(false)) {
+            int limit = el.getInt(name + LIMIT_SUFFIX);
+            Material icon = parseIcon(addon, el.getString(name + ".icon", "BARRIER"));
+            Set<org.bukkit.NamespacedKey> keys = el.getStringList(name + ".materials").stream().map(m -> {
+                Material material = Material.matchMaterial(m);
+                if (material == null || !material.isBlock()) {
+                    addon.logError("Unknown block material in blockgrouplimits." + name + ": " + m + SKIPPING);
+                    return null;
+                }
+                return world.bentobox.limits.listeners.BlockLimitsListener.canonicalKey(material);
+            }).filter(Objects::nonNull).collect(Collectors.toCollection(LinkedHashSet::new));
+            if (keys.isEmpty()) continue;
+            BlockGroup group = new BlockGroup(name, keys, limit, icon);
+            keys.forEach(k -> blockGroups.computeIfAbsent(k, x -> new ArrayList<>()).add(group));
+            // Default group limit applies to every env unless overridden.
+            ENVIRONMENTS.forEach(env -> envBlockGroupLimits.get(env).put(name, limit));
+        }
+    }
+
+    private void loadBlockGroupLimitOverrides(Limits addon, String section, Environment env) {
+        ConfigurationSection el = addon.getConfig().getConfigurationSection(section);
+        if (el == null) return;
+        for (String name : el.getKeys(false)) {
+            applyBlockGroupOverride(addon, el, section, name, env);
+        }
+    }
+
+    private void applyBlockGroupOverride(Limits addon, ConfigurationSection el, String section, String name,
+            Environment env) {
+        Integer limit = resolveGroupLimit(el, name);
+        if (limit == null) {
+            addon.logError(GROUP_OVERRIDE_PREFIX + section + "." + name + " missing limit - skipping.");
+            return;
+        }
+        // Group must already be defined in the base blockgrouplimits section
+        if (getBlockGroupDefinitions().stream().noneMatch(g -> g.getName().equals(name))) {
+            addon.logError(GROUP_OVERRIDE_PREFIX + section + "." + name
+                    + " refers to an undefined group - define it under blockgrouplimits first.");
+            return;
+        }
+        envBlockGroupLimits.get(env).put(name, limit);
+    }
+
+    private Material parseIcon(Limits addon, String iconName) {
+        try {
+            return Material.valueOf(iconName.toUpperCase(Locale.ENGLISH));
+        } catch (Exception e) {
+            addon.logError("Invalid group icon name: " + iconName + ". Use a Bukkit Material.");
+            return Material.BARRIER;
+        }
     }
 
     private void loadEntityLimits(Limits addon, String section, List<Environment> targetEnvs) {
@@ -154,14 +236,7 @@ public class Settings {
         if (el == null) return;
         for (String name : el.getKeys(false)) {
             int limit = el.getInt(name + LIMIT_SUFFIX);
-            String iconName = el.getString(name + ".icon", "BARRIER");
-            Material icon;
-            try {
-                icon = Material.valueOf(iconName.toUpperCase(Locale.ENGLISH));
-            } catch (Exception e) {
-                addon.logError("Invalid group icon name: " + iconName + ". Use a Bukkit Material.");
-                icon = Material.BARRIER;
-            }
+            Material icon = parseIcon(addon, el.getString(name + ".icon", "BARRIER"));
             Set<EntityType> entities = el.getStringList(name + ".entities").stream().map(s -> {
                 EntityType type = getType(s);
                 if (type == null) {
@@ -195,13 +270,13 @@ public class Settings {
         // Accept either a flat int (Monsters: 100) or a nested .limit (Monsters.limit: 100)
         Integer limit = resolveGroupLimit(el, name);
         if (limit == null) {
-            addon.logError("Group override " + section + "." + name + " missing limit - skipping.");
+            addon.logError(GROUP_OVERRIDE_PREFIX + section + "." + name + " missing limit - skipping.");
             return;
         }
         // Group must already be defined in the base entitygrouplimits section
         boolean exists = getGroupLimitDefinitions().stream().anyMatch(g -> g.getName().equals(name));
         if (!exists) {
-            addon.logError("Group override " + section + "." + name
+            addon.logError(GROUP_OVERRIDE_PREFIX + section + "." + name
                     + " refers to an undefined group - define it under entitygrouplimits first.");
             return;
         }
@@ -256,6 +331,57 @@ public class Settings {
 
     public boolean isAsyncGolums() {
         return asyncGolums;
+    }
+
+    /**
+     * @return true if players should be told when they hit a limit; false to limit silently
+     */
+    public boolean isShowLimitMessages() {
+        return showLimitMessages;
+    }
+
+    /**
+     * @return true if a column of stackable plants (sugar cane, bamboo) counts as one
+     *         plant; false if every segment counts (default)
+     */
+    public boolean isStackedPlantsCountAsOne() {
+        return stackedPlantsCountAsOne;
+    }
+
+    /**
+     * @return true if team members' limit permissions are applied to the island, not just the owner's
+     */
+    public boolean isApplyMemberLimitPerms() {
+        return applyMemberLimitPerms;
+    }
+
+    /**
+     * @param key canonical block key
+     * @return block groups containing this key; empty if none
+     */
+    public List<BlockGroup> getBlockGroups(org.bukkit.NamespacedKey key) {
+        return blockGroups.getOrDefault(key, Collections.emptyList());
+    }
+
+    /**
+     * @return true if the key belongs to any block group
+     */
+    public boolean isInBlockGroup(org.bukkit.NamespacedKey key) {
+        return blockGroups.containsKey(key);
+    }
+
+    /**
+     * @return all defined block groups
+     */
+    public List<BlockGroup> getBlockGroupDefinitions() {
+        return blockGroups.values().stream().flatMap(Collection::stream).distinct().toList();
+    }
+
+    /**
+     * @return the block group's limit in this environment, or -1 if not defined
+     */
+    public int getBlockGroupLimit(Environment env, String name) {
+        return envBlockGroupLimits.getOrDefault(env, Collections.emptyMap()).getOrDefault(name, -1);
     }
 
     public Map<GeneralGroup, Integer> getGeneral() {

@@ -28,6 +28,7 @@ import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Util;
 import world.bentobox.limits.EntityGroup;
+import world.bentobox.limits.DisplayNames;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.Settings;
 import world.bentobox.limits.objects.IslandBlockCount;
@@ -158,15 +159,19 @@ public class EntityLimitListener implements Listener {
             AtLimitResult res = atLimit(island, hangingPlaceEvent.getEntity());
             if (res.hit()) {
                 hangingPlaceEvent.setCancelled(true);
+                if (!addon.getSettings().isShowLimitMessages()) {
+                    return;
+                }
+                User u = User.getInstance(player);
                 if (res.getTypelimit() != null) {
-                    User.getInstance(player).notify(BLOCK_LIMIT_HIT, BLOCK_PLACEHOLDER,
-                            Util.prettifyText(hangingPlaceEvent.getEntity().getType().toString()),
+                    u.notify(BLOCK_LIMIT_HIT, BLOCK_PLACEHOLDER,
+                            DisplayNames.entity(u, hangingPlaceEvent.getEntity().getType()),
                             TextVariables.NUMBER, String.valueOf(res.getTypelimit().getValue()));
                 } else {
-                    User.getInstance(player).notify(BLOCK_LIMIT_HIT, BLOCK_PLACEHOLDER,
+                    u.notify(BLOCK_LIMIT_HIT, BLOCK_PLACEHOLDER,
                             res.getGrouplimit().getKey().getName() + " ("
                                     + res.getGrouplimit().getKey().getTypes().stream()
-                                            .map(x -> Util.prettifyText(x.toString()))
+                                            .map(x -> DisplayNames.entity(u, x))
                                             .collect(Collectors.joining(", "))
                                     + ")",
                             TextVariables.NUMBER, String.valueOf(res.getGrouplimit().getValue()));
@@ -239,15 +244,19 @@ public class EntityLimitListener implements Listener {
     }
 
     private void notifyEntityLimit(Player player, EntityType type, AtLimitResult res) {
+        if (!addon.getSettings().isShowLimitMessages()) {
+            return;
+        }
+        User u = User.getInstance(player);
         if (res.getTypelimit() != null) {
-            User.getInstance(player).notify(ENTITY_LIMIT_HIT, ENTITY_PLACEHOLDER,
-                    Util.prettifyText(type.toString()), TextVariables.NUMBER,
+            u.notify(ENTITY_LIMIT_HIT, ENTITY_PLACEHOLDER,
+                    DisplayNames.entity(u, type), TextVariables.NUMBER,
                     String.valueOf(res.getTypelimit().getValue()));
         } else {
-            User.getInstance(player).notify(ENTITY_LIMIT_HIT, ENTITY_PLACEHOLDER,
+            u.notify(ENTITY_LIMIT_HIT, ENTITY_PLACEHOLDER,
                     res.getGrouplimit().getKey().getName() + " ("
                             + res.getGrouplimit().getKey().getTypes().stream()
-                                    .map(x -> Util.prettifyText(x.toString()))
+                                    .map(x -> DisplayNames.entity(u, x))
                                     .collect(Collectors.joining(", "))
                             + ")",
                     TextVariables.NUMBER, String.valueOf(res.getGrouplimit().getValue()));
@@ -426,6 +435,9 @@ public class EntityLimitListener implements Listener {
      * listener's own {@code block-limits.hit-limit} message.
      */
     private void tellPlayersBlockLimit(Location location, Material material, int limit) {
+        if (!addon.getSettings().isShowLimitMessages()) {
+            return;
+        }
         World w = location.getWorld();
         if (w == null) {
             return;
@@ -434,8 +446,10 @@ public class EntityLimitListener implements Listener {
             for (Entity ent : w.getNearbyEntities(location, 5, 5, 5)) {
                 if (ent instanceof Player p) {
                     p.updateInventory();
-                    User.getInstance(p).notify(BLOCK_LIMIT_HIT, BLOCK_PLACEHOLDER,
-                            Util.prettifyText(material.toString()), TextVariables.NUMBER, String.valueOf(limit));
+                    User u = User.getInstance(p);
+                    u.notify(BLOCK_LIMIT_HIT, BLOCK_PLACEHOLDER,
+                            DisplayNames.material(u, material.getKey()),
+                            TextVariables.NUMBER, String.valueOf(limit));
                 }
             }
         });
@@ -616,6 +630,9 @@ public class EntityLimitListener implements Listener {
     }
 
     private void tellPlayers(Location location, Entity entity, SpawnReason spawnReason, AtLimitResult res) {
+        if (!addon.getSettings().isShowLimitMessages()) {
+            return;
+        }
         if (spawnReason.equals(SpawnReason.SPAWNER) || spawnReason.equals(SpawnReason.NATURAL)
                 || spawnReason.equals(SpawnReason.INFECTION) || spawnReason.equals(SpawnReason.NETHER_PORTAL)
                 || spawnReason.equals(SpawnReason.REINFORCEMENTS) || spawnReason.equals(SpawnReason.SLIME_SPLIT)) {
@@ -627,15 +644,16 @@ public class EntityLimitListener implements Listener {
             for (Entity ent : w.getNearbyEntities(location, 5, 5, 5)) {
                 if (ent instanceof Player p) {
                     p.updateInventory();
+                    User u = User.getInstance(p);
                     if (res.getTypelimit() != null) {
-                        User.getInstance(p).notify(ENTITY_LIMIT_HIT, ENTITY_PLACEHOLDER,
-                                Util.prettifyText(entity.getType().toString()),
+                        u.notify(ENTITY_LIMIT_HIT, ENTITY_PLACEHOLDER,
+                                DisplayNames.entity(u, entity.getType()),
                                 TextVariables.NUMBER, String.valueOf(res.getTypelimit().getValue()));
                     } else {
-                        User.getInstance(p).notify(ENTITY_LIMIT_HIT, ENTITY_PLACEHOLDER,
+                        u.notify(ENTITY_LIMIT_HIT, ENTITY_PLACEHOLDER,
                                 res.getGrouplimit().getKey().getName() + " ("
                                         + res.getGrouplimit().getKey().getTypes().stream()
-                                                .map(x -> Util.prettifyText(x.toString()))
+                                                .map(x -> DisplayNames.entity(u, x))
                                                 .collect(Collectors.joining(", "))
                                         + ")",
                                 TextVariables.NUMBER, String.valueOf(res.getGrouplimit().getValue()));

@@ -53,6 +53,7 @@ import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.Database;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Util;
+import world.bentobox.limits.DisplayNames;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.Settings;
 import world.bentobox.limits.objects.IslandBlockCount;
@@ -66,7 +67,8 @@ public class BlockLimitsListener implements Listener {
     private static final List<NamespacedKey> DO_NOT_COUNT = List.of(Material.LAVA.getKey(), Material.WATER.getKey(),
             Material.AIR.getKey(), Material.FIRE.getKey(), Material.END_PORTAL.getKey(),
             Material.NETHER_PORTAL.getKey());
-    private static final List<NamespacedKey> STACKABLE = List.of(Material.SUGAR_CANE.getKey(), Material.BAMBOO.getKey());
+    /** Plants that grow as a vertical column on top of themselves. */
+    public static final List<NamespacedKey> STACKABLE = List.of(Material.SUGAR_CANE.getKey(), Material.BAMBOO.getKey());
 
     /*
      * Materials added in Minecraft 1.21.9 ("Copper Age"). Resolved by name so the
@@ -208,6 +210,13 @@ public class BlockLimitsListener implements Listener {
 
     /** Resolve a key to a material or block tag and store its limit, warning on any mismatch. */
     private void registerLimit(Map<NamespacedKey, Integer> limits, NamespacedKey nsKey, String key, int limit) {
+        if (!NamespacedKey.MINECRAFT.equals(nsKey.getNamespace())) {
+            // Custom-namespace key, e.g. an ItemsAdder block id ("iafestivities:christmas/tree")
+            // or an Oraxen id written as "oraxen:<itemid>". Enforced by the custom block
+            // listeners when the owning plugin is installed.
+            limits.put(nsKey, limit);
+            return;
+        }
         Material mat = Registry.MATERIAL.get(nsKey);
         if (mat != null) {
             if (!mat.isBlock()) {
@@ -270,7 +279,9 @@ public class BlockLimitsListener implements Listener {
             return;
         }
         Material mat = b.getType();
-        if (STACKABLE.contains(b.getType().getKey())) {
+        // When stacked plants count as one, only the base segment was ever counted,
+        // so the stems above must not be decremented here.
+        if (!addon.getSettings().isStackedPlantsCountAsOne() && STACKABLE.contains(b.getType().getKey())) {
             Block block = b;
             while (block.getRelative(BlockFace.UP).getType().equals(mat)
                     && block.getY() < b.getWorld().getMaxHeight()) {
@@ -306,9 +317,11 @@ public class BlockLimitsListener implements Listener {
 
     private void notify(Cancellable e, User user, int limit, Material m) {
         if (limit > -1) {
-            user.notify("block-limits.hit-limit",
-                    "[material]", Util.prettifyText(m.toString()),
-                    TextVariables.NUMBER, String.valueOf(limit));
+            if (addon.getSettings().isShowLimitMessages()) {
+                user.notify("block-limits.hit-limit",
+                        "[material]", DisplayNames.material(user, m.getKey()),
+                        TextVariables.NUMBER, String.valueOf(limit));
+            }
             e.setCancelled(true);
         }
     }
@@ -406,6 +419,18 @@ public class BlockLimitsListener implements Listener {
         }
     }
 
+    /** True if the given material normalises to the same stackable plant key. */
+    private static boolean isSamePlant(Material below, NamespacedKey plantKey) {
+        return VARIANT_MAP.getOrDefault(below, below).getKey().equals(plantKey);
+    }
+
+    /**
+     * @return the canonical key for a material after variant normalisation
+     */
+    public static NamespacedKey canonicalKey(Material m) {
+        return VARIANT_MAP.getOrDefault(m, m).getKey();
+    }
+
     /**
      * Map variant materials to their canonical form.
      */
@@ -428,24 +453,43 @@ public class BlockLimitsListener implements Listener {
      * @return limit amount if over limit, or -1 if no limitation
      */
     private int process(Block b, BlockData blockData, boolean add) {
-        if (DO_NOT_COUNT.contains(fixMaterial(blockData)) || !addon.inGameModeWorld(b.getWorld())) {
+        if (DO_NOT_COUNT.contains(fixMaterial(blockData))) {
             return -1;
         }
-        Environment env = envOf(b.getWorld());
-        return addon.getIslands().getIslandAt(b.getLocation()).map(i -> {
+        // Stacked-plants-as-one: a segment sitting on the same plant is not counted,
+        // limited, or decremented — only the base segment represents the plant.
+        if (addon.getSettings().isStackedPlantsCountAsOne() && STACKABLE.contains(fixMaterial(blockData))
+                && isSamePlant(b.getRelative(BlockFace.DOWN).getType(), fixMaterial(blockData))) {
+            return -1;
+        }
+        return processKey(b.getWorld(), b.getLocation(), fixMaterial(blockData), add);
+    }
+
+    /**
+     * Count and limit-check a namespaced key at a location. Public so custom-block
+     * listeners (ItemsAdder, Oraxen) can run their block ids through the same
+     * counting and limit machinery as vanilla blocks.
+     *
+     * @return limit amount if at/over the limit (nothing was counted), or -1 on success
+     */
+    public int processKey(World world, Location location, NamespacedKey key, boolean add) {
+        if (!addon.inGameModeWorld(world)) {
+            return -1;
+        }
+        Environment env = envOf(world);
+        return addon.getIslands().getIslandAt(location).map(i -> {
             String id = i.getUniqueId();
-            String gameMode = addon.getGameModeName(b.getWorld());
+            String gameMode = addon.getGameModeName(world);
             if (gameMode.isEmpty()) {
                 return -1;
             }
             if (addon.getConfig().getBoolean("ignore-center-block", true)
-                    && i.getCenter().equals(b.getLocation())) {
+                    && i.getCenter().equals(location)) {
                 return -1;
             }
             islandCountMap.putIfAbsent(id, new IslandBlockCount(id, gameMode));
-            NamespacedKey key = fixMaterial(blockData);
             if (add) {
-                int limit = checkLimit(b.getWorld(), env, key, id);
+                int limit = checkLimit(world, env, key, id);
                 if (limit > -1) {
                     return limit;
                 }
@@ -545,6 +589,34 @@ public class BlockLimitsListener implements Listener {
      * @return limit if at or over, or -1 if no limit
      */
     private int checkLimit(World w, Environment env, NamespacedKey m, String id) {
+        int single = checkSingleLimit(w, env, m, id);
+        if (single > -1) {
+            return single;
+        }
+        return checkBlockGroupLimit(env, m, islandCountMap.get(id));
+    }
+
+    /**
+     * Check the block groups this material belongs to: the counts of all group members
+     * are summed and compared against the group's limit for this environment.
+     *
+     * @return group limit if at or over, or -1 if no group limit is hit
+     */
+    private int checkBlockGroupLimit(Environment env, NamespacedKey m, IslandBlockCount ibc) {
+        for (world.bentobox.limits.BlockGroup group : addon.getSettings().getBlockGroups(m)) {
+            int limit = addon.getSettings().getBlockGroupLimit(env, group.getName());
+            if (limit < 0) {
+                continue;
+            }
+            int sum = group.getKeys().stream().mapToInt(k -> ibc.getBlockCount(env, k)).sum();
+            if (sum >= limit) {
+                return limit;
+            }
+        }
+        return -1;
+    }
+
+    private int checkSingleLimit(World w, Environment env, NamespacedKey m, String id) {
         IslandBlockCount ibc = islandCountMap.get(id);
         if (ibc.isBlockLimited(env, m)) {
             int offset = ibc.getBlockLimitOffset(env, m);
