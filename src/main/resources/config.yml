@@ -25,7 +25,7 @@ ignore-center-block: true
 cooldown: 120
 
 # Log limits on join (to console). Off by default - enable only for debugging as it
-# can be noisy for players who have many permission-based limits.
+# can be noisy in console logs for servers with many permission-based limits.
 log-limits-on-join: false
 
 # Use async checks for snowmen and iron golums. Set to false if you see problems.
