@@ -116,6 +116,18 @@ class SettingsTest {
     }
 
     @Test
+    void testStackedPlantsCountAsOneDefaultsFalse() {
+        assertFalse(settings.isStackedPlantsCountAsOne());
+    }
+
+    @Test
+    void testStackedPlantsCountAsOneEnabled() {
+        config.set("stacked-plants-count-as-one", true);
+        Settings s = new Settings(addon);
+        assertTrue(s.isStackedPlantsCountAsOne());
+    }
+
+    @Test
     void testGetGeneralEmpty() {
         // Default config.yml does not have ANIMALS or MOBS entries in entitylimits
         Map<Settings.GeneralGroup, Integer> general = settings.getGeneral();

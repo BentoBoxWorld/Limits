@@ -161,13 +161,20 @@ public class RecountCalculator {
     }
 
     private void scanColumn(Environment env, ChunkSnapshot chunkSnapshot, int x, int z, int minY, int maxY) {
+        boolean stackedAsOne = addon.getSettings().isStackedPlantsCountAsOne();
+        NamespacedKey below = null;
         for (int y = minY; y < maxY; y++) {
             BlockData blockData = chunkSnapshot.getBlockData(x, y, z);
             if (Tag.SLABS.isTagged(blockData.getMaterial())
                     && ((Slab) blockData).getType().equals(Slab.Type.DOUBLE)) {
                 checkBlock(env, blockData);
             }
-            checkBlock(env, blockData);
+            NamespacedKey key = bll.fixMaterial(blockData);
+            // Stacked-plants-as-one: segments sitting on the same plant are not counted
+            if (!(stackedAsOne && BlockLimitsListener.STACKABLE.contains(key) && key.equals(below))) {
+                checkBlock(env, blockData);
+            }
+            below = key;
         }
     }
 

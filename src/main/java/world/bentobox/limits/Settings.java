@@ -50,6 +50,7 @@ public class Settings {
     private final boolean logLimitsOnJoin;
     private final boolean asyncGolums;
     private final boolean showLimitMessages;
+    private final boolean stackedPlantsCountAsOne;
     private static final List<EntityType> DISALLOWED = Arrays.asList(
             EntityType.TNT,
             EntityType.EVOKER_FANGS,
@@ -96,6 +97,8 @@ public class Settings {
         asyncGolums = addon.getConfig().getBoolean("async-golums", true);
         // Show or suppress the "hit the limit" player notifications
         showLimitMessages = addon.getConfig().getBoolean("show-limit-messages", true);
+        // Count a stackable plant column (sugar cane, bamboo) as a single plant
+        stackedPlantsCountAsOne = addon.getConfig().getBoolean("stacked-plants-count-as-one", false);
 
         addon.log("Entity limits:");
         envLimits.forEach((env, m) -> m.entrySet().stream()
@@ -264,6 +267,14 @@ public class Settings {
      */
     public boolean isShowLimitMessages() {
         return showLimitMessages;
+    }
+
+    /**
+     * @return true if a column of stackable plants (sugar cane, bamboo) counts as one
+     *         plant; false if every segment counts (default)
+     */
+    public boolean isStackedPlantsCountAsOne() {
+        return stackedPlantsCountAsOne;
     }
 
     public Map<GeneralGroup, Integer> getGeneral() {
