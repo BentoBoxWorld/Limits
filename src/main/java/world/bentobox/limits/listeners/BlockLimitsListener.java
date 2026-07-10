@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
@@ -209,6 +210,13 @@ public class BlockLimitsListener implements Listener {
 
     /** Resolve a key to a material or block tag and store its limit, warning on any mismatch. */
     private void registerLimit(Map<NamespacedKey, Integer> limits, NamespacedKey nsKey, String key, int limit) {
+        if (!NamespacedKey.MINECRAFT.equals(nsKey.getNamespace())) {
+            // Custom-namespace key, e.g. an ItemsAdder block id ("iafestivities:christmas/tree")
+            // or an Oraxen id written as "oraxen:<itemid>". Enforced by the custom block
+            // listeners when the owning plugin is installed.
+            limits.put(nsKey, limit);
+            return;
+        }
         Material mat = Registry.MATERIAL.get(nsKey);
         if (mat != null) {
             if (!mat.isBlock()) {
@@ -445,7 +453,7 @@ public class BlockLimitsListener implements Listener {
      * @return limit amount if over limit, or -1 if no limitation
      */
     private int process(Block b, BlockData blockData, boolean add) {
-        if (DO_NOT_COUNT.contains(fixMaterial(blockData)) || !addon.inGameModeWorld(b.getWorld())) {
+        if (DO_NOT_COUNT.contains(fixMaterial(blockData))) {
             return -1;
         }
         // Stacked-plants-as-one: a segment sitting on the same plant is not counted,
@@ -454,21 +462,34 @@ public class BlockLimitsListener implements Listener {
                 && isSamePlant(b.getRelative(BlockFace.DOWN).getType(), fixMaterial(blockData))) {
             return -1;
         }
-        Environment env = envOf(b.getWorld());
-        return addon.getIslands().getIslandAt(b.getLocation()).map(i -> {
+        return processKey(b.getWorld(), b.getLocation(), fixMaterial(blockData), add);
+    }
+
+    /**
+     * Count and limit-check a namespaced key at a location. Public so custom-block
+     * listeners (ItemsAdder, Oraxen) can run their block ids through the same
+     * counting and limit machinery as vanilla blocks.
+     *
+     * @return limit amount if at/over the limit (nothing was counted), or -1 on success
+     */
+    public int processKey(World world, Location location, NamespacedKey key, boolean add) {
+        if (!addon.inGameModeWorld(world)) {
+            return -1;
+        }
+        Environment env = envOf(world);
+        return addon.getIslands().getIslandAt(location).map(i -> {
             String id = i.getUniqueId();
-            String gameMode = addon.getGameModeName(b.getWorld());
+            String gameMode = addon.getGameModeName(world);
             if (gameMode.isEmpty()) {
                 return -1;
             }
             if (addon.getConfig().getBoolean("ignore-center-block", true)
-                    && i.getCenter().equals(b.getLocation())) {
+                    && i.getCenter().equals(location)) {
                 return -1;
             }
             islandCountMap.putIfAbsent(id, new IslandBlockCount(id, gameMode));
-            NamespacedKey key = fixMaterial(blockData);
             if (add) {
-                int limit = checkLimit(b.getWorld(), env, key, id);
+                int limit = checkLimit(world, env, key, id);
                 if (limit > -1) {
                     return limit;
                 }

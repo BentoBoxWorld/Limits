@@ -69,6 +69,14 @@ public class Limits extends Addon {
         registerListener(joinListener);
         EntityLimitListener entityLimitListener = new EntityLimitListener(this);
         registerListener(entityLimitListener);
+        if (org.bukkit.Bukkit.getPluginManager().getPlugin("ItemsAdder") != null) {
+            registerListener(new world.bentobox.limits.listeners.ItemsAdderListener(this));
+            log("ItemsAdder detected: custom block limits active. Use ItemsAdder ids as blocklimits keys.");
+        }
+        if (org.bukkit.Bukkit.getPluginManager().getPlugin("Oraxen") != null) {
+            registerListener(new world.bentobox.limits.listeners.OraxenListener(this));
+            log("Oraxen detected: custom block limits active. Use \"oraxen:<itemid>\" blocklimits keys.");
+        }
         try {
             Class.forName("io.papermc.paper.event.entity.ShulkerDuplicateEvent");
             registerListener(new PaperShulkerLimitListener(this, entityLimitListener));

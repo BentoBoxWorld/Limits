@@ -1097,6 +1097,34 @@ class BlockLimitsListenerTest {
         assertTrue(event.isCancelled());
     }
 
+    // --- Custom block keys (#176) ---
+
+    @Test
+    void testProcessKeyCustomNamespaceLimitAndCount() {
+        NamespacedKey custom = NamespacedKey.fromString("itemsadder:some_pack/tree");
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.setBlockLimit(Environment.NORMAL, custom, 1);
+        listener.setIsland("test-island-id", ibc);
+
+        // First add succeeds and counts
+        assertEquals(-1, listener.processKey(world, blockLocation, custom, true));
+        assertEquals(1, listener.getIsland("test-island-id").getBlockCount(Environment.NORMAL, custom));
+        // Second add hits the limit and must not count
+        assertEquals(1, listener.processKey(world, blockLocation, custom, true));
+        assertEquals(1, listener.getIsland("test-island-id").getBlockCount(Environment.NORMAL, custom));
+        // Removal decrements
+        assertEquals(-1, listener.processKey(world, blockLocation, custom, false));
+        assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Environment.NORMAL, custom));
+    }
+
+    @Test
+    void testCustomNamespaceKeyAcceptedInBlockLimitsConfig() {
+        config.set("blocklimits.oraxen:caveblock", 10);
+        BlockLimitsListener custom = new BlockLimitsListener(addon);
+        assertEquals(10,
+                custom.getMaterialLimits(world, "no-island").get(NamespacedKey.fromString("oraxen:caveblock")));
+    }
+
     // --- Block cascade tests ---
 
     @Test
