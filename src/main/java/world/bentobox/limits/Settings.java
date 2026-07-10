@@ -51,6 +51,7 @@ public class Settings {
     private final boolean asyncGolums;
     private final boolean showLimitMessages;
     private final boolean stackedPlantsCountAsOne;
+    private final boolean applyMemberLimitPerms;
     private static final List<EntityType> DISALLOWED = Arrays.asList(
             EntityType.TNT,
             EntityType.EVOKER_FANGS,
@@ -99,6 +100,8 @@ public class Settings {
         showLimitMessages = addon.getConfig().getBoolean("show-limit-messages", true);
         // Count a stackable plant column (sugar cane, bamboo) as a single plant
         stackedPlantsCountAsOne = addon.getConfig().getBoolean("stacked-plants-count-as-one", false);
+        // Apply team members' limit permissions, not just the owner's
+        applyMemberLimitPerms = addon.getConfig().getBoolean("apply-member-limit-perms", false);
 
         addon.log("Entity limits:");
         envLimits.forEach((env, m) -> m.entrySet().stream()
@@ -275,6 +278,13 @@ public class Settings {
      */
     public boolean isStackedPlantsCountAsOne() {
         return stackedPlantsCountAsOne;
+    }
+
+    /**
+     * @return true if team members' limit permissions are applied to the island, not just the owner's
+     */
+    public boolean isApplyMemberLimitPerms() {
+        return applyMemberLimitPerms;
     }
 
     public Map<GeneralGroup, Integer> getGeneral() {

@@ -34,6 +34,16 @@ async-golums: true
 # silently - placements and spawns are still blocked, but no message is sent.
 show-limit-messages: true
 
+# Apply limit permissions from team members as well as the island owner.
+# When enabled, a team member's <gamemode>.island.limit.* permissions are merged into
+# the island's limits when the member logs in (the highest value wins). The owner's
+# login still recalculates the limits from scratch and then merges in the permissions
+# of any online team members.
+# Limits only recalculate on login, so removing a member (or revoking their permission)
+# takes effect the next time the owner logs in.
+# Coop and trusted players are not team members and their permissions never apply.
+apply-member-limit-perms: false
+
 # General block limiting
 # Use this section to limit how many blocks can be added to an island.
 # 0 means the item will be blocked from placement completely.
