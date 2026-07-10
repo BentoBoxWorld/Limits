@@ -49,6 +49,7 @@ public class Settings {
     private final List<String> gameModes;
     private final boolean logLimitsOnJoin;
     private final boolean asyncGolums;
+    private final boolean showLimitMessages;
     private static final List<EntityType> DISALLOWED = Arrays.asList(
             EntityType.TNT,
             EntityType.EVOKER_FANGS,
@@ -95,6 +96,8 @@ public class Settings {
         logLimitsOnJoin = addon.getConfig().getBoolean("log-limits-on-join", true);
         // Async Golums
         asyncGolums = addon.getConfig().getBoolean("async-golums", true);
+        // Show or suppress the "hit the limit" player notifications
+        showLimitMessages = addon.getConfig().getBoolean("show-limit-messages", true);
 
         addon.log("Entity limits:");
         envLimits.forEach((env, m) -> m.entrySet().stream()
@@ -256,6 +259,13 @@ public class Settings {
 
     public boolean isAsyncGolums() {
         return asyncGolums;
+    }
+
+    /**
+     * @return true if players should be told when they hit a limit; false to limit silently
+     */
+    public boolean isShowLimitMessages() {
+        return showLimitMessages;
     }
 
     public Map<GeneralGroup, Integer> getGeneral() {
