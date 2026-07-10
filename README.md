@@ -101,5 +101,5 @@ Some items cannot be limited (right now). The reasons are usually because there 
 * Ender crystals
 * Ender pearls
 * Ender dragon
-* Item frames
-* Paintings
+
+Item frames, glow item frames, and paintings **can** be limited: add `ITEM_FRAME`, `GLOW_ITEM_FRAME`, or `PAINTING` to the `entitylimits` section.
