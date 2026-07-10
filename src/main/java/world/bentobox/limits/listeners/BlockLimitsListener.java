@@ -65,7 +65,8 @@ public class BlockLimitsListener implements Listener {
     private static final List<NamespacedKey> DO_NOT_COUNT = List.of(Material.LAVA.getKey(), Material.WATER.getKey(),
             Material.AIR.getKey(), Material.FIRE.getKey(), Material.END_PORTAL.getKey(),
             Material.NETHER_PORTAL.getKey());
-    private static final List<NamespacedKey> STACKABLE = List.of(Material.SUGAR_CANE.getKey(), Material.BAMBOO.getKey());
+    /** Plants that grow as a vertical column on top of themselves. */
+    public static final List<NamespacedKey> STACKABLE = List.of(Material.SUGAR_CANE.getKey(), Material.BAMBOO.getKey());
 
     /*
      * Materials added in Minecraft 1.21.9 ("Copper Age"). Resolved by name so the
@@ -269,7 +270,9 @@ public class BlockLimitsListener implements Listener {
             return;
         }
         Material mat = b.getType();
-        if (STACKABLE.contains(b.getType().getKey())) {
+        // When stacked plants count as one, only the base segment was ever counted,
+        // so the stems above must not be decremented here.
+        if (!addon.getSettings().isStackedPlantsCountAsOne() && STACKABLE.contains(b.getType().getKey())) {
             Block block = b;
             while (block.getRelative(BlockFace.UP).getType().equals(mat)
                     && block.getY() < b.getWorld().getMaxHeight()) {
@@ -407,6 +410,11 @@ public class BlockLimitsListener implements Listener {
         }
     }
 
+    /** True if the given material normalises to the same stackable plant key. */
+    private static boolean isSamePlant(Material below, NamespacedKey plantKey) {
+        return VARIANT_MAP.getOrDefault(below, below).getKey().equals(plantKey);
+    }
+
     /**
      * Map variant materials to their canonical form.
      */
@@ -430,6 +438,12 @@ public class BlockLimitsListener implements Listener {
      */
     private int process(Block b, BlockData blockData, boolean add) {
         if (DO_NOT_COUNT.contains(fixMaterial(blockData)) || !addon.inGameModeWorld(b.getWorld())) {
+            return -1;
+        }
+        // Stacked-plants-as-one: a segment sitting on the same plant is not counted,
+        // limited, or decremented — only the base segment represents the plant.
+        if (addon.getSettings().isStackedPlantsCountAsOne() && STACKABLE.contains(fixMaterial(blockData))
+                && isSamePlant(b.getRelative(BlockFace.DOWN).getType(), fixMaterial(blockData))) {
             return -1;
         }
         Environment env = envOf(b.getWorld());

@@ -138,6 +138,7 @@ class BlockLimitsListenerTest {
         doAnswer(invocation -> null).when(addon).log(anyString());
         doAnswer(invocation -> null).when(addon).logError(anyString());
         when(addon.isCoveredGameMode(anyString())).thenReturn(true);
+        // Limits settings: stacked-plants defaults false (mock default), messages on
         when(addon.getSettings()).thenReturn(limitsSettings);
         when(limitsSettings.isShowLimitMessages()).thenReturn(true);
         when(addon.inGameModeWorld(any(World.class))).thenReturn(false);
@@ -964,6 +965,61 @@ class BlockLimitsListenerTest {
         assertEquals(0, ibc.getBlockCount(Material.FARMLAND.getKey()));
         assertEquals(0, ibc.getBlockCount(Material.OAK_PLANKS.getKey()));
         assertEquals(1, ibc.getBlockCount(Material.DIRT.getKey()));
+    }
+
+    // --- Stacked plants count as one (#53) ---
+
+    @Test
+    void testStackedPlantSegmentNotCountedWhenEnabled() {
+        when(limitsSettings.isStackedPlantsCountAsOne()).thenReturn(true);
+        Block below = mockBlock(Material.SUGAR_CANE, new Location(world, 100, 64, 100));
+        Block block = mockBlock(Material.SUGAR_CANE, blockLocation);
+        when(block.getRelative(BlockFace.DOWN)).thenReturn(below);
+
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block,
+                new ItemStack(Material.SUGAR_CANE), player, true, EquipmentSlot.HAND);
+        listener.onBlock(event);
+
+        assertFalse(event.isCancelled());
+        IslandBlockCount ibc = listener.getIsland("test-island-id");
+        assertTrue(ibc == null || ibc.getBlockCount(Material.SUGAR_CANE.getKey()) == 0);
+    }
+
+    @Test
+    void testStackedPlantBaseCountedWhenEnabled() {
+        when(limitsSettings.isStackedPlantsCountAsOne()).thenReturn(true);
+        Block block = mockBlock(Material.SUGAR_CANE, blockLocation);
+        // Below is AIR from the mockBlock helper — this is the base segment
+
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block,
+                new ItemStack(Material.SUGAR_CANE), player, true, EquipmentSlot.HAND);
+        listener.onBlock(event);
+
+        assertEquals(1, listener.getIsland("test-island-id").getBlockCount(Material.SUGAR_CANE.getKey()));
+    }
+
+    @Test
+    void testStackedPlantBreakBaseDecrementsOnlyOneWhenEnabled() {
+        when(limitsSettings.isStackedPlantsCountAsOne()).thenReturn(true);
+        // Only the base was ever counted
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Environment.NORMAL, Material.SUGAR_CANE.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        when(world.getMaxHeight()).thenReturn(320);
+        Block bottomBlock = mockBlock(Material.SUGAR_CANE, new Location(world, 100, 65, 100));
+        when(bottomBlock.getY()).thenReturn(65);
+        Block midBlock = mockBlock(Material.SUGAR_CANE, new Location(world, 100, 66, 100));
+        when(midBlock.getY()).thenReturn(66);
+        when(bottomBlock.getRelative(BlockFace.UP)).thenReturn(midBlock);
+
+        BlockBreakEvent event = new BlockBreakEvent(bottomBlock, player);
+        listener.onBlock(event);
+
+        // Exactly the one counted base is removed; the stem walk must not run
+        assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.SUGAR_CANE.getKey()));
     }
 
     // --- Block cascade tests ---

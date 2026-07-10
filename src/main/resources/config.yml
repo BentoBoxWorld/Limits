@@ -46,6 +46,12 @@ show-limit-messages: true
 blocklimits:
   HOPPER: 10
 
+# Count stackable plants (SUGAR_CANE, BAMBOO) as a single plant no matter how tall
+# they grow. When false (default), every segment of the plant counts toward the limit.
+# Run a recount (/<gamemode> limits recount) after changing this so stored counts
+# match the new counting rule.
+stacked-plants-count-as-one: false
+
 # Override block limits in the nether for this game mode.
 # Uncomment and add entries to set nether-only limits.
 #blocklimits-nether:
