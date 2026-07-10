@@ -140,6 +140,18 @@ class SettingsTest {
     }
 
     @Test
+    void testHangingEntityLimitsParsed() {
+        config.set("entitylimits.ITEM_FRAME", 10);
+        config.set("entitylimits.GLOW_ITEM_FRAME", 5);
+        config.set("entitylimits.PAINTING", 3);
+        Settings s = new Settings(addon);
+        Map<EntityType, Integer> limits = s.getLimits(Environment.NORMAL);
+        assertEquals(10, limits.get(EntityType.ITEM_FRAME));
+        assertEquals(5, limits.get(EntityType.GLOW_ITEM_FRAME));
+        assertEquals(3, limits.get(EntityType.PAINTING));
+    }
+
+    @Test
     void testInvalidGroupIconFallsBackToBarrier() {
         // Clear existing groups and add one with invalid icon
         config.set("entitygrouplimits", null);

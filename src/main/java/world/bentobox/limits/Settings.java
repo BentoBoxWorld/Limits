@@ -70,9 +70,7 @@ public class Settings {
             EntityType.LEASH_KNOT,
             EntityType.GIANT,
             EntityType.ENDER_PEARL,
-            EntityType.ENDER_DRAGON,
-            EntityType.ITEM_FRAME,
-            EntityType.PAINTING);
+            EntityType.ENDER_DRAGON);
 
     public Settings(Limits addon) {
 

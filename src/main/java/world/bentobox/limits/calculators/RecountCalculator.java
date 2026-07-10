@@ -23,6 +23,7 @@ import org.bukkit.World.Environment;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Slab;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Hanging;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -212,10 +213,9 @@ public class RecountCalculator {
             World w = e.getValue();
             for (Entity entity : w.getEntities()) {
                 if (!island.inIslandSpace(entity.getLocation())) continue;
-                if (entity instanceof LivingEntity || entity.getType().name().endsWith("_MINECART")
-                        || entity.getType().name().equals("ARMOR_STAND")
-                        || entity.getType().name().equals("ITEM_FRAME")
-                        || entity.getType().name().equals("PAINTING")) {
+                if (entity instanceof LivingEntity || entity instanceof Hanging
+                        || entity.getType().name().endsWith("_MINECART")
+                        || entity.getType().name().equals("ARMOR_STAND")) {
                     results.getEntityCount(env).add(entity.getType());
                 }
             }
