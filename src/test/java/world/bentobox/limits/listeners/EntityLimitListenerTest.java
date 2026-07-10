@@ -432,6 +432,51 @@ class EntityLimitListenerTest {
         assertFalse(event.isCancelled());
     }
 
+    // --- Copper golem / copper chest limit tests (#276) ---
+
+    @Test
+    void testCopperGolemAtChestLimitCancels() {
+        // Building a copper golem turns its copper block into a copper chest with no place
+        // event; the spawn must be cancelled when the COPPER_CHEST block limit is reached.
+        when(bll.getCopperChestMaterial()).thenReturn(Material.COPPER_CHEST);
+        when(bll.checkBlockLimit(any(Location.class), any())).thenReturn(1);
+        LivingEntity golem = mockEntity(EntityType.COPPER_GOLEM, location);
+
+        CreatureSpawnEvent event = new CreatureSpawnEvent(golem, SpawnReason.BUILD_COPPERGOLEM);
+
+        ell.onCreatureSpawn(event);
+
+        assertTrue(event.isCancelled());
+        verify(bll).checkBlockLimit(location, Material.COPPER_CHEST.getKey());
+    }
+
+    @Test
+    void testCopperGolemUnderChestLimitNotCancelled() {
+        when(bll.getCopperChestMaterial()).thenReturn(Material.COPPER_CHEST);
+        when(bll.checkBlockLimit(any(Location.class), any())).thenReturn(-1);
+        LivingEntity golem = mockEntity(EntityType.COPPER_GOLEM, location);
+
+        CreatureSpawnEvent event = new CreatureSpawnEvent(golem, SpawnReason.BUILD_COPPERGOLEM);
+
+        ell.onCreatureSpawn(event);
+
+        assertFalse(event.isCancelled());
+    }
+
+    @Test
+    void testCopperGolemTrackCountsChest() {
+        // On a successful build the created copper chest must be counted so the limit is
+        // enforceable and the count does not drift below reality.
+        when(bll.getCopperChestMaterial()).thenReturn(Material.COPPER_CHEST);
+        LivingEntity golem = mockEntity(EntityType.COPPER_GOLEM, location);
+
+        CreatureSpawnEvent event = new CreatureSpawnEvent(golem, SpawnReason.BUILD_COPPERGOLEM);
+
+        ell.onCreatureSpawnTrack(event);
+
+        verify(bll).addBlockCount(location, Material.COPPER_CHEST.getKey());
+    }
+
     // --- VehicleCreateEvent tests ---
 
     @Test

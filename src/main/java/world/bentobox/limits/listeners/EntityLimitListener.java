@@ -123,6 +123,12 @@ public class EntityLimitListener implements Listener {
                         && creatureSpawnEvent.getSpawnReason().equals(SpawnReason.BREEDING))) {
             return;
         }
+        // A copper golem turns its copper block into a copper chest with no place event,
+        // bypassing the COPPER_CHEST block limit (#276). Cancel the build if at that limit.
+        if (isBuildCopperGolem(creatureSpawnEvent.getSpawnReason())
+                && checkCopperChestLimit(creatureSpawnEvent)) {
+            return;
+        }
         if (creatureSpawnEvent.getSpawnReason().equals(SpawnReason.BUILD_SNOWMAN)
                 || creatureSpawnEvent.getSpawnReason().equals(SpawnReason.BUILD_IRONGOLEM)) {
             checkLimit(creatureSpawnEvent, creatureSpawnEvent.getEntity(), creatureSpawnEvent.getSpawnReason(),
@@ -251,6 +257,14 @@ public class EntityLimitListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onCreatureSpawnTrack(final CreatureSpawnEvent e) {
         trackSpawn(e.getEntity());
+        // The copper block became a copper chest as part of the (uncancelled) build; count it
+        // so the COPPER_CHEST limit is enforceable and the count stays accurate (#276).
+        if (isBuildCopperGolem(e.getSpawnReason())) {
+            Material chest = addon.getBlockLimitListener().getCopperChestMaterial();
+            if (chest != null) {
+                addon.getBlockLimitListener().addBlockCount(e.getLocation(), chest.getKey());
+            }
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -372,6 +386,56 @@ public class EntityLimitListener implements Listener {
     /* =========================================================================
      * Limit-checking core
      * ========================================================================= */
+
+    /**
+     * Whether the spawn reason is a copper golem build. Matched by name so the addon links
+     * and runs on servers older than 1.21.9, where {@code BUILD_COPPERGOLEM} is absent.
+     */
+    private static boolean isBuildCopperGolem(SpawnReason reason) {
+        return reason.name().equals("BUILD_COPPERGOLEM");
+    }
+
+    /**
+     * When a copper golem is built its copper block is replaced by a copper chest without a
+     * {@link org.bukkit.event.block.BlockPlaceEvent}, so the {@code COPPER_CHEST} block limit
+     * is never checked. Cancel the build if the island is already at that limit (#276).
+     *
+     * @return true if the spawn was cancelled because the copper chest limit was hit
+     */
+    private boolean checkCopperChestLimit(CreatureSpawnEvent e) {
+        Material chest = addon.getBlockLimitListener().getCopperChestMaterial();
+        if (chest == null) {
+            return false;
+        }
+        Location loc = e.getLocation();
+        int limit = addon.getBlockLimitListener().checkBlockLimit(loc, chest.getKey());
+        if (limit < 0) {
+            return false;
+        }
+        e.setCancelled(true);
+        tellPlayersBlockLimit(loc, chest, limit);
+        return true;
+    }
+
+    /**
+     * Notify players near {@code location} that a block limit was hit, mirroring the block
+     * listener's own {@code block-limits.hit-limit} message.
+     */
+    private void tellPlayersBlockLimit(Location location, Material material, int limit) {
+        World w = location.getWorld();
+        if (w == null) {
+            return;
+        }
+        Bukkit.getScheduler().runTask(addon.getPlugin(), () -> {
+            for (Entity ent : w.getNearbyEntities(location, 5, 5, 5)) {
+                if (ent instanceof Player p) {
+                    p.updateInventory();
+                    User.getInstance(p).notify("block-limits.hit-limit", "[material]",
+                            Util.prettifyText(material.toString()), TextVariables.NUMBER, String.valueOf(limit));
+                }
+            }
+        });
+    }
 
     private boolean checkLimit(Cancellable cancelableEvent, LivingEntity livingEntity, SpawnReason spawnReason,
             boolean runAsync) {
