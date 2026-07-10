@@ -71,6 +71,36 @@ stacked-plants-count-as-one: false
 #blocklimits-end:
 #  HOPPER: 5
 
+# Block Groups
+# Same idea as entity groups below: one shared limit across a set of block materials.
+# The counts of every member are summed and checked against the group limit, so players
+# cannot dodge a limit by converting between related blocks (e.g. grass -> dirt) or
+# splitting across variants (e.g. pistons and sticky pistons).
+# Individual blocklimits still apply on top if both are set.
+# Run a recount (/<gamemode> limits recount) after adding a group so existing blocks
+# are counted.
+#blockgrouplimits:
+#  Pistons:
+#    icon: PISTON
+#    limit: 10
+#    materials:
+#    - PISTON
+#    - STICKY_PISTON
+#  Soil:
+#    icon: GRASS_BLOCK
+#    limit: 200
+#    materials:
+#    - GRASS_BLOCK
+#    - DIRT
+#    - DIRT_PATH
+#    - FARMLAND
+# Override a block group's limit per environment. The group must already be defined
+# in blockgrouplimits; only the numeric limit can be overridden.
+#blockgrouplimits-nether:
+#  Pistons: 5
+#blockgrouplimits-end:
+#  Pistons: 5
+
 # This section is for world-named limits and overrides any environment-default limit
 # above for that specific world. Specify each world you want to limit individually
 # (including nether and end worlds). If these worlds are not covered by the game modes

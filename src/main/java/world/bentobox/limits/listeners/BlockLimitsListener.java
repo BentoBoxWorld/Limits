@@ -417,6 +417,13 @@ public class BlockLimitsListener implements Listener {
     }
 
     /**
+     * @return the canonical key for a material after variant normalisation
+     */
+    public static NamespacedKey canonicalKey(Material m) {
+        return VARIANT_MAP.getOrDefault(m, m).getKey();
+    }
+
+    /**
      * Map variant materials to their canonical form.
      */
     public NamespacedKey fixMaterial(BlockData b) {
@@ -503,6 +510,34 @@ public class BlockLimitsListener implements Listener {
      * @return limit if at or over, or -1 if no limit
      */
     private int checkLimit(World w, Environment env, NamespacedKey m, String id) {
+        int single = checkSingleLimit(w, env, m, id);
+        if (single > -1) {
+            return single;
+        }
+        return checkBlockGroupLimit(env, m, islandCountMap.get(id));
+    }
+
+    /**
+     * Check the block groups this material belongs to: the counts of all group members
+     * are summed and compared against the group's limit for this environment.
+     *
+     * @return group limit if at or over, or -1 if no group limit is hit
+     */
+    private int checkBlockGroupLimit(Environment env, NamespacedKey m, IslandBlockCount ibc) {
+        for (world.bentobox.limits.BlockGroup group : addon.getSettings().getBlockGroups(m)) {
+            int limit = addon.getSettings().getBlockGroupLimit(env, group.getName());
+            if (limit < 0) {
+                continue;
+            }
+            int sum = group.getKeys().stream().mapToInt(k -> ibc.getBlockCount(env, k)).sum();
+            if (sum >= limit) {
+                return limit;
+            }
+        }
+        return -1;
+    }
+
+    private int checkSingleLimit(World w, Environment env, NamespacedKey m, String id) {
         IslandBlockCount ibc = islandCountMap.get(id);
         if (ibc.isBlockLimited(env, m)) {
             int offset = ibc.getBlockLimitOffset(env, m);

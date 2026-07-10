@@ -62,6 +62,7 @@ island:
         entity-group-name-syntax: '[name]'
         entity-name-syntax: '[name]'
         block-name-syntax: '[name]'
+        block-group-name-syntax: '[name]'
         env-overworld: "Overworld"
         env-nether: "Nether"
         env-end: "End"
