@@ -88,8 +88,10 @@ public class RecountCalculator {
 
     private void checkBlock(Environment env, BlockData b) {
         NamespacedKey md = bll.fixMaterial(b);
-        // Only count materials that are tracked at any level (env default, world override, island).
-        if (bll.getMaterialLimits(worlds.get(env), island.getUniqueId()).containsKey(md)) {
+        // Only count materials that are tracked at any level (env default, world override,
+        // island, or block group membership).
+        if (bll.getMaterialLimits(worlds.get(env), island.getUniqueId()).containsKey(md)
+                || addon.getSettings().isInBlockGroup(md)) {
             results.getBlockCount(env).add(md);
         }
     }

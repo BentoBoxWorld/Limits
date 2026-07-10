@@ -87,6 +87,7 @@ public class LimitTab implements Tab {
         this.env = env;
         result = new ArrayList<>();
         addMaterialIcons(ibc, matLimits);
+        addBlockGroupIcons(ibc);
         addEntityLimits(ibc);
         addEntityGroupLimits(ibc);
         result.sort(Comparator.comparing(PanelItem::getName));
@@ -184,6 +185,30 @@ public class LimitTab implements Tab {
             pib.description(color + user.getTranslation(BLOCK_LIMIT_SYNTAX_KEY,
                     TextVariables.NUMBER, String.valueOf(count),
                     LIMIT_PLACEHOLDER, String.valueOf(value)));
+            result.add(pib.build());
+        }
+    }
+
+    private void addBlockGroupIcons(IslandBlockCount ibc) {
+        for (world.bentobox.limits.BlockGroup g : addon.getSettings().getBlockGroupDefinitions()) {
+            int limit = addon.getSettings().getBlockGroupLimit(env, g.getName());
+            if (limit < 0) {
+                continue;
+            }
+            PanelItemBuilder pib = new PanelItemBuilder();
+            pib.name(user.getTranslation("island.limits.panel.block-group-name-syntax", TextVariables.NAME,
+                    g.getName()));
+            String description = "(" + g.getKeys().stream().map(k -> Util.prettifyText(k.getKey()))
+                    .collect(Collectors.joining(", ")) + ")\n";
+            pib.icon(g.getIcon());
+            int count = ibc == null ? 0
+                    : g.getKeys().stream().mapToInt(k -> ibc.getBlockCount(env, k)).sum();
+            String color = count >= limit ? user.getTranslation(MAX_COLOR_KEY)
+                    : user.getTranslation(REGULAR_COLOR_KEY);
+            description += color + user.getTranslation(BLOCK_LIMIT_SYNTAX_KEY,
+                    TextVariables.NUMBER, String.valueOf(count),
+                    LIMIT_PLACEHOLDER, String.valueOf(limit));
+            pib.description(description);
             result.add(pib.build());
         }
     }

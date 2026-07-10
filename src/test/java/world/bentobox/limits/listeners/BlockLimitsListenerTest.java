@@ -138,7 +138,7 @@ class BlockLimitsListenerTest {
         doAnswer(invocation -> null).when(addon).log(anyString());
         doAnswer(invocation -> null).when(addon).logError(anyString());
         when(addon.isCoveredGameMode(anyString())).thenReturn(true);
-        // Limits settings: stacked-plants defaults false (mock default), messages on
+        // Limits settings mock: stacked-plants and block groups default off, messages on
         when(addon.getSettings()).thenReturn(limitsSettings);
         when(limitsSettings.isShowLimitMessages()).thenReturn(true);
         when(addon.inGameModeWorld(any(World.class))).thenReturn(false);
@@ -1020,6 +1020,81 @@ class BlockLimitsListenerTest {
 
         // Exactly the one counted base is removed; the stem walk must not run
         assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.SUGAR_CANE.getKey()));
+    }
+
+    // --- Block group limits (#12) ---
+
+    private void setUpPistonGroup(int limit) {
+        world.bentobox.limits.BlockGroup group = new world.bentobox.limits.BlockGroup("Pistons",
+                java.util.Set.of(Material.PISTON.getKey(), Material.STICKY_PISTON.getKey()), limit, Material.PISTON);
+        when(limitsSettings.getBlockGroups(Material.PISTON.getKey())).thenReturn(List.of(group));
+        when(limitsSettings.getBlockGroups(Material.STICKY_PISTON.getKey())).thenReturn(List.of(group));
+        when(limitsSettings.getBlockGroupLimit(Environment.NORMAL, "Pistons")).thenReturn(limit);
+    }
+
+    @Test
+    void testBlockGroupLimitCancelsWhenGroupFull() {
+        setUpPistonGroup(10);
+        // 6 pistons + 4 sticky pistons = 10, group full
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        for (int i = 0; i < 6; i++) {
+            ibc.add(Environment.NORMAL, Material.PISTON.getKey());
+        }
+        for (int i = 0; i < 4; i++) {
+            ibc.add(Environment.NORMAL, Material.STICKY_PISTON.getKey());
+        }
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.PISTON, blockLocation);
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block,
+                new ItemStack(Material.PISTON), player, true, EquipmentSlot.HAND);
+        listener.onBlock(event);
+
+        assertTrue(event.isCancelled());
+        // Nothing was added on the cancel path
+        assertEquals(6, listener.getIsland("test-island-id").getBlockCount(Material.PISTON.getKey()));
+    }
+
+    @Test
+    void testBlockGroupLimitAllowsWhenUnderAndCounts() {
+        setUpPistonGroup(10);
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        for (int i = 0; i < 5; i++) {
+            ibc.add(Environment.NORMAL, Material.PISTON.getKey());
+        }
+        for (int i = 0; i < 4; i++) {
+            ibc.add(Environment.NORMAL, Material.STICKY_PISTON.getKey());
+        }
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.STICKY_PISTON, blockLocation);
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block,
+                new ItemStack(Material.STICKY_PISTON), player, true, EquipmentSlot.HAND);
+        listener.onBlock(event);
+
+        assertFalse(event.isCancelled());
+        assertEquals(5, listener.getIsland("test-island-id").getBlockCount(Material.STICKY_PISTON.getKey()));
+    }
+
+    @Test
+    void testIndividualLimitStillAppliesInsideGroup() {
+        setUpPistonGroup(10);
+        // Island-specific individual limit of 2 on PISTON is tighter than the group
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.setBlockLimit(Environment.NORMAL, Material.PISTON.getKey(), 2);
+        ibc.add(Environment.NORMAL, Material.PISTON.getKey());
+        ibc.add(Environment.NORMAL, Material.PISTON.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.PISTON, blockLocation);
+        BlockState replacedState = mock(BlockState.class);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, replacedState, block,
+                new ItemStack(Material.PISTON), player, true, EquipmentSlot.HAND);
+        listener.onBlock(event);
+
+        assertTrue(event.isCancelled());
     }
 
     // --- Block cascade tests ---
