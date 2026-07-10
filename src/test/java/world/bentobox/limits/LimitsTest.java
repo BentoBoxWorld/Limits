@@ -24,7 +24,11 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.logging.Logger;
 
+import java.util.List;
+
+import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.eclipse.jdt.annotation.NonNull;
 import org.junit.jupiter.api.AfterAll;
@@ -275,6 +279,52 @@ class LimitsTest {
         assertTrue(addon.getGameModes().isEmpty());
         addon.onEnable();
         assertFalse(addon.getGameModes().isEmpty());
+    }
+
+    /**
+     * Test method for {@link world.bentobox.limits.Limits#getReachedLimits(world.bentobox.bentobox.api.user.User, world.bentobox.bentobox.api.addons.GameModeAddon, org.bukkit.World.Environment)}.
+     */
+    @Test
+    void testGetReachedLimits() {
+        addon.onEnable();
+        when(gameMode.getIslands()).thenReturn(im);
+        when(world.getEnvironment()).thenReturn(World.Environment.NORMAL);
+        when(im.getIsland(Mockito.any(World.class), Mockito.any(world.bentobox.bentobox.api.user.User.class)))
+                .thenReturn(island);
+        when(island.getUniqueId()).thenReturn("unique_id");
+
+        world.bentobox.limits.objects.IslandBlockCount ibc = new world.bentobox.limits.objects.IslandBlockCount(
+                "unique_id", "BSkyBlock");
+        // Default config: HOPPER block limit 10, ENDERMAN entity limit 5, CHICKEN 10
+        for (int i = 0; i < 10; i++) {
+            ibc.add(World.Environment.NORMAL, Material.HOPPER.getKey());
+        }
+        for (int i = 0; i < 5; i++) {
+            ibc.incrementEntity(World.Environment.NORMAL, EntityType.ENDERMAN);
+        }
+        ibc.incrementEntity(World.Environment.NORMAL, EntityType.CHICKEN);
+        addon.getBlockLimitListener().setIsland("unique_id", ibc);
+
+        List<String> reached = addon.getReachedLimits(user, gameMode, World.Environment.NORMAL);
+        assertTrue(reached.contains("Hopper"), reached.toString());
+        assertTrue(reached.contains("Enderman"), reached.toString());
+        assertFalse(reached.contains("Chicken"), reached.toString());
+
+        // Union variant includes the same; nether alone has nothing reached
+        assertTrue(addon.getReachedLimits(user, gameMode, null).contains("Hopper"));
+        assertTrue(addon.getReachedLimits(user, gameMode, World.Environment.NETHER).isEmpty());
+    }
+
+    /**
+     * Test method for {@link world.bentobox.limits.Limits#getReachedLimits(world.bentobox.bentobox.api.user.User, world.bentobox.bentobox.api.addons.GameModeAddon, org.bukkit.World.Environment)}.
+     */
+    @Test
+    void testGetReachedLimitsNoIsland() {
+        addon.onEnable();
+        when(gameMode.getIslands()).thenReturn(im);
+        when(im.getIsland(Mockito.any(World.class), Mockito.any(world.bentobox.bentobox.api.user.User.class)))
+                .thenReturn(null);
+        assertTrue(addon.getReachedLimits(user, gameMode, null).isEmpty());
     }
 
     /**

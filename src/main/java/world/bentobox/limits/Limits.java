@@ -2,9 +2,11 @@ package world.bentobox.limits;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -18,6 +20,7 @@ import world.bentobox.bentobox.api.addons.Addon;
 import world.bentobox.bentobox.api.addons.GameModeAddon;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
+import world.bentobox.bentobox.util.Util;
 import world.bentobox.limits.commands.admin.AdminCommand;
 import world.bentobox.limits.commands.player.PlayerCommand;
 import world.bentobox.limits.listeners.BlockLimitsListener;
@@ -120,6 +123,98 @@ public class Limits extends Addon {
                 .forEach(m -> registerCountAndLimitPlaceholders(m.getKey(), gm));
         Arrays.stream(EntityType.values())
                 .forEach(e -> registerCountAndLimitPlaceholders(e, gm));
+        registerReachedLimitsPlaceholders(gm);
+    }
+
+    /**
+     * Registers {@code Limits_<gm>_island_reached_limits} (plus {@code _overworld},
+     * {@code _nether}, {@code _end} variants) — a comma-separated list of every
+     * limited block, entity, and entity group currently at or over its limit on the
+     * user's island. The unsuffixed variant is the union across all environments.
+     */
+    private void registerReachedLimitsPlaceholders(GameModeAddon gm) {
+        for (String suffix : ENV_SUFFIXES) {
+            Environment env = envForSuffix(suffix);
+            String name = gm.getDescription().getName().toLowerCase(Locale.ROOT) + ISLAND_PLACEHOLDER
+                    + "reached_limits" + suffix;
+            getPlugin().getPlaceholdersManager().registerPlaceholder(this, name,
+                    user -> String.join(", ", getReachedLimits(user, gm, env)));
+        }
+    }
+
+    /**
+     * Returns the pretty names of every limited block material, entity type, and
+     * entity group whose count has reached or exceeded its limit on the user's island.
+     * Limits are resolved the same way the {@code _limit} placeholders resolve them
+     * (island permission limits and offsets included).
+     *
+     * @param user the player whose island is checked; may be null
+     * @param gm   the game mode to check
+     * @param env  the environment to check, or {@code null} for the union across all
+     *             environments
+     * @return list of names at/over their limit; empty if none or the user has no island
+     */
+    public List<String> getReachedLimits(@Nullable User user, GameModeAddon gm, @Nullable Environment env) {
+        Island is = gm.getIslands().getIsland(gm.getOverWorld(), user);
+        if (is == null) {
+            return List.of();
+        }
+        IslandBlockCount ibc = getBlockLimitListener().getIsland(is.getUniqueId());
+        if (ibc == null) {
+            return List.of();
+        }
+        List<Environment> envs = env == null ? Settings.ENVIRONMENTS : List.of(env);
+        Set<String> reached = new LinkedHashSet<>();
+        for (Environment e : envs) {
+            addReachedBlockLimits(gm, is, ibc, e, reached);
+            addReachedEntityLimits(ibc, e, reached);
+            addReachedGroupLimits(ibc, e, reached);
+        }
+        return List.copyOf(reached);
+    }
+
+    private void addReachedBlockLimits(GameModeAddon gm, Island is, IslandBlockCount ibc, Environment env,
+            Set<String> reached) {
+        getBlockLimitListener().getMaterialLimits(worldForEnv(gm, env), is.getUniqueId())
+                .forEach((key, limit) -> {
+                    if (limit >= 0 && ibc.getBlockCount(env, key) >= limit) {
+                        reached.add(Util.prettifyText(key.getKey()));
+                    }
+                });
+    }
+
+    private void addReachedEntityLimits(IslandBlockCount ibc, Environment env, Set<String> reached) {
+        Map<EntityType, Integer> defaults = getSettings().getLimits(env);
+        for (EntityType type : EntityType.values()) {
+            int limit = ibc.getEntityLimit(env, type);
+            if (limit < 0) {
+                limit = defaults.getOrDefault(type, -1);
+            }
+            if (limit < 0) {
+                continue;
+            }
+            limit += ibc.getEntityLimitOffset(env, type);
+            if (ibc.getEntityCount(env, type) >= limit) {
+                reached.add(Util.prettifyText(type.toString()));
+            }
+        }
+    }
+
+    private void addReachedGroupLimits(IslandBlockCount ibc, Environment env, Set<String> reached) {
+        for (EntityGroup group : getSettings().getGroupLimitDefinitions()) {
+            int limit = ibc.getEntityGroupLimit(env, group.getName());
+            if (limit < 0) {
+                limit = getSettings().getGroupLimits(env).getOrDefault(group.getName(), -1);
+            }
+            if (limit < 0) {
+                continue;
+            }
+            limit += ibc.getEntityGroupLimitOffset(env, group.getName());
+            long count = group.getTypes().stream().mapToLong(t -> ibc.getEntityCount(env, t)).sum();
+            if (count >= limit) {
+                reached.add(group.getName());
+            }
+        }
     }
 
     private static final List<String> ENV_SUFFIXES = List.of("", "_overworld", "_nether", "_end");
