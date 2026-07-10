@@ -1097,6 +1097,35 @@ class BlockLimitsListenerTest {
         assertTrue(event.isCancelled());
     }
 
+    // --- Center-block exclusion for the no-place-event helpers (#276 review) ---
+
+    @Test
+    void testCheckBlockLimitIgnoresCenterBlock() {
+        // At the limit everywhere else, but the location is the island center block
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.setBlockLimit(Environment.NORMAL, Material.CHEST.getKey(), 0);
+        listener.setIsland("test-island-id", ibc);
+
+        // Entity-style location inside the center block (fractional coordinates)
+        Location entityLoc = new Location(world, 0.5, 65.0, 0.3);
+        assertEquals(-1, listener.checkBlockLimit(entityLoc, Material.CHEST.getKey()));
+        // Away from the center the limit applies
+        assertEquals(0, listener.checkBlockLimit(blockLocation, Material.CHEST.getKey()));
+    }
+
+    @Test
+    void testAddBlockCountIgnoresCenterBlock() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        listener.setIsland("test-island-id", ibc);
+
+        Location entityLoc = new Location(world, 0.5, 65.0, 0.3);
+        listener.addBlockCount(entityLoc, Material.CHEST.getKey());
+        assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.CHEST.getKey()));
+
+        listener.addBlockCount(blockLocation, Material.CHEST.getKey());
+        assertEquals(1, listener.getIsland("test-island-id").getBlockCount(Material.CHEST.getKey()));
+    }
+
     // --- Custom block keys (#176) ---
 
     @Test

@@ -472,6 +472,22 @@ public class BlockLimitsListener implements Listener {
      *
      * @return limit amount if at/over the limit (nothing was counted), or -1 on success
      */
+    /**
+     * True when the config ignores the island's center block and {@code loc} is that
+     * block. Compares block coordinates so entity locations (fractional coordinates,
+     * yaw/pitch) are matched correctly.
+     */
+    private boolean isIgnoredCenterBlock(Island island, Location loc) {
+        if (!addon.getConfig().getBoolean("ignore-center-block", true)) {
+            return false;
+        }
+        Location center = island.getCenter();
+        return center != null && Objects.equals(center.getWorld(), loc.getWorld())
+                && center.getBlockX() == loc.getBlockX()
+                && center.getBlockY() == loc.getBlockY()
+                && center.getBlockZ() == loc.getBlockZ();
+    }
+
     public int processKey(World world, Location location, NamespacedKey key, boolean add) {
         if (!addon.inGameModeWorld(world)) {
             return -1;
@@ -483,8 +499,7 @@ public class BlockLimitsListener implements Listener {
             if (gameMode.isEmpty()) {
                 return -1;
             }
-            if (addon.getConfig().getBoolean("ignore-center-block", true)
-                    && i.getCenter().equals(location)) {
+            if (isIgnoredCenterBlock(i, location)) {
                 return -1;
             }
             islandCountMap.putIfAbsent(id, new IslandBlockCount(id, gameMode));
@@ -551,7 +566,7 @@ public class BlockLimitsListener implements Listener {
         return addon.getIslands().getIslandAt(loc).map(i -> {
             String id = i.getUniqueId();
             String gameMode = addon.getGameModeName(w);
-            if (gameMode.isEmpty()) {
+            if (gameMode.isEmpty() || isIgnoredCenterBlock(i, loc)) {
                 return -1;
             }
             islandCountMap.putIfAbsent(id, new IslandBlockCount(id, gameMode));
@@ -573,7 +588,7 @@ public class BlockLimitsListener implements Listener {
         addon.getIslands().getIslandAt(loc).ifPresent(i -> {
             String id = i.getUniqueId();
             String gameMode = addon.getGameModeName(w);
-            if (gameMode.isEmpty()) {
+            if (gameMode.isEmpty() || isIgnoredCenterBlock(i, loc)) {
                 return;
             }
             Environment env = envOf(w);
