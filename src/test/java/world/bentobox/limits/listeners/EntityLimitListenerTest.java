@@ -37,6 +37,7 @@ import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityBreedEvent;
+import org.bukkit.event.entity.EntityPortalEvent;
 import org.bukkit.event.entity.EntityRemoveEvent;
 import org.bukkit.event.Event;
 import org.bukkit.event.block.Action;
@@ -801,6 +802,74 @@ class EntityLimitListenerTest {
         // before #270 this entry was lost on restart and the count drifted upward.
         assertEquals(before - 1, ibc.getEntityCount(Environment.NORMAL, EntityType.ENDERMAN));
         assertFalse(entityIslandMap().containsKey(enderman.getUniqueId()));
+    }
+
+    // --- EntityPortalEvent / phantom-count tests ---
+
+    @Test
+    void testEntityPortalTransfersCountBetweenEnvironments() throws Exception {
+        Location netherLoc = mockNetherLocation();
+        LivingEntity chicken = mockEntity(EntityType.CHICKEN, location);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.CHICKEN);
+
+        ell.onEntityPortal(new EntityPortalEvent(chicken, location, netherLoc));
+
+        assertEquals(0, ibc.getEntityCount(Environment.NORMAL, EntityType.CHICKEN));
+        assertEquals(1, ibc.getEntityCount(Environment.NETHER, EntityType.CHICKEN));
+        assertEquals("test-island-id", entityIslandMap().get(chicken.getUniqueId()));
+    }
+
+    @Test
+    void testPortaledEntityDeathStillDecrements() throws Exception {
+        // Regression: Paper never fires an EntityRemoveEvent for the dimension change itself
+        // (RemovalReason.CHANGED_DIMENSION has a null Bukkit cause), so the old justPortaled
+        // guard was never consumed and instead swallowed the entity's real death decrement,
+        // leaving a phantom count in the destination environment.
+        Location netherLoc = mockNetherLocation();
+        World nether = netherLoc.getWorld();
+        LivingEntity chicken = mockEntity(EntityType.CHICKEN, location);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.CHICKEN);
+        ell.onEntityPortal(new EntityPortalEvent(chicken, location, netherLoc));
+        assertEquals(1, ibc.getEntityCount(Environment.NETHER, EntityType.CHICKEN));
+
+        // The entity now lives in the nether and dies there.
+        when(chicken.getWorld()).thenReturn(nether);
+        when(chicken.getLocation()).thenReturn(netherLoc);
+        ell.onEntityRemove(new EntityRemoveEvent(chicken, EntityRemoveEvent.Cause.DEATH));
+
+        assertEquals(0, ibc.getEntityCount(Environment.NETHER, EntityType.CHICKEN));
+        assertFalse(entityIslandMap().containsKey(chicken.getUniqueId()));
+    }
+
+    @Test
+    void testRoundTripPortalThenDeathLeavesNoPhantomCount() throws Exception {
+        // The reported symptom: a mob portals to the nether, comes back, and dies in the
+        // overworld — the overworld count must return to zero, not stick at a phantom 1.
+        Location netherLoc = mockNetherLocation();
+        World nether = netherLoc.getWorld();
+        LivingEntity chicken = mockEntity(EntityType.CHICKEN, location);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.CHICKEN);
+
+        ell.onEntityPortal(new EntityPortalEvent(chicken, location, netherLoc));
+        when(chicken.getWorld()).thenReturn(nether);
+        when(chicken.getLocation()).thenReturn(netherLoc);
+        ell.onEntityPortal(new EntityPortalEvent(chicken, netherLoc, location));
+        when(chicken.getWorld()).thenReturn(world);
+        when(chicken.getLocation()).thenReturn(location);
+
+        ell.onEntityRemove(new EntityRemoveEvent(chicken, EntityRemoveEvent.Cause.DEATH));
+
+        assertEquals(0, ibc.getEntityCount(Environment.NORMAL, EntityType.CHICKEN));
+        assertEquals(0, ibc.getEntityCount(Environment.NETHER, EntityType.CHICKEN));
+    }
+
+    private Location mockNetherLocation() {
+        World nether = mock(World.class);
+        when(nether.getEnvironment()).thenReturn(Environment.NETHER);
+        when(addon.inGameModeWorld(nether)).thenReturn(true);
+        Location netherLoc = mock(Location.class);
+        when(netherLoc.getWorld()).thenReturn(nether);
+        return netherLoc;
     }
 
     @SuppressWarnings("unchecked")
