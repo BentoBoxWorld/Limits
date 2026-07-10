@@ -59,8 +59,6 @@ public class EntityLimitListener implements Listener {
     private final Limits addon;
     /** Entity UUIDs that have just spawned to prevent double-processing. */
     private final List<UUID> justSpawned = new ArrayList<>();
-    /** Entity UUIDs that are currently portaling to prevent double-decrement on cross-world removal. */
-    private final List<UUID> justPortaled = new ArrayList<>();
     /** Maps entity UUID to island ID so decrement works even when the entity dies off-island. */
     private final Map<UUID, String> entityIslandMap = new HashMap<>();
     /** Cardinal directions used for block structure detection. */
@@ -344,9 +342,6 @@ public class EntityLimitListener implements Listener {
         World w = entity.getWorld();
         if (!addon.inGameModeWorld(w)) return;
 
-        // Entity is being portaled — count transfer was already handled by onEntityPortal.
-        if (justPortaled.remove(entity.getUniqueId())) return;
-
         String islandId = entityIslandMap.remove(entity.getUniqueId());
         if (islandId != null) {
             addon.getBlockLimitListener().decrementEntity(islandId, envOf(w), entity.getType());
@@ -374,8 +369,9 @@ public class EntityLimitListener implements Listener {
         if (fromEnv == toEnv) return;
         if (!addon.inGameModeWorld(fromWorld) && !addon.inGameModeWorld(toWorld)) return;
 
-        // Prevent onEntityRemove from double-decrementing for the source-world removal.
-        justPortaled.add(entity.getUniqueId());
+        // No EntityRemoveEvent guard is needed here: Paper suppresses the event for
+        // dimension changes (RemovalReason.CHANGED_DIMENSION carries a null Bukkit cause),
+        // so the source-world removal never reaches onEntityRemove.
 
         // Decrement at source if on a tracked island
         if (addon.inGameModeWorld(fromWorld)) {
