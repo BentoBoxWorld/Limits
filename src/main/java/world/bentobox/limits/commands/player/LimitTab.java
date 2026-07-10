@@ -26,6 +26,7 @@ import world.bentobox.bentobox.api.panels.Tab;
 import world.bentobox.bentobox.api.panels.builders.PanelItemBuilder;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.util.Util;
+import world.bentobox.limits.DisplayNames;
 import world.bentobox.limits.EntityGroup;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.objects.IslandBlockCount;
@@ -112,7 +113,7 @@ public class LimitTab implements Tab {
             PanelItemBuilder pib = new PanelItemBuilder();
             pib.name(user.getTranslation("island.limits.panel.entity-group-name-syntax", TextVariables.NAME,
                     g.getName()));
-            String description = "(" + prettyNames(g) + ")\n";
+            String description = "(" + prettyNames(user, g) + ")\n";
             pib.icon(g.getIcon());
             int count = ibc == null ? 0 : sumGroupCount(ibc, g);
             String color = count >= limit ? user.getTranslation(MAX_COLOR_KEY)
@@ -144,7 +145,7 @@ public class LimitTab implements Tab {
         map.forEach((k, v) -> {
             PanelItemBuilder pib = new PanelItemBuilder();
             pib.name(user.getTranslation("island.limits.panel.entity-name-syntax", TextVariables.NAME,
-                    Util.prettifyText(k.toString())));
+                    DisplayNames.entity(user, k)));
             Material m;
             try {
                 if (E2M.containsKey(k)) {
@@ -172,7 +173,7 @@ public class LimitTab implements Tab {
         for (Entry<NamespacedKey, Integer> en : matLimits.entrySet()) {
             PanelItemBuilder pib = new PanelItemBuilder();
             pib.name(user.getTranslation("island.limits.panel.block-name-syntax", TextVariables.NAME,
-                    Util.prettifyText(en.getKey().getKey())));
+                    DisplayNames.material(user, en.getKey())));
             Material mat = Registry.MATERIAL.get(B2M.getOrDefault(en.getKey(), en.getKey()));
             pib.icon(Objects.requireNonNullElse(mat, Material.PAPER));
 
@@ -222,11 +223,11 @@ public class LimitTab implements Tab {
         return "";
     }
 
-    private String prettyNames(EntityGroup v) {
+    private String prettyNames(User user, EntityGroup v) {
         StringBuilder sb = new StringBuilder();
         List<EntityType> l = new ArrayList<>(v.getTypes());
         for (int i = 0; i < l.size(); i++) {
-            sb.append(Util.prettifyText(l.get(i).toString()));
+            sb.append(DisplayNames.entity(user, l.get(i)));
             if (i + 1 < l.size()) sb.append(", ");
             if ((i + 1) % 5 == 0) sb.append("\n");
         }

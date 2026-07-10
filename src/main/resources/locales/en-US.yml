@@ -46,6 +46,13 @@ admin:
 island:
   limits:
     description: "show your island limits"
+    # Optional manual name translations, used in the limits GUI and hit-limit messages.
+    # Keys are lowercase Bukkit Material / EntityType names. Anything not listed falls
+    # back to the automatic English name, so these sections can be left empty.
+    #materials:
+    #  hopper: "Hopper"
+    #entities:
+    #  enderman: "Enderman"
     max-color: "<red>"
     regular-color: "<green>"
     block-limit-syntax: "[number]/[limit]"

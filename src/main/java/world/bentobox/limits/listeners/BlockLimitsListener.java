@@ -52,6 +52,7 @@ import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.Database;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Util;
+import world.bentobox.limits.DisplayNames;
 import world.bentobox.limits.Limits;
 import world.bentobox.limits.Settings;
 import world.bentobox.limits.objects.IslandBlockCount;
@@ -310,7 +311,7 @@ public class BlockLimitsListener implements Listener {
         if (limit > -1) {
             if (addon.getSettings().isShowLimitMessages()) {
                 user.notify("block-limits.hit-limit",
-                        "[material]", Util.prettifyText(m.toString()),
+                        "[material]", DisplayNames.material(user, m.getKey()),
                         TextVariables.NUMBER, String.valueOf(limit));
             }
             e.setCancelled(true);
