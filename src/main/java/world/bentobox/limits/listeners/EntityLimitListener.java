@@ -101,12 +101,19 @@ public class EntityLimitListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onBreed(final EntityBreedEvent entityBreedEvent) {
-        if (addon.inGameModeWorld(entityBreedEvent.getEntity().getWorld())
-                && entityBreedEvent.getBreeder() != null
-                && (entityBreedEvent.getBreeder() instanceof Player player)
-                && !(player.isOp() || player.hasPermission(addon.getPlugin().getIWM()
-                        .getPermissionPrefix(entityBreedEvent.getEntity().getWorld()) + MOD_BYPASS))
-                && !checkLimit(entityBreedEvent, entityBreedEvent.getEntity(), SpawnReason.BREEDING, false)
+        if (!addon.inGameModeWorld(entityBreedEvent.getEntity().getWorld())) return;
+
+        boolean bypass = false;
+        if (entityBreedEvent.getBreeder() instanceof Player player) {
+            bypass = player.isOp() || player.hasPermission(addon.getPlugin().getIWM()
+                    .getPermissionPrefix(entityBreedEvent.getEntity().getWorld()) + MOD_BYPASS);
+        }
+
+        if (!bypass) {
+            checkLimit(entityBreedEvent, entityBreedEvent.getEntity(), SpawnReason.BREEDING, false);
+        }
+
+        if (entityBreedEvent.isCancelled()
                 && entityBreedEvent.getFather() instanceof Breedable father
                 && entityBreedEvent.getMother() instanceof Breedable mother) {
             father.setBreed(false);
@@ -309,6 +316,7 @@ public class EntityLimitListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onEntityAddToWorld(EntityAddToWorldEvent e) {
         Entity entity = e.getEntity();
+        if (entity instanceof Player) return;
         if (!(entity instanceof LivingEntity) && !(entity instanceof Vehicle)
                 && !(entity instanceof Hanging)) {
             return;
