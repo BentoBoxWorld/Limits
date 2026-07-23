@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -347,23 +348,9 @@ class EntityLimitListenerTest {
         when(opPlayer.isOp()).thenReturn(true);
 
         // Create child, father, mother as Chicken mocks (implements Breedable)
-        Chicken child = mock(Chicken.class);
-        when(child.getType()).thenReturn(EntityType.CHICKEN);
-        when(child.getWorld()).thenReturn(world);
-        when(child.getLocation()).thenReturn(location);
-        when(child.getUniqueId()).thenReturn(UUID.randomUUID());
-
-        Chicken father = mock(Chicken.class);
-        when(father.getType()).thenReturn(EntityType.CHICKEN);
-        when(father.getWorld()).thenReturn(world);
-        when(father.getLocation()).thenReturn(location);
-        when(father.getUniqueId()).thenReturn(UUID.randomUUID());
-
-        Chicken mother = mock(Chicken.class);
-        when(mother.getType()).thenReturn(EntityType.CHICKEN);
-        when(mother.getWorld()).thenReturn(world);
-        when(mother.getLocation()).thenReturn(location);
-        when(mother.getUniqueId()).thenReturn(UUID.randomUUID());
+        Chicken child = mockChicken();
+        Chicken father = mockChicken();
+        Chicken mother = mockChicken();
 
         // Set CHICKEN limit to 0 so any entity would be over limit
         ibc.setEntityLimit(Environment.NORMAL, EntityType.CHICKEN, 0);
@@ -375,6 +362,82 @@ class EntityLimitListenerTest {
         // Op player bypasses — setBreed(false) should NOT be called
         verify(father, never()).setBreed(false);
         verify(mother, never()).setBreed(false);
+    }
+
+    @Test
+    void testBreedingNaturalAtLimitCancelsCoolsDownParentsAndDoesNotNotify() {
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.CHICKEN, 0);
+        Chicken child = mockChicken();
+        Chicken father = mockChicken();
+        Chicken mother = mockChicken();
+
+        // Null breeder = natural breeding (e.g. bees, foxes, villagers)
+        EntityBreedEvent event = new EntityBreedEvent(child, mother, father, null, null, 0);
+
+        ell.onBreed(event);
+
+        assertTrue(event.isCancelled());
+        verify(father).setBreed(false);
+        verify(mother).setBreed(false);
+        // No player caused this — the hit-limit notification must be suppressed
+        MockBukkit.getMock().getScheduler().performOneTick();
+        verify(world, never()).getNearbyEntities(any(Location.class), anyDouble(), anyDouble(), anyDouble());
+    }
+
+    @Test
+    void testBreedingNaturalUnderLimitNotCancelled() {
+        // CHICKEN limit is 10 from config; count is zero
+        Chicken child = mockChicken();
+        Chicken father = mockChicken();
+        Chicken mother = mockChicken();
+
+        EntityBreedEvent event = new EntityBreedEvent(child, mother, father, null, null, 0);
+
+        ell.onBreed(event);
+
+        assertFalse(event.isCancelled());
+        verify(father, never()).setBreed(false);
+        verify(mother, never()).setBreed(false);
+    }
+
+    @Test
+    void testBreedingNonOpPlayerAtLimitCancelsAndNotifies() {
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.CHICKEN, 0);
+        Player breeder = mock(Player.class);
+        when(breeder.isOp()).thenReturn(false);
+        when(breeder.hasPermission(anyString())).thenReturn(false);
+        Chicken child = mockChicken();
+        Chicken father = mockChicken();
+        Chicken mother = mockChicken();
+
+        EntityBreedEvent event = new EntityBreedEvent(child, mother, father, breeder, null, 0);
+
+        ell.onBreed(event);
+
+        assertTrue(event.isCancelled());
+        verify(father).setBreed(false);
+        verify(mother).setBreed(false);
+        // A player fed the animals — the hit-limit notification is sent to nearby players
+        MockBukkit.getMock().getScheduler().performOneTick();
+        verify(world).getNearbyEntities(any(Location.class), anyDouble(), anyDouble(), anyDouble());
+    }
+
+    @Test
+    void testBreedingVillagersAtLimitCancelsAndCoolsDownParents() {
+        // Villagers must hit the Breedable branch: AbstractVillager extends Breedable,
+        // so a cancelled villager breed also puts the parents on cooldown.
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.VILLAGER, 0);
+        Villager child = mockVillager();
+        Villager father = mockVillager();
+        Villager mother = mockVillager();
+
+        EntityBreedEvent event = new EntityBreedEvent(child, mother, father, null, null, 0);
+
+        ell.onBreed(event);
+
+        assertTrue(event.isCancelled());
+        verify(father).setBreed(false);
+        verify(mother).setBreed(false);
     }
 
     // --- CreatureSpawn at-limit tests ---
@@ -733,6 +796,22 @@ class EntityLimitListenerTest {
     }
 
     @Test
+    void testEntityAddToWorldIgnoresPlayer() throws Exception {
+        // Players pass the LivingEntity filter but EntityRemoveEvent never fires for them,
+        // so mapping them would leak entries — they must be skipped entirely.
+        Player player = mock(Player.class);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(player.getLocation()).thenReturn(location);
+        when(player.getWorld()).thenReturn(world);
+        EntityAddToWorldEvent event = new EntityAddToWorldEvent(player, world);
+
+        ell.onEntityAddToWorld(event);
+
+        assertTrue(entityIslandMap().isEmpty());
+        verify(islandsManager, never()).getIslandAt(any(Location.class));
+    }
+
+    @Test
     void testEntityAddToWorldOutsideGameModeWorldIgnored() throws Exception {
         when(addon.inGameModeWorld(world)).thenReturn(false);
         LivingEntity enderman = mockEntity(EntityType.ENDERMAN, location);
@@ -888,6 +967,24 @@ class EntityLimitListenerTest {
         when(entity.getWorld()).thenReturn(world);
         when(entity.getUniqueId()).thenReturn(UUID.randomUUID());
         return entity;
+    }
+
+    private Chicken mockChicken() {
+        Chicken chicken = mock(Chicken.class);
+        when(chicken.getType()).thenReturn(EntityType.CHICKEN);
+        when(chicken.getLocation()).thenReturn(location);
+        when(chicken.getWorld()).thenReturn(world);
+        when(chicken.getUniqueId()).thenReturn(UUID.randomUUID());
+        return chicken;
+    }
+
+    private Villager mockVillager() {
+        Villager villager = mock(Villager.class);
+        when(villager.getType()).thenReturn(EntityType.VILLAGER);
+        when(villager.getLocation()).thenReturn(location);
+        when(villager.getWorld()).thenReturn(world);
+        when(villager.getUniqueId()).thenReturn(UUID.randomUUID());
+        return villager;
     }
 
     // --- Golem / snowman block-removal tests (#127) ---
