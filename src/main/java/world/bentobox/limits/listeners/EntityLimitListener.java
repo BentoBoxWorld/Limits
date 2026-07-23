@@ -103,6 +103,7 @@ public class EntityLimitListener implements Listener {
     public void onBreed(final EntityBreedEvent entityBreedEvent) {
         if (!addon.inGameModeWorld(entityBreedEvent.getEntity().getWorld())) return;
 
+        boolean playerBred = entityBreedEvent.getBreeder() instanceof Player;
         boolean bypass = false;
         if (entityBreedEvent.getBreeder() instanceof Player player) {
             bypass = player.isOp() || player.hasPermission(addon.getPlugin().getIWM()
@@ -110,9 +111,13 @@ public class EntityLimitListener implements Listener {
         }
 
         if (!bypass) {
-            checkLimit(entityBreedEvent, entityBreedEvent.getEntity(), SpawnReason.BREEDING, false);
+            // Natural breeding (villagers, bees, etc.) has no player to inform — suppress the
+            // hit-limit message so an auto-breeder at the limit doesn't spam nearby players.
+            checkLimit(entityBreedEvent, entityBreedEvent.getEntity(), SpawnReason.BREEDING, false, playerBred);
         }
 
+        // Cancelled breed: put both parents on a breeding cooldown so the pair doesn't retry
+        // immediately. Villagers are covered — AbstractVillager extends Breedable.
         if (entityBreedEvent.isCancelled()
                 && entityBreedEvent.getFather() instanceof Breedable father
                 && entityBreedEvent.getMother() instanceof Breedable mother) {
@@ -461,15 +466,20 @@ public class EntityLimitListener implements Listener {
 
     private boolean checkLimit(Cancellable cancelableEvent, LivingEntity livingEntity, SpawnReason spawnReason,
             boolean runAsync) {
+        return checkLimit(cancelableEvent, livingEntity, spawnReason, runAsync, true);
+    }
+
+    private boolean checkLimit(Cancellable cancelableEvent, LivingEntity livingEntity, SpawnReason spawnReason,
+            boolean runAsync, boolean notify) {
         Location l = livingEntity.getLocation();
         if (runAsync) {
             cancelableEvent.setCancelled(true);
         }
-        return processIsland(cancelableEvent, livingEntity, l, spawnReason, runAsync);
+        return processIsland(cancelableEvent, livingEntity, l, spawnReason, runAsync, notify);
     }
 
     private boolean processIsland(Cancellable cancelableEvent, LivingEntity livingEntity, Location location,
-            SpawnReason spawnReason, boolean runAsync) {
+            SpawnReason spawnReason, boolean runAsync, boolean notify) {
         Optional<Island> optionalIsland = addon.getIslands().getIslandAt(livingEntity.getLocation());
         if (optionalIsland.isEmpty()) {
             if (runAsync) {
@@ -490,7 +500,9 @@ public class EntityLimitListener implements Listener {
             } else {
                 cancelableEvent.setCancelled(true);
             }
-            tellPlayers(location, livingEntity, spawnReason, res);
+            if (notify) {
+                tellPlayers(location, livingEntity, spawnReason, res);
+            }
             return false;
         }
         return true;
