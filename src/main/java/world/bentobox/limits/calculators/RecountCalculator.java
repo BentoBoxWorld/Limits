@@ -25,6 +25,7 @@ import org.bukkit.block.data.type.Slab;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Hanging;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Vehicle;
 import org.bukkit.scheduler.BukkitTask;
 
 import world.bentobox.bentobox.BentoBox;
@@ -223,7 +224,7 @@ public class RecountCalculator {
             for (Entity entity : w.getEntities()) {
                 if (!island.inIslandSpace(entity.getLocation())) continue;
                 if (entity instanceof LivingEntity || entity instanceof Hanging
-                        || entity.getType().name().endsWith("_MINECART")
+                        || entity instanceof Vehicle
                         || entity.getType().name().equals("ARMOR_STAND")) {
                     results.getEntityCount(env).add(entity.getType());
                 }
