@@ -61,6 +61,10 @@ public class EntityLimitListener implements Listener {
     private final List<UUID> justSpawned = new ArrayList<>();
     /** Maps entity UUID to island ID so decrement works even when the entity dies off-island. */
     private final Map<UUID, String> entityIslandMap = new HashMap<>();
+    /** Per-player cooldown to suppress repeated limit-hit notifications (prevents chat spam). */
+    private final Map<UUID, Map<String, Long>> notifyCooldown = new HashMap<>();
+    /** Minimum gap between repeated notifications for the same player and limit, in milliseconds. */
+    private final long notifyCooldownMs;
     /** Cardinal directions used for block structure detection. */
     private static final List<BlockFace> CARDINALS = List.of(BlockFace.UP, BlockFace.NORTH, BlockFace.SOUTH,
             BlockFace.EAST, BlockFace.WEST, BlockFace.DOWN);
@@ -69,6 +73,7 @@ public class EntityLimitListener implements Listener {
 
     public EntityLimitListener(Limits addon) {
         this.addon = addon;
+        this.notifyCooldownMs = addon.getSettings().getLimitNotifyCooldownSeconds() * 1000L;
     }
 
     private static Environment envOf(World w) {
@@ -257,6 +262,8 @@ public class EntityLimitListener implements Listener {
         if (!addon.getSettings().isShowLimitMessages()) {
             return;
         }
+        String key = limitKey(res);
+        if (!checkNotifyCooldown(player.getUniqueId(), key)) return;
         User u = User.getInstance(player);
         if (res.getTypelimit() != null) {
             u.notify(ENTITY_LIMIT_HIT, ENTITY_PLACEHOLDER,
@@ -645,6 +652,40 @@ public class EntityLimitListener implements Listener {
         return Tag.WITHER_SUMMON_BASE_BLOCKS.isTagged(block.getType());
     }
 
+    /**
+     * Extracts a stable string key from an {@link AtLimitResult} for cooldown tracking.
+     * Prefixes type limits with {@code e:} and group limits with {@code g:}.
+     */
+    private static String limitKey(AtLimitResult res) {
+        if (res.getTypelimit() != null) {
+            return "e:" + res.getTypelimit().getKey().name();
+        }
+        if (res.getGrouplimit() != null) {
+            return "g:" + res.getGrouplimit().getKey().getName();
+        }
+        return "unknown";
+    }
+
+    /**
+     * Checks whether this player+limit pair is within the notification cooldown.
+     * Returns false if the notification should be suppressed; true if it should fire.
+     * Updates the timestamp as a side effect.
+     */
+    private boolean checkNotifyCooldown(UUID playerId, String limitKey) {
+        if (notifyCooldownMs <= 0) return true;
+        Map<String, Long> playerMap = notifyCooldown.computeIfAbsent(playerId, k -> new HashMap<>());
+        long now = System.currentTimeMillis();
+        Long last = playerMap.get(limitKey);
+        if (last != null && now - last < notifyCooldownMs) {
+            return false;
+        }
+        playerMap.put(limitKey, now);
+        if (playerMap.size() > 50) {
+            playerMap.values().removeIf(v -> now - v > notifyCooldownMs);
+        }
+        return true;
+    }
+
     private void tellPlayers(Location location, Entity entity, SpawnReason spawnReason, AtLimitResult res) {
         if (!addon.getSettings().isShowLimitMessages()) {
             return;
@@ -656,9 +697,11 @@ public class EntityLimitListener implements Listener {
         }
         World w = location.getWorld();
         if (w == null) return;
+        String key = limitKey(res);
         Bukkit.getScheduler().runTask(addon.getPlugin(), () -> {
             for (Entity ent : w.getNearbyEntities(location, 5, 5, 5)) {
                 if (ent instanceof Player p) {
+                    if (!checkNotifyCooldown(p.getUniqueId(), key)) continue;
                     p.updateInventory();
                     User u = User.getInstance(p);
                     if (res.getTypelimit() != null) {

@@ -35,6 +35,12 @@ async-golums: true
 # silently - placements and spawns are still blocked, but no message is sent.
 show-limit-messages: true
 
+# Minimum gap in seconds between repeated limit-hit notifications per player and
+# limit type. Prevents chat spam when a limit is continuously hit (e.g. auto-breeders,
+# dispenser loops). Set to 0 to notify on every attempt, or a higher number to
+# suppress more aggressively.
+limit-notify-cooldown: 5
+
 # Apply limit permissions from team members as well as the island owner.
 # When enabled, a team member's <gamemode>.island.limit.* permissions are merged into
 # the island's limits when the member logs in (the highest value wins). The owner's

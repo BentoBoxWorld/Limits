@@ -56,6 +56,7 @@ public class Settings {
     private final boolean logLimitsOnJoin;
     private final boolean asyncGolums;
     private final boolean showLimitMessages;
+    private final int limitNotifyCooldownSeconds;
     private final boolean stackedPlantsCountAsOne;
     private final boolean applyMemberLimitPerms;
     private static final List<EntityType> DISALLOWED = Arrays.asList(
@@ -105,6 +106,7 @@ public class Settings {
         asyncGolums = addon.getConfig().getBoolean("async-golums", true);
         // Show or suppress the "hit the limit" player notifications
         showLimitMessages = addon.getConfig().getBoolean("show-limit-messages", true);
+        limitNotifyCooldownSeconds = addon.getConfig().getInt("limit-notify-cooldown", 5);
         // Count a stackable plant column (sugar cane, bamboo) as a single plant
         stackedPlantsCountAsOne = addon.getConfig().getBoolean("stacked-plants-count-as-one", false);
         // Apply team members' limit permissions, not just the owner's
@@ -338,6 +340,13 @@ public class Settings {
      */
     public boolean isShowLimitMessages() {
         return showLimitMessages;
+    }
+
+    /**
+     * @return minimum gap in seconds between repeated limit-hit notifications per player+limit pair
+     */
+    public int getLimitNotifyCooldownSeconds() {
+        return limitNotifyCooldownSeconds;
     }
 
     /**
