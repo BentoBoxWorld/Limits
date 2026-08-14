@@ -497,6 +497,57 @@ class EntityLimitListenerTest {
         assertFalse(event.isCancelled());
     }
 
+    // --- Bee hive tests ---
+
+    @Test
+    void testBeehiveExitAtLimitNotCancelled() {
+        // A bee leaving its hive was decremented when it entered (ENTER_BLOCK), so the exit
+        // must never be limit-checked — cancelling it strands the bee in the hive and the
+        // server retries forever, spamming the hit-limit message.
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.BEE, 1);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.BEE);
+        LivingEntity bee = mockEntity(EntityType.BEE, location);
+
+        CreatureSpawnEvent event = new CreatureSpawnEvent(bee, SpawnReason.BEEHIVE);
+
+        ell.onCreatureSpawn(event);
+
+        assertFalse(event.isCancelled());
+        verify(islandsManager, never()).getIslandAt(any(Location.class));
+    }
+
+    @Test
+    void testBeehiveExitStillCounted() throws Exception {
+        // Exempting the exit from the limit check must not exempt it from counting.
+        LivingEntity bee = mockEntity(EntityType.BEE, location);
+        CreatureSpawnEvent event = new CreatureSpawnEvent(bee, SpawnReason.BEEHIVE);
+
+        ell.onCreatureSpawnTrack(event);
+
+        assertEquals(1, ibc.getEntityCount(Environment.NORMAL, EntityType.BEE));
+        assertEquals("test-island-id", entityIslandMap().get(bee.getUniqueId()));
+    }
+
+    @Test
+    void testBeeHiveEnterExitCycleNetZero() throws Exception {
+        // Full cycle: a counted bee enters a hive (ENTER_BLOCK removal decrements) and is
+        // later released (BEEHIVE spawn re-increments) — the count must end where it started.
+        LivingEntity bee = mockEntity(EntityType.BEE, location);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.BEE);
+        entityIslandMap().put(bee.getUniqueId(), "test-island-id");
+
+        ell.onEntityRemove(new EntityRemoveEvent(bee, EntityRemoveEvent.Cause.ENTER_BLOCK));
+        assertEquals(0, ibc.getEntityCount(Environment.NORMAL, EntityType.BEE));
+
+        LivingEntity released = mockEntity(EntityType.BEE, location);
+        CreatureSpawnEvent exit = new CreatureSpawnEvent(released, SpawnReason.BEEHIVE);
+        ell.onCreatureSpawn(exit);
+        assertFalse(exit.isCancelled());
+        ell.onCreatureSpawnTrack(exit);
+
+        assertEquals(1, ibc.getEntityCount(Environment.NORMAL, EntityType.BEE));
+    }
+
     // --- Copper golem / copper chest limit tests (#276) ---
 
     @Test
