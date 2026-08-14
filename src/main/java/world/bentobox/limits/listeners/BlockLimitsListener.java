@@ -68,7 +68,8 @@ public class BlockLimitsListener implements Listener {
             Material.AIR.getKey(), Material.FIRE.getKey(), Material.END_PORTAL.getKey(),
             Material.NETHER_PORTAL.getKey());
     /** Plants that grow as a vertical column on top of themselves. */
-    public static final List<NamespacedKey> STACKABLE = List.of(Material.SUGAR_CANE.getKey(), Material.BAMBOO.getKey());
+    public static final List<NamespacedKey> STACKABLE = List.of(Material.SUGAR_CANE.getKey(),
+            Material.BAMBOO.getKey(), Material.KELP.getKey());
 
     /*
      * Materials added in Minecraft 1.21.9 ("Copper Age"). Resolved by name so the
@@ -102,6 +103,9 @@ public class BlockLimitsListener implements Listener {
         VARIANT_MAP.put(Material.PLAYER_WALL_HEAD, Material.PLAYER_HEAD);
         VARIANT_MAP.put(Material.DRAGON_WALL_HEAD, Material.DRAGON_HEAD);
         VARIANT_MAP.put(Material.BAMBOO_SAPLING, Material.BAMBOO);
+        // A kelp column is KELP_PLANT segments topped by KELP; growth converts the old
+        // KELP tip to KELP_PLANT with no Bukkit event, so both must count as one material (#294)
+        VARIANT_MAP.put(Material.KELP_PLANT, Material.KELP);
         // 1.21.9 materials: only mapped when present on this server
         if (COPPER_WALL_TORCH != null && COPPER_TORCH != null) {
             VARIANT_MAP.put(COPPER_WALL_TORCH, COPPER_TORCH);
@@ -224,7 +228,9 @@ public class BlockLimitsListener implements Listener {
             } else if (DO_NOT_COUNT.contains(mat.getKey())) {
                 Bukkit.getLogger().warning(() -> "Uncountable material in block limits config: " + key);
             } else {
-                limits.put(mat.getKey(), limit);
+                // Store under the canonical key so variant names (KELP_PLANT, CHIPPED_ANVIL, ...)
+                // configure the same limit that block counting resolves to
+                limits.put(canonicalKey(mat), limit);
             }
             return;
         }
@@ -278,12 +284,12 @@ public class BlockLimitsListener implements Listener {
         if (!addon.inGameModeWorld(b.getWorld())) {
             return;
         }
-        Material mat = b.getType();
         // When stacked plants count as one, only the base segment was ever counted,
         // so the stems above must not be decremented here.
-        if (!addon.getSettings().isStackedPlantsCountAsOne() && STACKABLE.contains(b.getType().getKey())) {
+        NamespacedKey plantKey = canonicalKey(b.getType());
+        if (!addon.getSettings().isStackedPlantsCountAsOne() && STACKABLE.contains(plantKey)) {
             Block block = b;
-            while (block.getRelative(BlockFace.UP).getType().equals(mat)
+            while (isSamePlant(block.getRelative(BlockFace.UP).getType(), plantKey)
                     && block.getY() < b.getWorld().getMaxHeight()) {
                 block = block.getRelative(BlockFace.UP);
                 process(block, false);
