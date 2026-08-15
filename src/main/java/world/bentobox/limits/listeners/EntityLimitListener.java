@@ -133,7 +133,15 @@ public class EntityLimitListener implements Listener {
             justSpawned.remove(creatureSpawnEvent.getEntity().getUniqueId());
             return;
         }
+        // BEEHIVE: a bee leaving its hive is not a new bee — its count was decremented when it
+        // entered (EntityRemoveEvent ENTER_BLOCK), and the MONITOR tracker re-increments on exit,
+        // so the enter/exit cycle is net-zero. Cancelling the exit would strand the bee: the
+        // server keeps it as a hive occupant and retries every few ticks, spamming the hit-limit
+        // message and permanently trapping bees whenever the island is at its limit for any other
+        // reason. Over-limit bees (e.g. from placing a hive item with stored bees) simply block
+        // further spawns and breeding until the population drops.
         if (creatureSpawnEvent.getSpawnReason().equals(SpawnReason.SHOULDER_ENTITY)
+                || creatureSpawnEvent.getSpawnReason().equals(SpawnReason.BEEHIVE)
                 || (!(creatureSpawnEvent.getEntity() instanceof Villager)
                         && creatureSpawnEvent.getSpawnReason().equals(SpawnReason.BREEDING))) {
             return;

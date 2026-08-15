@@ -233,6 +233,14 @@ class BlockLimitsListenerTest {
     }
 
     @Test
+    void testFixMaterialKelpPlant() {
+        // The stalk segments of a kelp column count as KELP (#294)
+        BlockData blockData = mock(BlockData.class);
+        when(blockData.getMaterial()).thenReturn(Material.KELP_PLANT);
+        assertEquals(Material.KELP.getKey(), listener.fixMaterial(blockData));
+    }
+
+    @Test
     void testFixMaterialPistonHeadNormal() {
         TechnicalPiston tp = mock(TechnicalPiston.class);
         when(tp.getMaterial()).thenReturn(Material.PISTON_HEAD);
@@ -730,6 +738,45 @@ class BlockLimitsListenerTest {
         assertEquals(1, ibc.getBlockCount(Material.GRASS_BLOCK.getKey()));
     }
 
+    @Test
+    void testBlockSpreadKelpGrowthIncrementsKelp() {
+        // Kelp growth fires BlockSpreadEvent with the water block above the tip as the
+        // target and the new KELP tip as the new state (#294)
+        Block block = mockBlock(Material.WATER, blockLocation);
+        Block source = mockBlock(Material.KELP, new Location(world, 100, 64, 100));
+        BlockState newState = mock(BlockState.class);
+        BlockData newBlockData = mock(BlockData.class);
+        when(newBlockData.getMaterial()).thenReturn(Material.KELP);
+        when(newState.getBlockData()).thenReturn(newBlockData);
+        BlockSpreadEvent event = new BlockSpreadEvent(block, source, newState);
+
+        listener.onBlock(event);
+
+        assertFalse(event.isCancelled());
+        assertEquals(1, listener.getIsland("test-island-id").getBlockCount(Material.KELP.getKey()));
+    }
+
+    @Test
+    void testBlockSpreadKelpGrowthAtLimitCancelled() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.setBlockLimit(Environment.NORMAL, Material.KELP.getKey(), 1);
+        ibc.add(Environment.NORMAL, Material.KELP.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block block = mockBlock(Material.WATER, blockLocation);
+        Block source = mockBlock(Material.KELP, new Location(world, 100, 64, 100));
+        BlockState newState = mock(BlockState.class);
+        BlockData newBlockData = mock(BlockData.class);
+        when(newBlockData.getMaterial()).thenReturn(Material.KELP);
+        when(newState.getBlockData()).thenReturn(newBlockData);
+        BlockSpreadEvent event = new BlockSpreadEvent(block, source, newState);
+
+        listener.onBlock(event);
+
+        assertTrue(event.isCancelled());
+        assertEquals(1, ibc.getBlockCount(Material.KELP.getKey()));
+    }
+
     // --- BlockFromToEvent tests ---
 
     @Test
@@ -1022,6 +1069,27 @@ class BlockLimitsListenerTest {
         assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.SUGAR_CANE.getKey()));
     }
 
+    @Test
+    void testStackedKelpGrowthNotCountedWhenEnabled() {
+        when(limitsSettings.isStackedPlantsCountAsOne()).thenReturn(true);
+        // Growth target is the water block sitting on the old KELP tip — same plant, not counted
+        Block below = mockBlock(Material.KELP, new Location(world, 100, 64, 100));
+        Block block = mockBlock(Material.WATER, blockLocation);
+        when(block.getRelative(BlockFace.DOWN)).thenReturn(below);
+
+        BlockState newState = mock(BlockState.class);
+        BlockData newBlockData = mock(BlockData.class);
+        when(newBlockData.getMaterial()).thenReturn(Material.KELP);
+        when(newState.getBlockData()).thenReturn(newBlockData);
+        BlockSpreadEvent event = new BlockSpreadEvent(block, mockBlock(Material.KELP, new Location(world, 100, 64, 100)), newState);
+
+        listener.onBlock(event);
+
+        assertFalse(event.isCancelled());
+        IslandBlockCount ibc = listener.getIsland("test-island-id");
+        assertTrue(ibc == null || ibc.getBlockCount(Material.KELP.getKey()) == 0);
+    }
+
     // --- Block group limits (#12) ---
 
     private void setUpPistonGroup(int limit) {
@@ -1208,6 +1276,34 @@ class BlockLimitsListenerTest {
         listener.onBlock(event);
 
         assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.BAMBOO.getKey()));
+    }
+
+    @Test
+    void testBlockBreakKelpCascade() {
+        // A kelp column is KELP_PLANT segments topped by KELP; all normalise to KELP,
+        // so breaking the base must decrement the whole column (#294)
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Environment.NORMAL, Material.KELP.getKey());
+        ibc.add(Environment.NORMAL, Material.KELP.getKey());
+        ibc.add(Environment.NORMAL, Material.KELP.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        when(world.getMaxHeight()).thenReturn(320);
+
+        Block bottomBlock = mockBlock(Material.KELP_PLANT, new Location(world, 100, 65, 100));
+        when(bottomBlock.getY()).thenReturn(65);
+        Block midBlock = mockBlock(Material.KELP_PLANT, new Location(world, 100, 66, 100));
+        when(midBlock.getY()).thenReturn(66);
+        Block topBlock = mockBlock(Material.KELP, new Location(world, 100, 67, 100));
+        when(topBlock.getY()).thenReturn(67);
+
+        when(bottomBlock.getRelative(BlockFace.UP)).thenReturn(midBlock);
+        when(midBlock.getRelative(BlockFace.UP)).thenReturn(topBlock);
+
+        BlockBreakEvent event = new BlockBreakEvent(bottomBlock, player);
+        listener.onBlock(event);
+
+        assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.KELP.getKey()));
     }
 
     @Test
