@@ -108,6 +108,7 @@ class EntityLimitListenerTest {
         // Entity
         when(ent.getType()).thenReturn(EntityType.ENDERMAN);
         when(ent.getLocation()).thenReturn(location);
+        when(ent.isInWorld()).thenReturn(true);
         // Island
         when(island.getUniqueId()).thenReturn(UUID.randomUUID().toString());
         when(island.inIslandSpace(any(Location.class))).thenReturn(true);
@@ -757,6 +758,7 @@ class EntityLimitListenerTest {
         when(frame.getLocation()).thenReturn(location);
         when(frame.getWorld()).thenReturn(world);
         when(frame.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(frame.isInWorld()).thenReturn(true);
         return frame;
     }
 
@@ -934,6 +936,52 @@ class EntityLimitListenerTest {
         assertFalse(entityIslandMap().containsKey(enderman.getUniqueId()));
     }
 
+    @Test
+    void testRemoveOfNeverSpawnedEntityDoesNotDecrement() throws Exception {
+        // A spawn cancelled by onCreatureSpawn at the limit is discarded by Paper without an
+        // EntityRemoveEvent. If the spawning plugin (e.g. Greenhouses) then calls remove() on the
+        // discarded object, Paper fires EntityRemoveEvent(PLUGIN) anyway. The entity was never
+        // counted, so it must not be decremented — otherwise the count drifts below the real
+        // population and the next spawn is let through the limit.
+        LivingEntity ghost = mockEntity(EntityType.ENDERMAN, location);
+        when(ghost.isInWorld()).thenReturn(false);
+        int before = ibc.getEntityCount(Environment.NORMAL, EntityType.ENDERMAN);
+
+        ell.onEntityRemove(new EntityRemoveEvent(ghost, EntityRemoveEvent.Cause.PLUGIN));
+
+        assertEquals(before, ibc.getEntityCount(Environment.NORMAL, EntityType.ENDERMAN));
+        verify(bll, never()).decrementEntity(anyString(), any(Environment.class), any(EntityType.class));
+    }
+
+    @Test
+    void testRemoveOfNeverSpawnedEntityClearsStaleMapping() throws Exception {
+        // Defensive: even if a mapping somehow exists for an entity that is not in the world,
+        // do not decrement, but do drop the mapping so it cannot leak.
+        LivingEntity ghost = mockEntity(EntityType.ENDERMAN, location);
+        when(ghost.isInWorld()).thenReturn(false);
+        entityIslandMap().put(ghost.getUniqueId(), "test-island-id");
+        int before = ibc.getEntityCount(Environment.NORMAL, EntityType.ENDERMAN);
+
+        ell.onEntityRemove(new EntityRemoveEvent(ghost, EntityRemoveEvent.Cause.PLUGIN));
+
+        assertEquals(before, ibc.getEntityCount(Environment.NORMAL, EntityType.ENDERMAN));
+        assertFalse(entityIslandMap().containsKey(ghost.getUniqueId()));
+    }
+
+    @Test
+    void testRemoveOfInWorldEntityStillDecrementsViaFallback() throws Exception {
+        // An entity that is in the world but not in the map (loaded before the listener existed)
+        // still decrements through the getIslandAt fallback.
+        LivingEntity enderman = mockEntity(EntityType.ENDERMAN, location);
+        when(islandsManager.getIslandAt(location)).thenReturn(Optional.of(island));
+        when(island.getUniqueId()).thenReturn("test-island-id");
+        int before = ibc.getEntityCount(Environment.NORMAL, EntityType.ENDERMAN);
+
+        ell.onEntityRemove(new EntityRemoveEvent(enderman, EntityRemoveEvent.Cause.DEATH));
+
+        assertEquals(before - 1, ibc.getEntityCount(Environment.NORMAL, EntityType.ENDERMAN));
+    }
+
     // --- EntityPortalEvent / phantom-count tests ---
 
     @Test
@@ -1017,6 +1065,7 @@ class EntityLimitListenerTest {
         when(entity.getLocation()).thenReturn(location);
         when(entity.getWorld()).thenReturn(world);
         when(entity.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(entity.isInWorld()).thenReturn(true);
         return entity;
     }
 
@@ -1026,6 +1075,7 @@ class EntityLimitListenerTest {
         when(chicken.getLocation()).thenReturn(location);
         when(chicken.getWorld()).thenReturn(world);
         when(chicken.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(chicken.isInWorld()).thenReturn(true);
         return chicken;
     }
 
@@ -1035,6 +1085,7 @@ class EntityLimitListenerTest {
         when(villager.getLocation()).thenReturn(location);
         when(villager.getWorld()).thenReturn(world);
         when(villager.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(villager.isInWorld()).thenReturn(true);
         return villager;
     }
 

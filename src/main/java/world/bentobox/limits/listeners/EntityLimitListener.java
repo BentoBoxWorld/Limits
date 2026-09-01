@@ -360,6 +360,17 @@ public class EntityLimitListener implements Listener {
             entityIslandMap.remove(entity.getUniqueId());
             return;
         }
+        // An entity whose spawn was cancelled (e.g. by onCreatureSpawn at the limit) is discarded
+        // without ever entering the world, and without this event. But if the spawning plugin then
+        // calls remove() on the discarded object, Paper fires this event anyway — it does so before
+        // checking whether the entity was already removed. That entity was never counted, so
+        // decrementing for it would drift the count below the real population and let the next
+        // spawn through the limit. isInWorld() is false for such an entity and true for one that is
+        // dying or being removed normally.
+        if (!entity.isInWorld()) {
+            entityIslandMap.remove(entity.getUniqueId());
+            return;
+        }
         World w = entity.getWorld();
         if (!addon.inGameModeWorld(w)) return;
 
