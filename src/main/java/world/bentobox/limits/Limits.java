@@ -243,7 +243,7 @@ public class Limits extends Addon {
         for (String suffix : ENV_SUFFIXES) {
             Environment env = envForSuffix(suffix);
             String base = gm.getDescription().getName().toLowerCase(Locale.ROOT) + ISLAND_PLACEHOLDER
-                    + m.toString().toLowerCase(Locale.ROOT);
+                    + placeholderKey(m);
             getPlugin().getPlaceholdersManager().registerPlaceholder(this,
                     base + suffix + "_count",
                     user -> String.valueOf(getCount(user, m, gm, env)));
@@ -271,6 +271,22 @@ public class Limits extends Addon {
                     base + suffix + "_base_limit",
                     user -> getBaseLimit(user, e, gm, env));
         }
+    }
+
+    /**
+     * Converts a block key into the segment used in placeholder names.
+     *
+     * <p>Vanilla blocks use the bare key so that {@code minecraft:spawner} becomes
+     * {@code spawner}, matching the documented {@code Limits_<gm>_island_spawner_limit}
+     * form. Custom blocks (ItemsAdder, Oraxen) keep their namespace, joined with an
+     * underscore, because a colon is not valid inside a PlaceholderAPI placeholder.
+     */
+    static String placeholderKey(NamespacedKey key) {
+        String k = key.getKey().toLowerCase(Locale.ROOT);
+        if (NamespacedKey.MINECRAFT.equals(key.getNamespace())) {
+            return k;
+        }
+        return key.getNamespace().toLowerCase(Locale.ROOT) + "_" + k;
     }
 
     /** {@code null} env means "sum/aggregate across all envs". */

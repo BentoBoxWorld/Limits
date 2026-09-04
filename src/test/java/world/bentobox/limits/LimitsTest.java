@@ -27,6 +27,7 @@ import java.util.logging.Logger;
 import java.util.List;
 
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -37,6 +38,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -50,6 +52,7 @@ import world.bentobox.bentobox.Settings;
 import world.bentobox.bentobox.api.addons.AddonDescription;
 import world.bentobox.bentobox.api.addons.GameModeAddon;
 import world.bentobox.bentobox.api.commands.CompositeCommand;
+import world.bentobox.bentobox.api.placeholders.PlaceholderReplacer;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.DatabaseSetup.DatabaseType;
 import world.bentobox.bentobox.database.objects.Island;
@@ -250,6 +253,36 @@ class LimitsTest {
         File f = new File("config.yml");
         assertTrue(f.exists());
 
+    }
+
+    /**
+     * Block placeholders must be registered under the bare material key, e.g.
+     * {@code bskyblock_island_spawner_limit}, not the namespaced form
+     * {@code bskyblock_island_minecraft:spawner_limit} (issue #298).
+     */
+    @Test
+    void testOnEnableRegistersBlockPlaceholdersWithoutNamespace() {
+        addon.onEnable();
+        ArgumentCaptor<String> names = ArgumentCaptor.forClass(String.class);
+        Mockito.verify(phm, Mockito.atLeastOnce()).registerPlaceholder(Mockito.eq(addon), names.capture(),
+                Mockito.any(PlaceholderReplacer.class));
+        List<String> registered = names.getAllValues();
+        assertTrue(registered.contains("bskyblock_island_spawner_count"), "spawner count placeholder");
+        assertTrue(registered.contains("bskyblock_island_spawner_limit"), "spawner limit placeholder");
+        assertTrue(registered.contains("bskyblock_island_spawner_base_limit"), "spawner base limit placeholder");
+        assertTrue(registered.contains("bskyblock_island_spawner_nether_limit"), "env-scoped spawner limit placeholder");
+        // Entity placeholders are unaffected
+        assertTrue(registered.contains("bskyblock_island_zombie_limit"), "zombie limit placeholder");
+        assertFalse(registered.stream().anyMatch(n -> n.contains(":")), "no placeholder name may contain a colon");
+    }
+
+    /**
+     * Test method for {@link world.bentobox.limits.Limits#placeholderKey(NamespacedKey)}.
+     */
+    @Test
+    void testPlaceholderKey() {
+        assertEquals("spawner", Limits.placeholderKey(Material.SPAWNER.getKey()));
+        assertEquals("itemsadder_ruby_block", Limits.placeholderKey(new NamespacedKey("itemsadder", "ruby_block")));
     }
 
     /**
