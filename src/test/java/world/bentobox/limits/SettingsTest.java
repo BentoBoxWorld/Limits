@@ -128,6 +128,32 @@ class SettingsTest {
     }
 
     @Test
+    void testRecountOnJoinDefaultsTrue() {
+        assertTrue(settings.isRecountOnJoin());
+    }
+
+    @Test
+    void testRecountOnJoinCooldownDefaults() {
+        assertEquals(300, settings.getRecountOnJoinCooldown());
+    }
+
+    @Test
+    void testRecountPeriodicDefaultsTrue() {
+        assertTrue(settings.isRecountPeriodic());
+    }
+
+    @Test
+    void testRecountPeriodicDefaultsWhenEnabled() {
+        config.set("recount-periodic", true);
+        config.set("recount-periodic-interval", 60);
+        config.set("recount-periodic-batch", 5);
+        Settings s = new Settings(addon);
+        assertTrue(s.isRecountPeriodic());
+        assertEquals(60, s.getRecountPeriodicInterval());
+        assertEquals(5, s.getRecountPeriodicBatch());
+    }
+
+    @Test
     void testGetGeneralEmpty() {
         // Default config.yml does not have ANIMALS or MOBS entries in entitylimits
         Map<Settings.GeneralGroup, Integer> general = settings.getGeneral();

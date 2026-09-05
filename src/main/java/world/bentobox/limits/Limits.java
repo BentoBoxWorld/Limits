@@ -2,18 +2,23 @@ package world.bentobox.limits;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
 import org.eclipse.jdt.annotation.Nullable;
 
 import world.bentobox.bentobox.api.addons.Addon;
@@ -23,6 +28,7 @@ import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.util.Util;
 import world.bentobox.limits.commands.admin.AdminCommand;
 import world.bentobox.limits.commands.player.PlayerCommand;
+import world.bentobox.limits.calculators.Pipeliner;
 import world.bentobox.limits.listeners.BlockLimitsListener;
 import world.bentobox.limits.listeners.EntityLimitListener;
 import world.bentobox.limits.listeners.JoinListener;
@@ -42,9 +48,21 @@ public class Limits extends Addon {
     private List<GameModeAddon> gameModes = new ArrayList<>();
     private BlockLimitsListener blockLimitListener;
     private JoinListener joinListener;
+    /** Shared, rate-limited background queue for island recounts. */
+    private Pipeliner pipeliner;
+    /** Per-island last recount timestamp, used to throttle automatic recounts. */
+    private final Map<String, Long> recountCooldowns = new HashMap<>();
+    /** Periodic sweep task that reconciles online islands' entity counts. */
+    private BukkitTask periodicRecountTask;
 
     @Override
     public void onDisable() {
+        if (periodicRecountTask != null) {
+            periodicRecountTask.cancel();
+        }
+        if (pipeliner != null) {
+            pipeliner.stop();
+        }
         if (blockLimitListener != null) {
             blockLimitListener.save();
         }
@@ -69,6 +87,8 @@ public class Limits extends Addon {
         registerListener(joinListener);
         EntityLimitListener entityLimitListener = new EntityLimitListener(this);
         registerListener(entityLimitListener);
+        pipeliner = new Pipeliner(this);
+        startPeriodicRecount();
         if (org.bukkit.Bukkit.getPluginManager().getPlugin("ItemsAdder") != null) {
             registerListener(new world.bentobox.limits.listeners.ItemsAdderListener(this));
             log("ItemsAdder detected: custom block limits active. Use ItemsAdder ids as blocklimits keys.");
@@ -118,6 +138,85 @@ public class Limits extends Addon {
 
     public JoinListener getJoinListener() {
         return joinListener;
+    }
+
+    /**
+     * Shared background recount queue. Processes one island at a time asynchronously, so
+     * scheduling many recounts (e.g. when many owners log in at once) never causes lag spikes.
+     */
+    public Pipeliner getPipeliner() {
+        return pipeliner;
+    }
+
+    /**
+     * Reconcile an island's stored entity counts against reality by queueing a background
+     * entity-only recount. This is the self-healing path for counts that drift away from the true
+     * value — e.g. mobs born without a tracked spawn event (sniffer eggs, etc.), or increments lost
+     * in a crash before the batched save.
+     *
+     * <p>No-op unless {@code recount-on-join} is enabled, and throttled so the same island is not
+     * recounted more often than {@code recount-on-join-cooldown} seconds.
+     *
+     * @param island the island to reconcile
+     */
+    public void maybeRecountIsland(Island island) {
+        if (!settings.isRecountOnJoin()) {
+            return;
+        }
+        enqueueEntityRecount(island);
+    }
+
+    /**
+     * Queue a throttled entity-only recount for an island. The cooldown is shared between the
+     * join-triggered and periodic sweep paths, so neither can recount the same island back-to-back.
+     */
+    private void enqueueEntityRecount(Island island) {
+        String id = island.getUniqueId();
+        long now = System.currentTimeMillis();
+        long cooldownMs = settings.getRecountOnJoinCooldown() * 1000L;
+        Long last = recountCooldowns.get(id);
+        if (last != null && now - last < cooldownMs) {
+            return;
+        }
+        recountCooldowns.put(id, now);
+        pipeliner.addIslandEntitiesOnly(island);
+    }
+
+    /**
+     * Start the periodic sweep that reconciles entity counts of online islands. It rotates through
+     * the currently online islands and, each cycle, queues the {@code recount-periodic-batch}
+     * most-stale ones — so drift that accumulates while owners stay logged in is corrected without
+     * a full block scan or a re-login.
+     */
+    private void startPeriodicRecount() {
+        if (!settings.isRecountPeriodic()) {
+            return;
+        }
+        long intervalTicks = settings.getRecountPeriodicInterval() * 20L;
+        periodicRecountTask = Bukkit.getScheduler().runTaskTimer(getPlugin(), this::sweepPeriodicRecount, intervalTicks,
+                intervalTicks);
+    }
+
+    private void sweepPeriodicRecount() {
+        int batch = settings.getRecountPeriodicBatch();
+        if (batch <= 0) {
+            return;
+        }
+        Map<String, Island> candidates = new HashMap<>();
+        for (GameModeAddon gm : gameModes) {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                for (Island island : getIslands().getIslands(gm.getOverWorld(), player.getUniqueId())) {
+                    if (island != null && !island.isDeleted() && !island.isUnowned()) {
+                        candidates.put(island.getUniqueId(), island);
+                    }
+                }
+            }
+        }
+        // Reconcile the most-stale islands first so the sweep rotates fairly over time.
+        candidates.values().stream()
+                .sorted(Comparator.comparingLong(i -> recountCooldowns.getOrDefault(i.getUniqueId(), 0L)))
+                .limit(batch)
+                .forEach(this::enqueueEntityRecount);
     }
 
     /* =========================================================================
