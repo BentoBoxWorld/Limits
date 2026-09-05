@@ -5,8 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -18,6 +22,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.jar.JarEntry;
@@ -29,6 +35,8 @@ import java.util.List;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.event.HandlerList;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.eclipse.jdt.annotation.NonNull;
@@ -40,6 +48,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -63,6 +72,9 @@ import world.bentobox.bentobox.managers.IslandWorldManager;
 import world.bentobox.bentobox.managers.IslandsManager;
 import world.bentobox.bentobox.managers.PlaceholdersManager;
 import org.mockbukkit.mockbukkit.MockBukkit;
+import org.mockbukkit.mockbukkit.entity.PlayerMock;
+
+import world.bentobox.limits.calculators.Pipeliner;
 
 /**
  * @author tastybento
@@ -226,6 +238,7 @@ class LimitsTest {
         User.clearUsers();
         Mockito.framework().clearInlineMocks();
         deleteAll(new File("database"));
+        deleteAll(new File("addons"));
     }
 
     @AfterAll
@@ -420,6 +433,269 @@ class LimitsTest {
         assertNull(addon.getJoinListener());
         addon.onEnable();
         assertNotNull(addon.getJoinListener());
+    }
+
+    /* =========================================================================
+     * Automatic entity recount: throttle and periodic sweep
+     * ========================================================================= */
+
+    private static final String ISLAND_ONE = "island-1";
+    private static final String ISLAND_TWO = "island-2";
+    private static final String RECOUNT_ON_JOIN = "recount-on-join";
+    private static final String RECOUNT_COOLDOWN = "recount-on-join-cooldown";
+    private static final String RECOUNT_PERIODIC = "recount-periodic";
+    private static final String RECOUNT_INTERVAL = "recount-periodic-interval";
+    private static final String RECOUNT_BATCH = "recount-periodic-batch";
+
+    /**
+     * Enable the addon with config overrides applied on top of the bundled config.yml.
+     * {@code saveDefaultConfig()} does not overwrite an existing file, so writing the
+     * config into the data folder first is enough for {@link Settings} to pick it up.
+     * The shared {@link Pipeliner} is replaced by a mock so tests can verify what was
+     * queued without running a real recount.
+     *
+     * @return the mocked pipeliner the addon queues recounts on
+     */
+    private Pipeliner enableWith(Map<String, Object> overrides) throws IOException {
+        YamlConfiguration cfg = YamlConfiguration.loadConfiguration(new File("src/main/resources/config.yml"));
+        overrides.forEach(cfg::set);
+        File dataFolder = addon.getDataFolder();
+        assertTrue(dataFolder.mkdirs() || dataFolder.isDirectory());
+        cfg.save(new File(dataFolder, "config.yml"));
+        try (MockedConstruction<Pipeliner> mocked = Mockito.mockConstruction(Pipeliner.class)) {
+            addon.onEnable();
+            assertEquals(1, mocked.constructed().size(), "addon must create exactly one shared pipeliner");
+            return mocked.constructed().get(0);
+        }
+    }
+
+    private Pipeliner enableWith(String key, Object value) throws IOException {
+        Map<String, Object> m = new HashMap<>();
+        m.put(key, value);
+        return enableWith(m);
+    }
+
+    /**
+     * Put a player online whose island(s) are the given ones. The join listener is
+     * unregistered first so the sweep tests exercise only the periodic path.
+     */
+    private PlayerMock online(Island... islands) {
+        HandlerList.unregisterAll(addon.getJoinListener());
+        PlayerMock p = MockBukkit.getMock().addPlayer();
+        when(im.getIslands(world, p.getUniqueId())).thenReturn(List.of(islands));
+        return p;
+    }
+
+    private Island mockIsland(String id) {
+        Island i = mock(Island.class);
+        when(i.getUniqueId()).thenReturn(id);
+        when(i.getWorld()).thenReturn(world);
+        return i;
+    }
+
+    /** Advance the scheduler by one full periodic sweep interval. */
+    private void tickOneSweep() {
+        MockBukkit.getMock().getScheduler().performTicks(addon.getSettings().getRecountPeriodicInterval() * 20L);
+    }
+
+    @Test
+    void testMaybeRecountIslandQueuesEntityOnlyRecount() throws IOException {
+        Pipeliner pipeliner = enableWith(Map.of());
+        assertSame(pipeliner, addon.getPipeliner());
+        Island one = mockIsland(ISLAND_ONE);
+
+        addon.maybeRecountIsland(one);
+
+        verify(pipeliner).addIslandEntitiesOnly(one);
+        verify(pipeliner, never()).addIsland(Mockito.any());
+    }
+
+    @Test
+    void testMaybeRecountIslandDisabledByConfig() throws IOException {
+        Pipeliner pipeliner = enableWith(RECOUNT_ON_JOIN, false);
+
+        addon.maybeRecountIsland(mockIsland(ISLAND_ONE));
+
+        verify(pipeliner, never()).addIslandEntitiesOnly(Mockito.any());
+    }
+
+    @Test
+    void testMaybeRecountIslandThrottledWithinCooldown() throws IOException {
+        Pipeliner pipeliner = enableWith(RECOUNT_COOLDOWN, 300);
+        Island one = mockIsland(ISLAND_ONE);
+
+        addon.maybeRecountIsland(one);
+        addon.maybeRecountIsland(one);
+        addon.maybeRecountIsland(one);
+
+        verify(pipeliner, times(1)).addIslandEntitiesOnly(one);
+    }
+
+    @Test
+    void testMaybeRecountIslandRecountsAgainAfterCooldown() throws IOException {
+        Pipeliner pipeliner = enableWith(RECOUNT_COOLDOWN, 0);
+        Island one = mockIsland(ISLAND_ONE);
+
+        addon.maybeRecountIsland(one);
+        addon.maybeRecountIsland(one);
+
+        verify(pipeliner, times(2)).addIslandEntitiesOnly(one);
+    }
+
+    @Test
+    void testMaybeRecountIslandCooldownIsPerIsland() throws IOException {
+        Pipeliner pipeliner = enableWith(RECOUNT_COOLDOWN, 300);
+        Island one = mockIsland(ISLAND_ONE);
+        Island two = mockIsland(ISLAND_TWO);
+
+        addon.maybeRecountIsland(one);
+        addon.maybeRecountIsland(two);
+        addon.maybeRecountIsland(one);
+        addon.maybeRecountIsland(two);
+
+        verify(pipeliner, times(1)).addIslandEntitiesOnly(one);
+        verify(pipeliner, times(1)).addIslandEntitiesOnly(two);
+    }
+
+    @Test
+    void testPeriodicSweepQueuesOnlineIslandAfterInterval() throws IOException {
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0));
+        Island one = mockIsland(ISLAND_ONE);
+        online(one);
+
+        // Nothing fires before the first interval has elapsed
+        MockBukkit.getMock().getScheduler().performTicks(19L);
+        verify(pipeliner, never()).addIslandEntitiesOnly(Mockito.any());
+
+        MockBukkit.getMock().getScheduler().performOneTick();
+        verify(pipeliner, times(1)).addIslandEntitiesOnly(one);
+
+        // ...and keeps sweeping every interval
+        tickOneSweep();
+        verify(pipeliner, times(2)).addIslandEntitiesOnly(one);
+    }
+
+    @Test
+    void testPeriodicSweepDisabledByConfig() throws IOException {
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_PERIODIC, false, RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0));
+        online(mockIsland(ISLAND_ONE));
+
+        tickOneSweep();
+        tickOneSweep();
+
+        verify(pipeliner, never()).addIslandEntitiesOnly(Mockito.any());
+    }
+
+    @Test
+    void testPeriodicSweepIgnoresOfflineIslands() throws IOException {
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0));
+        // No players online at all
+        HandlerList.unregisterAll(addon.getJoinListener());
+
+        tickOneSweep();
+
+        verify(pipeliner, never()).addIslandEntitiesOnly(Mockito.any());
+        verify(im, never()).getIslands(Mockito.any(World.class), Mockito.any(UUID.class));
+    }
+
+    @Test
+    void testPeriodicSweepHonoursBatchSize() throws IOException {
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0, RECOUNT_BATCH, 1));
+        Island one = mockIsland(ISLAND_ONE);
+        Island two = mockIsland(ISLAND_TWO);
+        online(one);
+        online(two);
+
+        tickOneSweep();
+
+        verify(pipeliner, times(1)).addIslandEntitiesOnly(Mockito.any());
+    }
+
+    @Test
+    void testPeriodicSweepBatchZeroDoesNothing() throws IOException {
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0, RECOUNT_BATCH, 0));
+        online(mockIsland(ISLAND_ONE));
+
+        tickOneSweep();
+
+        verify(pipeliner, never()).addIslandEntitiesOnly(Mockito.any());
+    }
+
+    @Test
+    void testPeriodicSweepPrefersMostStaleIsland() throws IOException {
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0, RECOUNT_BATCH, 1));
+        Island one = mockIsland(ISLAND_ONE);
+        Island two = mockIsland(ISLAND_TWO);
+        online(one);
+        online(two);
+
+        // Island one was just reconciled on join, so the sweep must pick island two first
+        addon.maybeRecountIsland(one);
+        verify(pipeliner, times(1)).addIslandEntitiesOnly(one);
+
+        tickOneSweep();
+
+        verify(pipeliner, times(1)).addIslandEntitiesOnly(two);
+        verify(pipeliner, times(1)).addIslandEntitiesOnly(one);
+
+        // Next cycle rotates back to island one, now the stalest
+        tickOneSweep();
+        verify(pipeliner, times(2)).addIslandEntitiesOnly(one);
+        verify(pipeliner, times(1)).addIslandEntitiesOnly(two);
+    }
+
+    @Test
+    void testPeriodicSweepSkipsDeletedAndUnownedIslands() throws IOException {
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0));
+        Island deleted = mockIsland("deleted");
+        when(deleted.isDeleted()).thenReturn(true);
+        Island unowned = mockIsland("unowned");
+        when(unowned.isUnowned()).thenReturn(true);
+        Island live = mockIsland(ISLAND_ONE);
+        online(deleted, unowned, live);
+
+        tickOneSweep();
+
+        verify(pipeliner, times(1)).addIslandEntitiesOnly(live);
+        verify(pipeliner, never()).addIslandEntitiesOnly(deleted);
+        verify(pipeliner, never()).addIslandEntitiesOnly(unowned);
+    }
+
+    @Test
+    void testPeriodicSweepDedupesIslandSharedByOnlinePlayers() throws IOException {
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0, RECOUNT_BATCH, 5));
+        Island shared = mockIsland(ISLAND_ONE);
+        online(shared);
+        online(shared);
+
+        tickOneSweep();
+
+        verify(pipeliner, times(1)).addIslandEntitiesOnly(shared);
+    }
+
+    @Test
+    void testPeriodicSweepSharesCooldownWithJoinRecount() throws IOException {
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 300));
+        Island one = mockIsland(ISLAND_ONE);
+        online(one);
+
+        addon.maybeRecountIsland(one);
+        tickOneSweep();
+        tickOneSweep();
+
+        verify(pipeliner, times(1)).addIslandEntitiesOnly(one);
+    }
+
+    @Test
+    void testOnDisableStopsPipelinerAndCancelsSweep() throws IOException {
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0));
+        online(mockIsland(ISLAND_ONE));
+
+        addon.onDisable();
+        tickOneSweep();
+
+        verify(pipeliner).stop();
+        verify(pipeliner, never()).addIslandEntitiesOnly(Mockito.any());
     }
 
 }
