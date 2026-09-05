@@ -109,7 +109,7 @@ public class Pipeliner {
     }
 
     /**
-     * Get the average time it takes to run a level check
+     * Get the average time it takes to run a Limits check
      * @return the average time in seconds
      */
     public int getTime() {
@@ -117,7 +117,7 @@ public class Pipeliner {
     }
 
     /**
-     * Submit how long a level check took
+     * Submit how long a Limits check took
      * @param time the time to set
      */
     public void setTime(long time) {
@@ -129,7 +129,7 @@ public class Pipeliner {
      * Stop the current queue.
      */
     public void stop() {
-        addon.log("Stopping Level queue");
+        addon.log("Stopping Limits queue");
         task.cancel();
         this.inProcessQueue.clear();
         this.toProcessQueue.clear();
