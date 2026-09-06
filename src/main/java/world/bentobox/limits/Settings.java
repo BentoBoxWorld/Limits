@@ -63,6 +63,7 @@ public class Settings {
     private final boolean recountPeriodic;
     private final int recountPeriodicInterval;
     private final int recountPeriodicBatch;
+    private final int recountMaxChunks;
     private static final List<EntityType> DISALLOWED = Arrays.asList(
             EntityType.TNT,
             EntityType.EVOKER_FANGS,
@@ -115,15 +116,17 @@ public class Settings {
         // Apply team members' limit permissions, not just the owner's
         applyMemberLimitPerms = addon.getConfig().getBoolean("apply-member-limit-perms", false);
         // Reconcile an island's stored counts with a background recount when its owner logs in
-        recountOnJoin = addon.getConfig().getBoolean("recount-on-join", true);
+        recountOnJoin = addon.getConfig().getBoolean("recount-on-join", false);
         // Minimum seconds between automatic join-triggered recounts of the same island
         recountOnJoinCooldown = addon.getConfig().getInt("recount-on-join-cooldown", 300);
         // Periodically sweep online islands for entity-count drift, even while owners stay logged in
-        recountPeriodic = addon.getConfig().getBoolean("recount-periodic", true);
+        recountPeriodic = addon.getConfig().getBoolean("recount-periodic", false);
         // Seconds between periodic sweep cycles
         recountPeriodicInterval = addon.getConfig().getInt("recount-periodic-interval", 300);
         // Islands to reconcile per sweep cycle
         recountPeriodicBatch = addon.getConfig().getInt("recount-periodic-batch", 2);
+        // Never recount islands automatically whose protection area exceeds this many chunks per world
+        recountMaxChunks = addon.getConfig().getInt("recount-max-chunks", 1000);
 
         addon.log("Entity limits:");
         envLimits.forEach((env, m) -> m.entrySet().stream()
@@ -403,6 +406,13 @@ public class Settings {
      */
     public int getRecountPeriodicBatch() {
         return recountPeriodicBatch;
+    }
+
+    /**
+     * @return islands covering more chunks per world than this are never recounted automatically
+     */
+    public int getRecountMaxChunks() {
+        return recountMaxChunks;
     }
 
     /**

@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -446,6 +448,7 @@ class LimitsTest {
     private static final String RECOUNT_PERIODIC = "recount-periodic";
     private static final String RECOUNT_INTERVAL = "recount-periodic-interval";
     private static final String RECOUNT_BATCH = "recount-periodic-batch";
+    private static final String RECOUNT_MAX_CHUNKS = "recount-max-chunks";
 
     /**
      * Enable the addon with config overrides applied on top of the bundled config.yml.
@@ -500,7 +503,7 @@ class LimitsTest {
 
     @Test
     void testMaybeRecountIslandQueuesEntityOnlyRecount() throws IOException {
-        Pipeliner pipeliner = enableWith(Map.of());
+        Pipeliner pipeliner = enableWith(RECOUNT_ON_JOIN, true);
         assertSame(pipeliner, addon.getPipeliner());
         Island one = mockIsland(ISLAND_ONE);
 
@@ -521,7 +524,7 @@ class LimitsTest {
 
     @Test
     void testMaybeRecountIslandThrottledWithinCooldown() throws IOException {
-        Pipeliner pipeliner = enableWith(RECOUNT_COOLDOWN, 300);
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_ON_JOIN, true, RECOUNT_COOLDOWN, 300));
         Island one = mockIsland(ISLAND_ONE);
 
         addon.maybeRecountIsland(one);
@@ -533,7 +536,7 @@ class LimitsTest {
 
     @Test
     void testMaybeRecountIslandRecountsAgainAfterCooldown() throws IOException {
-        Pipeliner pipeliner = enableWith(RECOUNT_COOLDOWN, 0);
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_ON_JOIN, true, RECOUNT_COOLDOWN, 0));
         Island one = mockIsland(ISLAND_ONE);
 
         addon.maybeRecountIsland(one);
@@ -544,7 +547,7 @@ class LimitsTest {
 
     @Test
     void testMaybeRecountIslandCooldownIsPerIsland() throws IOException {
-        Pipeliner pipeliner = enableWith(RECOUNT_COOLDOWN, 300);
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_ON_JOIN, true, RECOUNT_COOLDOWN, 300));
         Island one = mockIsland(ISLAND_ONE);
         Island two = mockIsland(ISLAND_TWO);
 
@@ -559,7 +562,7 @@ class LimitsTest {
 
     @Test
     void testPeriodicSweepQueuesOnlineIslandAfterInterval() throws IOException {
-        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0));
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_PERIODIC, true, RECOUNT_ON_JOIN, true, RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0));
         Island one = mockIsland(ISLAND_ONE);
         online(one);
 
@@ -588,7 +591,7 @@ class LimitsTest {
 
     @Test
     void testPeriodicSweepIgnoresOfflineIslands() throws IOException {
-        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0));
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_PERIODIC, true, RECOUNT_ON_JOIN, true, RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0));
         // No players online at all
         HandlerList.unregisterAll(addon.getJoinListener());
 
@@ -600,7 +603,7 @@ class LimitsTest {
 
     @Test
     void testPeriodicSweepHonoursBatchSize() throws IOException {
-        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0, RECOUNT_BATCH, 1));
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_PERIODIC, true, RECOUNT_ON_JOIN, true, RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0, RECOUNT_BATCH, 1));
         Island one = mockIsland(ISLAND_ONE);
         Island two = mockIsland(ISLAND_TWO);
         online(one);
@@ -613,7 +616,7 @@ class LimitsTest {
 
     @Test
     void testPeriodicSweepBatchZeroDoesNothing() throws IOException {
-        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0, RECOUNT_BATCH, 0));
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_PERIODIC, true, RECOUNT_ON_JOIN, true, RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0, RECOUNT_BATCH, 0));
         online(mockIsland(ISLAND_ONE));
 
         tickOneSweep();
@@ -623,7 +626,7 @@ class LimitsTest {
 
     @Test
     void testPeriodicSweepPrefersMostStaleIsland() throws IOException {
-        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0, RECOUNT_BATCH, 1));
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_PERIODIC, true, RECOUNT_ON_JOIN, true, RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0, RECOUNT_BATCH, 1));
         Island one = mockIsland(ISLAND_ONE);
         Island two = mockIsland(ISLAND_TWO);
         online(one);
@@ -646,7 +649,7 @@ class LimitsTest {
 
     @Test
     void testPeriodicSweepSkipsDeletedAndUnownedIslands() throws IOException {
-        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0));
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_PERIODIC, true, RECOUNT_ON_JOIN, true, RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0));
         Island deleted = mockIsland("deleted");
         when(deleted.isDeleted()).thenReturn(true);
         Island unowned = mockIsland("unowned");
@@ -663,7 +666,7 @@ class LimitsTest {
 
     @Test
     void testPeriodicSweepDedupesIslandSharedByOnlinePlayers() throws IOException {
-        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0, RECOUNT_BATCH, 5));
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_PERIODIC, true, RECOUNT_ON_JOIN, true, RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0, RECOUNT_BATCH, 5));
         Island shared = mockIsland(ISLAND_ONE);
         online(shared);
         online(shared);
@@ -675,7 +678,7 @@ class LimitsTest {
 
     @Test
     void testPeriodicSweepSharesCooldownWithJoinRecount() throws IOException {
-        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 300));
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_PERIODIC, true, RECOUNT_ON_JOIN, true, RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 300));
         Island one = mockIsland(ISLAND_ONE);
         online(one);
 
@@ -688,7 +691,7 @@ class LimitsTest {
 
     @Test
     void testOnDisableStopsPipelinerAndCancelsSweep() throws IOException {
-        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0));
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_PERIODIC, true, RECOUNT_ON_JOIN, true, RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0));
         online(mockIsland(ISLAND_ONE));
 
         addon.onDisable();
@@ -698,4 +701,41 @@ class LimitsTest {
         verify(pipeliner, never()).addIslandEntitiesOnly(Mockito.any());
     }
 
+    @Test
+    void testMaybeRecountIslandSkipsOversizedIslandAndWarnsOnce() throws IOException {
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_ON_JOIN, true, RECOUNT_COOLDOWN, 0));
+        Island big = mockIsland(ISLAND_ONE);
+        when(big.getProtectionRange()).thenReturn(500); // 4,096 chunks per world
+
+        addon.maybeRecountIsland(big);
+        addon.maybeRecountIsland(big);
+
+        verify(pipeliner, never()).addIslandEntitiesOnly(any());
+        verify(plugin, times(1)).logWarning(contains("recount-max-chunks"));
+    }
+
+    @Test
+    void testMaybeRecountIslandMaxChunksIsConfigurable() throws IOException {
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_ON_JOIN, true, RECOUNT_MAX_CHUNKS, 5000));
+        Island big = mockIsland(ISLAND_ONE);
+        when(big.getProtectionRange()).thenReturn(500);
+
+        addon.maybeRecountIsland(big);
+
+        verify(pipeliner).addIslandEntitiesOnly(big);
+    }
+
+    @Test
+    void testPeriodicSweepSkipsOversizedIslands() throws IOException {
+        Pipeliner pipeliner = enableWith(Map.of(RECOUNT_PERIODIC, true, RECOUNT_INTERVAL, 1, RECOUNT_COOLDOWN, 0));
+        Island big = mockIsland(ISLAND_ONE);
+        when(big.getProtectionRange()).thenReturn(500);
+        Island small = mockIsland(ISLAND_TWO);
+        online(big, small);
+
+        tickOneSweep();
+
+        verify(pipeliner).addIslandEntitiesOnly(small);
+        verify(pipeliner, never()).addIslandEntitiesOnly(big);
+    }
 }

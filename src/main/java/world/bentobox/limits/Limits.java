@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -29,6 +30,7 @@ import world.bentobox.bentobox.util.Util;
 import world.bentobox.limits.commands.admin.AdminCommand;
 import world.bentobox.limits.commands.player.PlayerCommand;
 import world.bentobox.limits.calculators.Pipeliner;
+import world.bentobox.limits.calculators.RecountCalculator;
 import world.bentobox.limits.listeners.BlockLimitsListener;
 import world.bentobox.limits.listeners.EntityLimitListener;
 import world.bentobox.limits.listeners.JoinListener;
@@ -54,6 +56,8 @@ public class Limits extends Addon {
     private final Map<String, Long> recountCooldowns = new HashMap<>();
     /** Periodic sweep task that reconciles online islands' entity counts. */
     private BukkitTask periodicRecountTask;
+    /** Islands already reported as too large for automatic recounts, so the warning is logged once. */
+    private final Set<String> recountTooLarge = new HashSet<>();
 
     @Override
     public void onDisable() {
@@ -172,6 +176,14 @@ public class Limits extends Addon {
      */
     private void enqueueEntityRecount(Island island) {
         String id = island.getUniqueId();
+        int chunks = RecountCalculator.chunksPerWorld(island);
+        if (chunks > settings.getRecountMaxChunks()) {
+            if (recountTooLarge.add(id)) {
+                logWarning("Skipping automatic entity recount of island " + id + ": " + chunks
+                        + " chunks per world exceeds recount-max-chunks (" + settings.getRecountMaxChunks() + ")");
+            }
+            return;
+        }
         long now = System.currentTimeMillis();
         long cooldownMs = settings.getRecountOnJoinCooldown() * 1000L;
         Long last = recountCooldowns.get(id);

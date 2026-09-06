@@ -25,25 +25,35 @@ ignore-center-block: true
 cooldown: 120
 
 # Reconcile an island's stored entity counts with a background recount when its owner logs in.
-# Fixes counts that drift below/above reality (e.g. mobs born without a tracked spawn event
-# such as sniffer eggs, or increments lost in a crash before the batched save). This runs as a
-# cheap entity-only recount (block counts are left untouched), and islands are processed one at
-# a time in the background, so enabling this on a high-population server does not cause lag
-# spikes. A full block+entity recount is still available manually via /<gamemode> limits recount
-# (and the admin /<gamemode> calc command).
-recount-on-join: true
-# Minimum seconds between automatic join-triggered recounts of the same island.
+# Fixes counts that drift away from reality (e.g. mobs born without a tracked spawn event such
+# as sniffer eggs, or increments lost in a crash before the batched save).
+#
+# Off by default. A recount loads every chunk of the island's protection area in the overworld,
+# nether and end (where the game mode has nether/end islands), so it costs disk IO and chunk
+# loading in proportion to the square of the protection range: 64 chunks per world at the
+# default range of 50, but 2,601 at range 400. Islands are recounted one at a time in the
+# background and only the entity counts are rewritten; block counts are left untouched.
+#
+# The recount only sees entities in chunks that are still loaded when it finishes, so it is
+# accurate when the owner is on the island and the island fits within view distance. Counts are
+# replaced, not merged: a recount that sees fewer entities than the event tracking counted
+# lowers the count.
+recount-on-join: false
+# Minimum seconds between automatic recounts of the same island (shared with the periodic sweep).
 recount-on-join-cooldown: 300
 
 # Periodically sweep online islands to reconcile their entity counts, even while owners stay
-# logged in. Complements the join-triggered recount above by correcting drift (e.g. from mob
-# portals or egg hatches) that accumulates during long sessions. Uses the same cheap entity-only
-# recount and shares the recount-on-join-cooldown throttle.
-recount-periodic: true
+# logged in. Off by default; same cost and caveats as recount-on-join.
+recount-periodic: false
 # Seconds between periodic sweep cycles.
 recount-periodic-interval: 300
 # Islands to reconcile per sweep cycle. Keep small on high-population servers.
 recount-periodic-batch: 2
+
+# Islands whose protection area covers more than this many chunks per world are never recounted
+# automatically; a warning is logged once per island. 1000 chunks is a protection range of about
+# 240. Manual recounts via the recount and calc commands are not affected.
+recount-max-chunks: 1000
 
 # Log limits on join (to console). Off by default - enable only for debugging as it
 # can be noisy in console logs for servers with many permission-based limits.

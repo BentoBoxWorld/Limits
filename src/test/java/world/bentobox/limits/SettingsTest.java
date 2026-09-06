@@ -128,8 +128,8 @@ class SettingsTest {
     }
 
     @Test
-    void testRecountOnJoinDefaultsTrue() {
-        assertTrue(settings.isRecountOnJoin());
+    void testRecountOnJoinDefaultsFalse() {
+        assertFalse(settings.isRecountOnJoin());
     }
 
     @Test
@@ -138,8 +138,15 @@ class SettingsTest {
     }
 
     @Test
-    void testRecountPeriodicDefaultsTrue() {
-        assertTrue(settings.isRecountPeriodic());
+    void testRecountPeriodicDefaultsFalse() {
+        assertFalse(settings.isRecountPeriodic());
+    }
+
+    @Test
+    void testRecountMaxChunksDefaultsAndOverride() {
+        assertEquals(1000, settings.getRecountMaxChunks());
+        config.set("recount-max-chunks", 250);
+        assertEquals(250, new Settings(addon).getRecountMaxChunks());
     }
 
     @Test
