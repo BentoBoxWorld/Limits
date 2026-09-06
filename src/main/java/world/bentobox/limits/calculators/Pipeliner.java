@@ -93,17 +93,33 @@ public class Pipeliner {
      * @return CompletableFuture of the results. Results will be null if the island is already in the queue
      */
     public CompletableFuture<Results> addIsland(Island island) {
+        return addIsland(island, false);
+    }
+
+    /**
+     * Queues a cheap entity-only recount: chunks are loaded so entities materialise, but the
+     * per-block scan is skipped. Used for the self-healing join-triggered reconciliation on
+     * high-population servers, where a full block scan on every login would be wasteful.
+     *
+     * @param island the island to reconcile entity counts for
+     * @return CompletableFuture of the results, or an IN_PROGRESS result if already queued
+     */
+    public CompletableFuture<Results> addIslandEntitiesOnly(Island island) {
+        return addIsland(island, true);
+    }
+
+    private CompletableFuture<Results> addIsland(Island island, boolean entitiesOnly) {
         // Check if queue already contains island
         if (inProcessQueue.keySet().parallelStream().map(RecountCalculator::getIsland).anyMatch(island::equals)
                 || toProcessQueue.parallelStream().map(RecountCalculator::getIsland).anyMatch(island::equals)) {
             return CompletableFuture.completedFuture(new Results(Result.IN_PROGRESS));
         }
-        return addToQueue(island);
+        return addToQueue(island, entitiesOnly);
     }
 
-    private CompletableFuture<Results> addToQueue(Island island) {
+    private CompletableFuture<Results> addToQueue(Island island, boolean entitiesOnly) {
         CompletableFuture<Results> r = new CompletableFuture<>();
-        toProcessQueue.add(new RecountCalculator(addon, island, r));
+        toProcessQueue.add(new RecountCalculator(addon, island, r, entitiesOnly));
         count++;
         return r;
     }

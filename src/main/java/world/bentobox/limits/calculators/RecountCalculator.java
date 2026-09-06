@@ -23,6 +23,7 @@ import org.bukkit.World.Environment;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Slab;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.Hanging;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Vehicle;
@@ -58,12 +59,21 @@ public class RecountCalculator {
     private final Results results;
     private final Map<Environment, World> worlds = new EnumMap<>(Environment.class);
     private final List<Location> stackedBlocks = new ArrayList<>();
+    /** Every chunk this recount loaded, so the finish step can wait for their entities to arrive. */
+    private final List<Chunk> loadedChunks = new ArrayList<>();
     private BukkitTask finishTask;
     private final BlockLimitsListener bll;
     private final World world;
+    /** When true, chunks are loaded but the per-block scan is skipped; only entity counts are rebuilt. */
+    private final boolean entitiesOnly;
     private IslandBlockCount ibc;
 
     public RecountCalculator(Limits addon, Island island, CompletableFuture<Results> r) {
+        this(addon, island, r, false);
+    }
+
+    public RecountCalculator(Limits addon, Island island, CompletableFuture<Results> r, boolean entitiesOnly) {
+        this.entitiesOnly = entitiesOnly;
         this.addon = addon;
         this.bll = addon.getBlockLimitListener();
         this.island = island;
@@ -95,6 +105,15 @@ public class RecountCalculator {
                 || addon.getSettings().isInBlockGroup(md)) {
             results.getBlockCount(env).add(md);
         }
+    }
+
+    /**
+     * @param island island
+     * @return the number of chunk coordinates a recount of this island loads in each world
+     */
+    public static int chunksPerWorld(Island island) {
+        int perAxis = (island.getProtectionRange() * 2 + 16 + 15) / 16;
+        return perAxis * perAxis;
     }
 
     private Queue<Pair<Integer, Integer>> getChunksToScan(Island island) {
@@ -210,7 +229,20 @@ public class RecountCalculator {
         CompletableFuture<List<Chunk>> netherFuture = getWorldChunk(Environment.NETHER, netherPairList);
         CompletableFuture<List<Chunk>> normalFuture = getWorldChunk(Environment.NORMAL, pairList);
 
-        return CompletableFuture.allOf(endFuture, netherFuture, normalFuture)
+        CompletableFuture<Void> loaded = CompletableFuture.allOf(endFuture, netherFuture, normalFuture)
+                .thenRun(() -> {
+                    loadedChunks.addAll(endFuture.join());
+                    loadedChunks.addAll(netherFuture.join());
+                    loadedChunks.addAll(normalFuture.join());
+                });
+
+        // Entity-only recount: chunks are still loaded so entities materialise for scanEntities(),
+        // but the expensive per-block scan is skipped.
+        if (entitiesOnly) {
+            return loaded.thenApply(v -> !chunksToCheck.isEmpty());
+        }
+
+        return loaded
                 .thenCompose(v -> scanChunk(Environment.THE_END, endFuture.join())
                         .thenCompose(b -> scanChunk(Environment.NETHER, netherFuture.join()))
                         .thenCompose(b2 -> scanChunk(Environment.NORMAL, normalFuture.join()))
@@ -222,6 +254,8 @@ public class RecountCalculator {
             Environment env = e.getKey();
             World w = e.getValue();
             for (Entity entity : w.getEntities()) {
+                // Players are living entities but are never limit-tracked
+                if (entity instanceof Player) continue;
                 if (!island.inIslandSpace(entity.getLocation())) continue;
                 if (entity instanceof LivingEntity || entity instanceof Hanging
                         || entity instanceof Vehicle
@@ -234,24 +268,26 @@ public class RecountCalculator {
 
     public void tidyUp() {
         ibc = bll.getIsland(island);
-        // Custom-namespace counts (ItemsAdder/Oraxen blocks) are event-tracked and
-        // invisible to the chunk scan, so carry them across the reset untouched.
-        Map<Environment, Map<NamespacedKey, Integer>> customCounts = new EnumMap<>(Environment.class);
-        for (Environment env : List.of(Environment.NORMAL, Environment.NETHER, Environment.THE_END)) {
-            ibc.getBlockCounts(env).forEach((key, count) -> {
-                if (!NamespacedKey.MINECRAFT.equals(key.getNamespace())) {
-                    customCounts.computeIfAbsent(env, e -> new java.util.HashMap<>()).put(key, count);
-                }
-            });
-        }
-        // Reset and write per-env block counts
-        ibc.clearAllBlockCounts();
-        results.getEnvBlockCount().forEach((env, multiset) -> multiset.forEach(key -> ibc.add(env, key)));
-        customCounts.forEach((env, m) -> m.forEach((key, count) -> {
-            for (int i = 0; i < count; i++) {
-                ibc.add(env, key);
+        if (!entitiesOnly) {
+            // Custom-namespace counts (ItemsAdder/Oraxen blocks) are event-tracked and
+            // invisible to the chunk scan, so carry them across the reset untouched.
+            Map<Environment, Map<NamespacedKey, Integer>> customCounts = new EnumMap<>(Environment.class);
+            for (Environment env : List.of(Environment.NORMAL, Environment.NETHER, Environment.THE_END)) {
+                ibc.getBlockCounts(env).forEach((key, count) -> {
+                    if (!NamespacedKey.MINECRAFT.equals(key.getNamespace())) {
+                        customCounts.computeIfAbsent(env, e -> new java.util.HashMap<>()).put(key, count);
+                    }
+                });
             }
-        }));
+            // Reset and write per-env block counts
+            ibc.clearAllBlockCounts();
+            results.getEnvBlockCount().forEach((env, multiset) -> multiset.forEach(key -> ibc.add(env, key)));
+            customCounts.forEach((env, m) -> m.forEach((key, count) -> {
+                for (int i = 0; i < count; i++) {
+                    ibc.add(env, key);
+                }
+            }));
+        }
 
         // Recount entities (loaded only) and write per-env
         scanEntities();
@@ -263,6 +299,17 @@ public class RecountCalculator {
                     }
                 }));
         bll.setIsland(island.getUniqueId(), ibc);
+        loadedChunks.clear();
+    }
+
+    /**
+     * Paper loads a chunk's entities separately from, and slightly after, the chunk itself.
+     * Counting before they arrive would under-count, so the finish step waits for this.
+     *
+     * @return true once every chunk this recount loaded has its entities loaded, or has since unloaded
+     */
+    boolean entitiesLoaded() {
+        return loadedChunks.stream().allMatch(c -> !c.isLoaded() || c.isEntitiesLoaded());
     }
 
     public void scanIsland(LongSupplier startTime, Runnable onRemove, BooleanSupplier isCancelled, Runnable recurse) {
@@ -284,7 +331,8 @@ public class RecountCalculator {
                 handleStackedBlocks();
                 long checkTime = System.currentTimeMillis();
                 finishTask = Bukkit.getScheduler().runTaskTimer(addon.getPlugin(), () -> {
-                    if ((stackedBlocks.isEmpty()) || System.currentTimeMillis() - checkTime > MAX_AMOUNT) {
+                    if ((stackedBlocks.isEmpty() && entitiesLoaded())
+                            || System.currentTimeMillis() - checkTime > MAX_AMOUNT) {
                         this.tidyUp();
                         this.getR().complete(getResults());
                         finishTask.cancel();
