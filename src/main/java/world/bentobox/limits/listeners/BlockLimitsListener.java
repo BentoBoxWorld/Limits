@@ -3,10 +3,12 @@ package world.bentobox.limits.listeners;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -340,7 +342,7 @@ public class BlockLimitsListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(BlockExplodeEvent e) {
-        e.blockList().forEach(b -> process(b, false));
+        processExplosion(e.blockList());
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
@@ -395,7 +397,7 @@ public class BlockLimitsListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlock(EntityExplodeEvent e) {
-        e.blockList().forEach(b -> process(b, false));
+        processExplosion(e.blockList());
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
@@ -435,6 +437,38 @@ public class BlockLimitsListener implements Listener {
      */
     public static NamespacedKey canonicalKey(Material m) {
         return VARIANT_MAP.getOrDefault(m, m).getKey();
+    }
+
+    /**
+     * @return true if the material is the head of an extended piston or a piston mid-move.
+     * These normalise to the base piston's material in {@link #fixMaterial(BlockData)} but never
+     * represent a piston of their own: the base block always exists alongside them.
+     */
+    public static boolean isPistonPart(Material m) {
+        return m == Material.PISTON_HEAD || m == Material.MOVING_PISTON;
+    }
+
+    /**
+     * Decrement every exploded block, counting an extended piston only once when both its
+     * base and head are in the list. A head listed without its base still decrements, because
+     * vanilla destroys the base along with the head without firing another event.
+     */
+    private void processExplosion(List<Block> blocks) {
+        Set<Block> exploded = new HashSet<>(blocks);
+        for (Block b : blocks) {
+            BlockData data = b.getBlockData();
+            if (isPistonPart(data.getMaterial())) {
+                if (data.getMaterial() == Material.MOVING_PISTON) {
+                    // Either a piston head in transit (its base decrements) or a pushed block
+                    continue;
+                }
+                Block base = b.getRelative(((TechnicalPiston) data).getFacing().getOppositeFace());
+                if (exploded.contains(base)) {
+                    continue;
+                }
+            }
+            process(b, false);
+        }
     }
 
     /**
