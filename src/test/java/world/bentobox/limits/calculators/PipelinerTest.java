@@ -93,6 +93,39 @@ class PipelinerTest {
     }
 
     @Test
+    void testAddIslandEntitiesOnlyReturnsCompletableFuture() {
+        when(island.isDeleted()).thenReturn(false);
+        when(island.isUnowned()).thenReturn(false);
+
+        try (MockedConstruction<RecountCalculator> mockedCalc = Mockito.mockConstruction(RecountCalculator.class,
+                (mock, context) -> {
+                    when(mock.getIsland()).thenReturn(island);
+                })) {
+            CompletableFuture<Results> future = pipeliner.addIslandEntitiesOnly(island);
+            assertNotNull(future);
+            assertFalse(future.isDone());
+        }
+    }
+
+    @Test
+    void testAddIslandEntitiesOnlyDuplicatesFullRecount() throws ExecutionException, InterruptedException {
+        // A full recount already fixes entity counts, so an entity-only request for the same
+        // island must dedupe to IN_PROGRESS rather than queueing a second scan.
+        when(island.isDeleted()).thenReturn(false);
+        when(island.isUnowned()).thenReturn(false);
+
+        try (MockedConstruction<RecountCalculator> mockedCalc = Mockito.mockConstruction(RecountCalculator.class,
+                (mock, context) -> {
+                    when(mock.getIsland()).thenReturn(island);
+                })) {
+            pipeliner.addIsland(island);
+            CompletableFuture<Results> second = pipeliner.addIslandEntitiesOnly(island);
+            assertTrue(second.isDone());
+            assertEquals(Result.IN_PROGRESS, second.get().getState());
+        }
+    }
+
+    @Test
     void testGetTimeReturnsStartDurationWhenNoCounts() {
         assertEquals(10, pipeliner.getTime());
     }

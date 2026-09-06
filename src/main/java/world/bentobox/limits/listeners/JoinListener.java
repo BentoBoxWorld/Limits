@@ -294,6 +294,8 @@ public class JoinListener implements Listener {
             checkPerms(player, permissionPrefix, islandId, gameModeName);
             // ...then merges in the perms of any online team members
             mergeOnlineMemberPerms(island, permissionPrefix, gameModeName);
+            // ...and reconciles the stored counts with a background recount (self-healing drift)
+            addon.maybeRecountIsland(island);
         } else {
             // Member login merges their perms on top of whatever is set — highest wins
             mergePerms(player, permissionPrefix, islandId, gameModeName);

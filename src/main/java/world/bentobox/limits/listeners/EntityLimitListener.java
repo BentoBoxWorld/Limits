@@ -405,13 +405,20 @@ public class EntityLimitListener implements Listener {
         // dimension changes (RemovalReason.CHANGED_DIMENSION carries a null Bukkit cause),
         // so the source-world removal never reaches onEntityRemove.
 
-        // Decrement at source if on a tracked island
+        // Decrement at source if on a tracked island. Prefer the cached island mapping (where the
+        // entity was actually counted) over the current location — the entity may have wandered
+        // off its island or be standing in a portal outside the protection range, in which case
+        // getIslandAt would miss and the count would drift.
         if (addon.inGameModeWorld(fromWorld)) {
-            entityIslandMap.remove(entity.getUniqueId());
-            addon.getIslands().getIslandAt(entity.getLocation())
-                    .filter(island -> !island.isSpawn())
-                    .ifPresent(island -> addon.getBlockLimitListener().decrementEntity(island.getUniqueId(), fromEnv,
-                            entity.getType()));
+            String islandId = entityIslandMap.remove(entity.getUniqueId());
+            if (islandId != null) {
+                addon.getBlockLimitListener().decrementEntity(islandId, fromEnv, entity.getType());
+            } else {
+                addon.getIslands().getIslandAt(entity.getLocation())
+                        .filter(island -> !island.isSpawn())
+                        .ifPresent(island -> addon.getBlockLimitListener().decrementEntity(island.getUniqueId(),
+                                fromEnv, entity.getType()));
+            }
         }
         // Increment at destination if on a tracked island
         if (addon.inGameModeWorld(toWorld)) {

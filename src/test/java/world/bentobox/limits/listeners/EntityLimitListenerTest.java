@@ -1041,6 +1041,28 @@ class EntityLimitListenerTest {
         assertEquals(0, ibc.getEntityCount(Environment.NETHER, EntityType.CHICKEN));
     }
 
+    @Test
+    void testEntityPortalDecrementsMappedIslandWhenOffIsland() throws Exception {
+        // An entity wanders off its island (or stands in a portal outside the protection range),
+        // so getIslandAt no longer resolves the island it was counted on. The cached mapping must
+        // still drive the source decrement, otherwise the count drifts.
+        Location netherLoc = mockNetherLocation();
+        LivingEntity chicken = mockEntity(EntityType.CHICKEN, location);
+        entityIslandMap().put(chicken.getUniqueId(), "test-island-id");
+        ibc.incrementEntity(Environment.NORMAL, EntityType.CHICKEN);
+
+        Location offIsland = mock(Location.class);
+        when(offIsland.getWorld()).thenReturn(world);
+        when(islandsManager.getIslandAt(offIsland)).thenReturn(Optional.empty());
+        when(chicken.getLocation()).thenReturn(offIsland);
+
+        ell.onEntityPortal(new EntityPortalEvent(chicken, offIsland, netherLoc));
+
+        assertEquals(0, ibc.getEntityCount(Environment.NORMAL, EntityType.CHICKEN));
+        assertEquals(1, ibc.getEntityCount(Environment.NETHER, EntityType.CHICKEN));
+        assertEquals("test-island-id", entityIslandMap().get(chicken.getUniqueId()));
+    }
+
     private Location mockNetherLocation() {
         World nether = mock(World.class);
         when(nether.getEnvironment()).thenReturn(Environment.NETHER);

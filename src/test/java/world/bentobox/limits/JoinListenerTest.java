@@ -243,6 +243,28 @@ class JoinListenerTest {
     }
 
     /**
+     * Owner login must schedule a background recount so counts that drifted low (e.g. sniffer
+     * eggs hatched without a tracked spawn event) self-heal.
+     */
+    @Test
+    void testOnPlayerJoinOwnerTriggersRecount() {
+        jl.onPlayerJoin(new PlayerJoinEvent(player, Component.text("welcome")));
+        verify(addon).maybeRecountIsland(island);
+    }
+
+    /**
+     * A team member's login must not trigger an island recount.
+     */
+    @Test
+    void testOnPlayerJoinMemberDoesNotTriggerRecount() {
+        when(island.getOwner()).thenReturn(UUID.randomUUID());
+        when(island.getMemberSet()).thenReturn(ImmutableSet.of(uuid));
+        when(settings.isApplyMemberLimitPerms()).thenReturn(true);
+        jl.onPlayerJoin(new PlayerJoinEvent(player, Component.text("welcome")));
+        verify(addon, never()).maybeRecountIsland(any());
+    }
+
+    /**
      * Test method for
      * {@link world.bentobox.limits.listeners.JoinListener#onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent)}.
      */
