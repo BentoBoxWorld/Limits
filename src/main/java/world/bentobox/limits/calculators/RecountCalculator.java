@@ -192,8 +192,12 @@ public class RecountCalculator {
                 checkBlock(env, blockData);
             }
             NamespacedKey key = bll.fixMaterial(blockData);
+            // An extended piston occupies two blocks (base + head) and a piston mid-move is a
+            // MOVING_PISTON; both normalise to the base's material, so only the base is counted.
+            // Blocks being pushed are also MOVING_PISTON and must not be counted as pistons.
             // Stacked-plants-as-one: segments sitting on the same plant are not counted
-            if (!(stackedAsOne && BlockLimitsListener.STACKABLE.contains(key) && key.equals(below))) {
+            if (!BlockLimitsListener.isPistonPart(blockData.getMaterial())
+                    && !(stackedAsOne && BlockLimitsListener.STACKABLE.contains(key) && key.equals(below))) {
                 checkBlock(env, blockData);
             }
             below = key;

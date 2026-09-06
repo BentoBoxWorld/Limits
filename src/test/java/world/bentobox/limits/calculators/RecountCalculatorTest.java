@@ -14,12 +14,18 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.Chunk;
+import org.bukkit.ChunkSnapshot;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.type.TechnicalPiston;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
@@ -39,6 +45,7 @@ import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.bentobox.managers.IslandWorldManager;
 import world.bentobox.limits.Limits;
+import world.bentobox.limits.Settings;
 import world.bentobox.limits.listeners.BlockLimitsListener;
 import world.bentobox.limits.objects.IslandBlockCount;
 
@@ -216,5 +223,66 @@ class RecountCalculatorTest {
         calc.tidyUp();
 
         assertEquals(1, ibc.getBlockCount(Environment.NORMAL, org.bukkit.Material.HOPPER.getKey()));
+    }
+    private BlockData blockData(Material m) {
+        BlockData d = m == Material.PISTON_HEAD || m == Material.MOVING_PISTON ? mock(TechnicalPiston.class)
+                : mock(BlockData.class);
+        when(d.getMaterial()).thenReturn(m);
+        return d;
+    }
+
+    /**
+     * A recount sees an extended piston as two blocks (PISTON base + PISTON_HEAD) and a
+     * piston mid-move or a pushed block as MOVING_PISTON. All of these normalise to the
+     * base material, so only the base itself may be counted.
+     */
+    @Test
+    void testScanCountsExtendedPistonOnce() {
+        Settings settings = mock(Settings.class);
+        when(addon.getSettings()).thenReturn(settings);
+        when(bll.getMaterialLimits(world, ISLAND_ID)).thenReturn(Map.of(Material.PISTON.getKey(), 30));
+        when(bll.fixMaterial(any(BlockData.class))).thenAnswer(inv -> {
+            Material m = ((BlockData) inv.getArgument(0)).getMaterial();
+            return BlockLimitsListener.isPistonPart(m) ? Material.PISTON.getKey() : m.getKey();
+        });
+
+        BlockData air = blockData(Material.AIR);
+        BlockData base1 = blockData(Material.PISTON);
+        BlockData head = blockData(Material.PISTON_HEAD);
+        BlockData base2 = blockData(Material.PISTON);
+        BlockData movingHead = blockData(Material.MOVING_PISTON);
+        BlockData pushed = blockData(Material.MOVING_PISTON);
+        ChunkSnapshot snapshot = mock(ChunkSnapshot.class);
+        when(snapshot.getBlockData(anyInt(), anyInt(), anyInt())).thenReturn(air);
+        when(snapshot.getBlockData(0, 1, 0)).thenReturn(base1);
+        when(snapshot.getBlockData(0, 2, 0)).thenReturn(head);
+        when(snapshot.getBlockData(1, 1, 0)).thenReturn(base2);
+        when(snapshot.getBlockData(1, 2, 0)).thenReturn(movingHead);
+        when(snapshot.getBlockData(2, 1, 0)).thenReturn(pushed);
+
+        Chunk c = chunk(true, true);
+        when(c.getChunkSnapshot()).thenReturn(snapshot);
+        when(c.getWorld()).thenReturn(world);
+        when(world.getMinHeight()).thenReturn(0);
+        when(world.getMaxHeight()).thenReturn(4);
+        when(world.isChunkGenerated(anyInt(), anyInt())).thenReturn(true);
+        when(world.getChunkAtAsync(anyInt(), anyInt(), anyBoolean())).thenAnswer(inv -> CompletableFuture
+                .completedFuture(inv.getArgument(0).equals(0) && inv.getArgument(1).equals(0) ? c : null));
+        when(world.getChunkAt(anyInt(), anyInt()))
+                .thenAnswer(inv -> inv.getArgument(0).equals(0) && inv.getArgument(1).equals(0) ? c : null);
+        when(world.getChunkAt(anyInt(), anyInt(), anyBoolean()))
+                .thenAnswer(inv -> inv.getArgument(0).equals(0) && inv.getArgument(1).equals(0) ? c : null);
+
+        RecountCalculator calc = new RecountCalculator(addon, island, new CompletableFuture<>(), false);
+        CompletableFuture<Boolean> scan = calc.scanNextChunk();
+        for (int i = 0; i < 200 && !scan.isDone(); i++) {
+            MockBukkit.getMock().getScheduler().performOneTick();
+            MockBukkit.getMock().getScheduler().waitAsyncTasksFinished();
+        }
+        assertTrue(scan.isDone(), "scan did not complete");
+
+        NamespacedKey piston = Material.PISTON.getKey();
+        assertEquals(2, calc.getResults().getBlockCount(Environment.NORMAL).count(piston),
+                "two piston bases; head, moving head and pushed block are not pistons");
     }
 }

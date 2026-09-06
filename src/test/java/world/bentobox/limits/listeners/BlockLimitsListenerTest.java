@@ -1419,6 +1419,83 @@ class BlockLimitsListenerTest {
         assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.STONE.getKey()));
     }
 
+    /** A piston head or moving piston block whose base sits on the opposite side of {@code facing}. */
+    private Block mockPistonPart(Material material, TechnicalPiston.Type type, BlockFace facing, Location location,
+            Block base) {
+        Block block = mock(Block.class);
+        TechnicalPiston data = mock(TechnicalPiston.class);
+        when(block.getType()).thenReturn(material);
+        when(block.getLocation()).thenReturn(location);
+        when(block.getWorld()).thenReturn(world);
+        when(block.getBlockData()).thenReturn(data);
+        when(data.getMaterial()).thenReturn(material);
+        when(data.getType()).thenReturn(type);
+        when(data.getFacing()).thenReturn(facing);
+        when(block.hasMetadata("blockbreakevent-ignore")).thenReturn(false);
+        Block airBlock = mock(Block.class);
+        when(airBlock.getType()).thenReturn(Material.AIR);
+        when(block.getRelative(any(BlockFace.class))).thenReturn(airBlock);
+        when(block.getRelative(facing.getOppositeFace())).thenReturn(base);
+        return block;
+    }
+
+    @Test
+    void testExplodeExtendedPistonCountsOnce() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Environment.NORMAL, Material.STICKY_PISTON.getKey());
+        ibc.add(Environment.NORMAL, Material.STICKY_PISTON.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block base = mockBlock(Material.STICKY_PISTON, new Location(world, 100, 65, 100));
+        Block head = mockPistonPart(Material.PISTON_HEAD, TechnicalPiston.Type.STICKY, BlockFace.UP,
+                new Location(world, 100, 66, 100), base);
+        Entity entity = mock(Entity.class);
+        EntityExplodeEvent event = new EntityExplodeEvent(entity, blockLocation, List.of(base, head), 1.0f,
+                ExplosionResult.DESTROY);
+
+        listener.onBlock(event);
+
+        assertEquals(1, listener.getIsland("test-island-id").getBlockCount(Material.STICKY_PISTON.getKey()),
+                "base and head of one piston must decrement once");
+    }
+
+    @Test
+    void testExplodePistonHeadWithoutBaseDecrements() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Environment.NORMAL, Material.PISTON.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block base = mockBlock(Material.PISTON, new Location(world, 100, 65, 100));
+        Block head = mockPistonPart(Material.PISTON_HEAD, TechnicalPiston.Type.NORMAL, BlockFace.UP,
+                new Location(world, 100, 66, 100), base);
+        Entity entity = mock(Entity.class);
+        EntityExplodeEvent event = new EntityExplodeEvent(entity, blockLocation, List.of(head), 1.0f,
+                ExplosionResult.DESTROY);
+
+        listener.onBlock(event);
+
+        assertEquals(0, listener.getIsland("test-island-id").getBlockCount(Material.PISTON.getKey()),
+                "vanilla destroys the base with the head, so the piston is gone");
+    }
+
+    @Test
+    void testExplodeMovingPistonIsIgnored() {
+        IslandBlockCount ibc = new IslandBlockCount("test-island-id", "BSkyBlock");
+        ibc.add(Environment.NORMAL, Material.PISTON.getKey());
+        listener.setIsland("test-island-id", ibc);
+
+        Block pushed = mockPistonPart(Material.MOVING_PISTON, TechnicalPiston.Type.NORMAL, BlockFace.UP,
+                new Location(world, 100, 66, 100), mockBlock(Material.STONE, new Location(world, 100, 65, 100)));
+        Block sourceBlock = mockBlock(Material.AIR, blockLocation);
+        BlockExplodeEvent event = new BlockExplodeEvent(sourceBlock, mock(BlockState.class), List.of(pushed), 1.0f,
+                ExplosionResult.DESTROY);
+
+        listener.onBlock(event);
+
+        assertEquals(1, listener.getIsland("test-island-id").getBlockCount(Material.PISTON.getKey()),
+                "a block being pushed is not a piston");
+    }
+
     // --- EntityChangeBlockEvent tests ---
 
     @Test
