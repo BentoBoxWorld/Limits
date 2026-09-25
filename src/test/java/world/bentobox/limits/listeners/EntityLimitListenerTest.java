@@ -54,6 +54,7 @@ import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.Material;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -77,6 +78,7 @@ import world.bentobox.limits.Limits;
 import world.bentobox.limits.Settings;
 import world.bentobox.limits.listeners.EntityLimitListener.AtLimitResult;
 import org.mockbukkit.mockbukkit.MockBukkit;
+import org.mockbukkit.mockbukkit.persistence.PersistentDataContainerMock;
 import world.bentobox.limits.objects.IslandBlockCount;
 
 @ExtendWith(MockitoExtension.class)
@@ -109,6 +111,7 @@ class EntityLimitListenerTest {
         when(ent.getType()).thenReturn(EntityType.ENDERMAN);
         when(ent.getLocation()).thenReturn(location);
         when(ent.isInWorld()).thenReturn(true);
+        withPdc(ent);
         // Island
         when(island.getUniqueId()).thenReturn(UUID.randomUUID().toString());
         when(island.inIslandSpace(any(Location.class))).thenReturn(true);
@@ -328,7 +331,7 @@ class EntityLimitListenerTest {
 
     @Test
     void testHangingPlaceNullPlayerIgnored() {
-        Hanging hanging = mock(Hanging.class);
+        Hanging hanging = withPdc(mock(Hanging.class));
         when(hanging.getLocation()).thenReturn(location);
         when(hanging.getWorld()).thenReturn(world);
         Block block = mock(Block.class);
@@ -462,7 +465,7 @@ class EntityLimitListenerTest {
         // Set island-specific VILLAGER limit to 1, pre-fill with 1
         ibc.setEntityLimit(Environment.NORMAL, EntityType.VILLAGER, 1);
         ibc.incrementEntity(Environment.NORMAL, EntityType.VILLAGER);
-        Villager villager = mock(Villager.class);
+        Villager villager = withPdc(mock(Villager.class));
         when(villager.getType()).thenReturn(EntityType.VILLAGER);
         when(villager.getLocation()).thenReturn(location);
         when(villager.getWorld()).thenReturn(world);
@@ -601,7 +604,7 @@ class EntityLimitListenerTest {
         // Set island-specific MINECART limit to 1, pre-fill with 1
         ibc.setEntityLimit(Environment.NORMAL, EntityType.MINECART, 1);
         ibc.incrementEntity(Environment.NORMAL, EntityType.MINECART);
-        Minecart minecart = mock(Minecart.class);
+        Minecart minecart = withPdc(mock(Minecart.class));
         when(minecart.getType()).thenReturn(EntityType.MINECART);
         when(minecart.getLocation()).thenReturn(location);
         when(minecart.getWorld()).thenReturn(world);
@@ -622,7 +625,7 @@ class EntityLimitListenerTest {
         List<UUID> justSpawned = (List<UUID>) justSpawnedField.get(ell);
 
         ibc.setEntityLimit(Environment.NORMAL, EntityType.MINECART, 1);
-        Minecart minecart = mock(Minecart.class);
+        Minecart minecart = withPdc(mock(Minecart.class));
         when(minecart.getType()).thenReturn(EntityType.MINECART);
         when(minecart.getLocation()).thenReturn(location);
         when(minecart.getWorld()).thenReturn(world);
@@ -650,7 +653,7 @@ class EntityLimitListenerTest {
         // Set island-specific PAINTING limit to 1, pre-fill with 1
         ibc.setEntityLimit(Environment.NORMAL, EntityType.PAINTING, 1);
         ibc.incrementEntity(Environment.NORMAL, EntityType.PAINTING);
-        Painting painting = mock(Painting.class);
+        Painting painting = withPdc(mock(Painting.class));
         when(painting.getType()).thenReturn(EntityType.PAINTING);
         when(painting.getLocation()).thenReturn(location);
         when(painting.getWorld()).thenReturn(world);
@@ -673,7 +676,7 @@ class EntityLimitListenerTest {
     void testHangingPlaceOpPlayerBypasses() {
         // Set island-specific PAINTING limit to 1, pre-fill with 1
         ibc.setEntityLimit(Environment.NORMAL, EntityType.PAINTING, 1);
-        Painting painting = mock(Painting.class);
+        Painting painting = withPdc(mock(Painting.class));
         when(painting.getType()).thenReturn(EntityType.PAINTING);
         when(painting.getLocation()).thenReturn(location);
         when(painting.getWorld()).thenReturn(world);
@@ -753,7 +756,7 @@ class EntityLimitListenerTest {
     }
 
     private ItemFrame mockItemFrame() {
-        ItemFrame frame = mock(ItemFrame.class);
+        ItemFrame frame = withPdc(mock(ItemFrame.class));
         when(frame.getType()).thenReturn(EntityType.ITEM_FRAME);
         when(frame.getLocation()).thenReturn(location);
         when(frame.getWorld()).thenReturn(world);
@@ -838,7 +841,7 @@ class EntityLimitListenerTest {
     @Test
     void testEntityAddToWorldIgnoresNonTrackedEntity() throws Exception {
         // A projectile/item is neither LivingEntity, Vehicle nor Hanging — never mapped, no lookup.
-        Entity arrow = mock(Entity.class);
+        Entity arrow = withPdc(mock(Entity.class));
         when(arrow.getUniqueId()).thenReturn(UUID.randomUUID());
         EntityAddToWorldEvent event = new EntityAddToWorldEvent(arrow, world);
 
@@ -1079,10 +1082,133 @@ class EntityLimitListenerTest {
         return (Map<UUID, String>) f.get(ell);
     }
 
+    // --- Exempt entity (Limits.EXEMPT_KEY) tests ---
+
+    @Test
+    void testExemptCreatureSpawnAtLimitNotCancelledOrCounted() throws Exception {
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.CHICKEN, 1);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.CHICKEN);
+        LivingEntity chicken = exempt(mockEntity(EntityType.CHICKEN, location));
+        CreatureSpawnEvent event = new CreatureSpawnEvent(chicken, SpawnReason.CUSTOM);
+
+        ell.onCreatureSpawn(event);
+        ell.onCreatureSpawnTrack(event);
+
+        assertFalse(event.isCancelled());
+        assertEquals(1, ibc.getEntityCount(Environment.NORMAL, EntityType.CHICKEN));
+        assertFalse(entityIslandMap().containsKey(chicken.getUniqueId()));
+    }
+
+    @Test
+    void testExemptSpawnDoesNotBypassGroupLimitForOthers() throws Exception {
+        EntityGroup group = new EntityGroup("birds", Set.of(EntityType.CHICKEN), 1, Material.BARRIER);
+        Settings settings = addon.getSettings();
+        settings.getGroupLimits().put(EntityType.CHICKEN, new ArrayList<>(List.of(group)));
+        Field envGroupLimitsField = Settings.class.getDeclaredField("envGroupLimits");
+        envGroupLimitsField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Map<Environment, Map<String, Integer>> envGroupLimits =
+                (Map<Environment, Map<String, Integer>>) envGroupLimitsField.get(settings);
+        envGroupLimits.computeIfAbsent(Environment.NORMAL, k -> new HashMap<>()).put("birds", 1);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.CHICKEN);
+
+        CreatureSpawnEvent exemptEvent = new CreatureSpawnEvent(exempt(mockEntity(EntityType.CHICKEN, location)),
+                SpawnReason.CUSTOM);
+        ell.onCreatureSpawn(exemptEvent);
+        CreatureSpawnEvent normalEvent = new CreatureSpawnEvent(mockEntity(EntityType.CHICKEN, location),
+                SpawnReason.NATURAL);
+        ell.onCreatureSpawn(normalEvent);
+
+        assertFalse(exemptEvent.isCancelled());
+        assertTrue(normalEvent.isCancelled());
+    }
+
+    @Test
+    void testExemptEntityRemoveDoesNotDecrement() {
+        ibc.incrementEntity(Environment.NORMAL, EntityType.CHICKEN);
+        LivingEntity chicken = exempt(mockEntity(EntityType.CHICKEN, location));
+
+        ell.onEntityRemove(new EntityRemoveEvent(chicken, EntityRemoveEvent.Cause.DEATH));
+
+        assertEquals(1, ibc.getEntityCount(Environment.NORMAL, EntityType.CHICKEN));
+    }
+
+    @Test
+    void testExemptEntityPortalChangesNoCounts() throws Exception {
+        Location netherLoc = mockNetherLocation();
+        ibc.incrementEntity(Environment.NORMAL, EntityType.CHICKEN);
+        LivingEntity chicken = exempt(mockEntity(EntityType.CHICKEN, location));
+
+        ell.onEntityPortal(new EntityPortalEvent(chicken, location, netherLoc));
+
+        assertEquals(1, ibc.getEntityCount(Environment.NORMAL, EntityType.CHICKEN));
+        assertEquals(0, ibc.getEntityCount(Environment.NETHER, EntityType.CHICKEN));
+    }
+
+    @Test
+    void testExemptEntityAddToWorldNotMapped() throws Exception {
+        LivingEntity chicken = exempt(mockEntity(EntityType.CHICKEN, location));
+
+        ell.onEntityAddToWorld(new EntityAddToWorldEvent(chicken, world));
+
+        assertFalse(entityIslandMap().containsKey(chicken.getUniqueId()));
+    }
+
+    @Test
+    void testExemptVehicleAtLimitNotCancelledOrCounted() {
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.MINECART, 1);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.MINECART);
+        Minecart minecart = exempt(withPdc(mock(Minecart.class)));
+        when(minecart.getType()).thenReturn(EntityType.MINECART);
+        when(minecart.getLocation()).thenReturn(location);
+        when(minecart.getWorld()).thenReturn(world);
+        when(minecart.getUniqueId()).thenReturn(UUID.randomUUID());
+        VehicleCreateEvent event = new VehicleCreateEvent(minecart);
+
+        ell.onMinecart(event);
+        ell.onVehicleCreateTrack(event);
+
+        assertFalse(event.isCancelled());
+        assertEquals(1, ibc.getEntityCount(Environment.NORMAL, EntityType.MINECART));
+    }
+
+    @Test
+    void testExemptHangingPlaceAtLimitNotCancelledOrCounted() {
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.PAINTING, 1);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.PAINTING);
+        Painting painting = exempt(withPdc(mock(Painting.class)));
+        when(painting.getType()).thenReturn(EntityType.PAINTING);
+        when(painting.getLocation()).thenReturn(location);
+        when(painting.getWorld()).thenReturn(world);
+        when(painting.getUniqueId()).thenReturn(UUID.randomUUID());
+        Block block = mock(Block.class);
+        when(block.getWorld()).thenReturn(world);
+        HangingPlaceEvent event = new HangingPlaceEvent(painting, mock(Player.class), block, BlockFace.SOUTH,
+                EquipmentSlot.HAND, null);
+
+        ell.onBlock(event);
+        ell.onHangingPlaceTrack(event);
+
+        assertFalse(event.isCancelled());
+        assertEquals(1, ibc.getEntityCount(Environment.NORMAL, EntityType.PAINTING));
+    }
+
     // --- helper methods ---
 
+    /** Tag an entity with {@link Limits#EXEMPT_KEY}, as a plugin would in its spawn consumer. */
+    private static <T extends Entity> T exempt(T entity) {
+        entity.getPersistentDataContainer().set(Limits.EXEMPT_KEY, PersistentDataType.BYTE, (byte) 1);
+        return entity;
+    }
+
+    /** Give a mocked entity a real, empty persistent data container, as every Paper entity has. */
+    private static <T extends Entity> T withPdc(T entity) {
+        when(entity.getPersistentDataContainer()).thenReturn(new PersistentDataContainerMock());
+        return entity;
+    }
+
     private LivingEntity mockEntity(EntityType type, Location location) {
-        LivingEntity entity = mock(LivingEntity.class);
+        LivingEntity entity = withPdc(mock(LivingEntity.class));
         when(entity.getType()).thenReturn(type);
         when(entity.getLocation()).thenReturn(location);
         when(entity.getWorld()).thenReturn(world);
@@ -1092,7 +1218,7 @@ class EntityLimitListenerTest {
     }
 
     private Chicken mockChicken() {
-        Chicken chicken = mock(Chicken.class);
+        Chicken chicken = withPdc(mock(Chicken.class));
         when(chicken.getType()).thenReturn(EntityType.CHICKEN);
         when(chicken.getLocation()).thenReturn(location);
         when(chicken.getWorld()).thenReturn(world);
@@ -1102,7 +1228,7 @@ class EntityLimitListenerTest {
     }
 
     private Villager mockVillager() {
-        Villager villager = mock(Villager.class);
+        Villager villager = withPdc(mock(Villager.class));
         when(villager.getType()).thenReturn(EntityType.VILLAGER);
         when(villager.getLocation()).thenReturn(location);
         when(villager.getWorld()).thenReturn(world);
@@ -1215,7 +1341,7 @@ class EntityLimitListenerTest {
     void testSpawnEggOnEntityAtLimitIsCancelled() {
         ibc.setEntityLimit(Environment.NORMAL, EntityType.ENDERMAN, 4); // seeded count is 4 -> at limit
         Player p = eggPlayer(Material.ENDERMAN_SPAWN_EGG, EquipmentSlot.HAND);
-        Entity clicked = mock(Entity.class);
+        Entity clicked = withPdc(mock(Entity.class));
         when(clicked.getLocation()).thenReturn(location);
         PlayerInteractEntityEvent e = new PlayerInteractEntityEvent(p, clicked, EquipmentSlot.HAND);
 
@@ -1229,7 +1355,7 @@ class EntityLimitListenerTest {
     void testSpawnEggOnEntityUnderLimitNotCancelled() {
         ibc.setEntityLimit(Environment.NORMAL, EntityType.ENDERMAN, 10); // count 4 < 10
         Player p = eggPlayer(Material.ENDERMAN_SPAWN_EGG, EquipmentSlot.HAND);
-        Entity clicked = mock(Entity.class);
+        Entity clicked = withPdc(mock(Entity.class));
         when(clicked.getLocation()).thenReturn(location);
         PlayerInteractEntityEvent e = new PlayerInteractEntityEvent(p, clicked, EquipmentSlot.HAND);
 
@@ -1242,7 +1368,7 @@ class EntityLimitListenerTest {
     void testNonSpawnEggOnEntityIgnored() {
         ibc.setEntityLimit(Environment.NORMAL, EntityType.ENDERMAN, 4);
         Player p = eggPlayer(Material.STICK, EquipmentSlot.HAND);
-        Entity clicked = mock(Entity.class);
+        Entity clicked = withPdc(mock(Entity.class));
         when(clicked.getLocation()).thenReturn(location);
         PlayerInteractEntityEvent e = new PlayerInteractEntityEvent(p, clicked, EquipmentSlot.HAND);
 

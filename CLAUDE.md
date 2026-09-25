@@ -65,6 +65,12 @@ For a block placement (or entity spawn) in environment `env`, the limit is resol
 
 This is Paper-only (the addon dropped Spigot support; `EntityRemoveEvent` is on Bukkit's API now but `EntityRemoveEvent.Cause` is needed).
 
+### Exempt Entities
+
+An entity whose persistent data container has `Limits.EXEMPT_KEY` (`limits:exempt`, any value) is ignored by entity limits: it is never limit-checked or counted, and removing it or sending it through a portal never changes a count. Other plugins set the key in the spawn consumer so it is present before `CreatureSpawnEvent` (issue #304). Every entity-tracking path checks `Limits.isExempt(entity)`: the LOW limit checks, `trackSpawn`, `onEntityAddToWorld`, `onEntityRemove`, `onEntityPortal` and `RecountCalculator.scanEntities`. Any new entity-tracking path must check it too, or exempt entities will change the counts.
+
+In tests, Mockito entity mocks return a null PDC; wrap them with `withPdc(mock(...))` (gives them a MockBukkit `PersistentDataContainerMock`).
+
 ### Key Classes
 
 | Class | Role |
