@@ -26,7 +26,6 @@ import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
-import world.bentobox.bentobox.util.Util;
 import world.bentobox.limits.EntityGroup;
 import world.bentobox.limits.DisplayNames;
 import world.bentobox.limits.Limits;
@@ -82,7 +81,8 @@ public class EntityLimitListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onMinecart(VehicleCreateEvent vehicleCreateEvent) {
-        if (!addon.inGameModeWorld(vehicleCreateEvent.getVehicle().getWorld())) return;
+        if (!addon.inGameModeWorld(vehicleCreateEvent.getVehicle().getWorld())
+                || Limits.isExempt(vehicleCreateEvent.getVehicle())) return;
         if (justSpawned.contains(vehicleCreateEvent.getVehicle().getUniqueId())) {
             justSpawned.remove(vehicleCreateEvent.getVehicle().getUniqueId());
             return;
@@ -128,7 +128,8 @@ public class EntityLimitListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onCreatureSpawn(final CreatureSpawnEvent creatureSpawnEvent) {
-        if (!addon.inGameModeWorld(creatureSpawnEvent.getLocation().getWorld())) return;
+        if (!addon.inGameModeWorld(creatureSpawnEvent.getLocation().getWorld())
+                || Limits.isExempt(creatureSpawnEvent.getEntity())) return;
         if (justSpawned.contains(creatureSpawnEvent.getEntity().getUniqueId())) {
             justSpawned.remove(creatureSpawnEvent.getEntity().getUniqueId());
             return;
@@ -164,7 +165,8 @@ public class EntityLimitListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onBlock(HangingPlaceEvent hangingPlaceEvent) {
-        if (!addon.inGameModeWorld(hangingPlaceEvent.getBlock().getWorld())) return;
+        if (!addon.inGameModeWorld(hangingPlaceEvent.getBlock().getWorld())
+                || Limits.isExempt(hangingPlaceEvent.getEntity())) return;
         Player player = hangingPlaceEvent.getPlayer();
         if (player == null) return;
         addon.getIslands().getIslandAt(hangingPlaceEvent.getEntity().getLocation()).ifPresent(island -> {
@@ -309,7 +311,7 @@ public class EntityLimitListener implements Listener {
     }
 
     private void trackSpawn(Entity entity) {
-        if (entity == null) return;
+        if (entity == null || Limits.isExempt(entity)) return;
         World w = entity.getWorld();
         if (!addon.inGameModeWorld(w)) return;
         addon.getIslands().getIslandAt(entity.getLocation())
@@ -334,6 +336,7 @@ public class EntityLimitListener implements Listener {
                 && !(entity instanceof Hanging)) {
             return;
         }
+        if (Limits.isExempt(entity)) return;
 
         UUID uuid = entity.getUniqueId();
         if (entityIslandMap.containsKey(uuid)) return;
@@ -372,7 +375,8 @@ public class EntityLimitListener implements Listener {
             return;
         }
         World w = entity.getWorld();
-        if (!addon.inGameModeWorld(w)) return;
+        // Exempt entities were never counted, so there is nothing to decrement
+        if (!addon.inGameModeWorld(w) || Limits.isExempt(entity)) return;
 
         String islandId = entityIslandMap.remove(entity.getUniqueId());
         if (islandId != null) {
@@ -394,6 +398,7 @@ public class EntityLimitListener implements Listener {
     public void onEntityPortal(EntityPortalEvent e) {
         if (e.getTo() == null || e.getTo().getWorld() == null) return;
         Entity entity = e.getEntity();
+        if (Limits.isExempt(entity)) return;
         World fromWorld = entity.getWorld();
         World toWorld = e.getTo().getWorld();
         Environment fromEnv = envOf(fromWorld);
@@ -665,9 +670,6 @@ public class EntityLimitListener implements Listener {
     }
 
     private boolean isWither(Block block) {
-        if (Util.getMinecraftVersion() < 16) {
-            return block.getType().equals(Material.SOUL_SAND);
-        }
         return Tag.WITHER_SUMMON_BASE_BLOCKS.isTagged(block.getType());
     }
 

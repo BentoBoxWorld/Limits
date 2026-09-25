@@ -9,6 +9,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.bukkit.Bukkit;
@@ -17,6 +18,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
@@ -43,6 +45,16 @@ import world.bentobox.limits.objects.IslandBlockCount;
  * @author tastybento
  */
 public class Limits extends Addon {
+
+    /**
+     * Persistent data key that exempts an entity from entity limits. An entity carrying this key,
+     * with any value, is never limit-checked and never counted. Other plugins set it in the spawn
+     * consumer, e.g. {@code world.spawn(loc, Zombie.class, z -> z.getPersistentDataContainer()
+     * .set(Limits.EXEMPT_KEY, PersistentDataType.BYTE, (byte) 1))}, so it is present before
+     * {@link org.bukkit.event.entity.CreatureSpawnEvent} fires. It must not be added or removed
+     * after the entity has spawned, or the island's count will drift until the next recount.
+     */
+    public static final NamespacedKey EXEMPT_KEY = Objects.requireNonNull(NamespacedKey.fromString("limits:exempt"));
 
     private static final String LIMIT_NOT_SET = "Limit not set";
     private static final String ISLAND_PLACEHOLDER = "_island_";
@@ -481,5 +493,13 @@ public class Limits extends Addon {
             case THE_END -> gm.getEndWorld() != null ? gm.getEndWorld() : gm.getOverWorld();
             default -> gm.getOverWorld();
         };
+    }
+
+    /**
+     * @param entity entity to check
+     * @return true if the entity carries {@link #EXEMPT_KEY} and so is ignored by entity limits
+     */
+    public static boolean isExempt(Entity entity) {
+        return entity.getPersistentDataContainer().has(EXEMPT_KEY);
     }
 }

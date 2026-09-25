@@ -258,8 +258,8 @@ public class RecountCalculator {
             Environment env = e.getKey();
             World w = e.getValue();
             for (Entity entity : w.getEntities()) {
-                // Players are living entities but are never limit-tracked
-                if (entity instanceof Player) continue;
+                // Players are living entities but are never limit-tracked, nor are exempt entities
+                if (entity instanceof Player || Limits.isExempt(entity)) continue;
                 if (!island.inIslandSpace(entity.getLocation())) continue;
                 if (entity instanceof LivingEntity || entity instanceof Hanging
                         || entity instanceof Vehicle

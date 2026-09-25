@@ -6,12 +6,15 @@ import static org.mockito.Mockito.when;
 
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.mockbukkit.mockbukkit.MockBukkit;
 
 import world.bentobox.bentobox.api.user.User;
 
@@ -21,6 +24,17 @@ class DisplayNamesTest {
 
     @Mock
     private User user;
+
+    @BeforeEach
+    void setUp() {
+        // DisplayNames uses BentoBox's Util, whose static initializer needs a running server
+        MockBukkit.mock();
+    }
+
+    @AfterEach
+    void tearDown() {
+        MockBukkit.unmock();
+    }
 
     @Test
     void testMaterialTranslated() {
