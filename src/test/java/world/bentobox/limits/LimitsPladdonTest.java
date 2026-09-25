@@ -4,12 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.mockbukkit.mockbukkit.MockBukkit;
 
 import static org.mockito.Mockito.mock;
 
@@ -23,9 +25,16 @@ class LimitsPladdonTest {
 
     @BeforeEach
     void setUp() {
+        // Constructing an Addon initializes BentoBox's Util, which needs a running server
+        MockBukkit.mock();
         // LimitsPladdon extends Pladdon extends JavaPlugin, which requires PluginClassLoader.
         // Use mock with CALLS_REAL_METHODS to bypass the JavaPlugin constructor.
         pladdon = mock(LimitsPladdon.class, org.mockito.Mockito.CALLS_REAL_METHODS);
+    }
+
+    @AfterEach
+    void tearDown() {
+        MockBukkit.unmock();
     }
 
     @Test

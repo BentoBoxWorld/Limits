@@ -26,7 +26,6 @@ import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
-import world.bentobox.bentobox.util.Util;
 import world.bentobox.limits.EntityGroup;
 import world.bentobox.limits.DisplayNames;
 import world.bentobox.limits.Limits;
@@ -671,9 +670,6 @@ public class EntityLimitListener implements Listener {
     }
 
     private boolean isWither(Block block) {
-        if (Util.getMinecraftVersion() < 16) {
-            return block.getType().equals(Material.SOUL_SAND);
-        }
         return Tag.WITHER_SUMMON_BASE_BLOCKS.isTagged(block.getType());
     }
 
