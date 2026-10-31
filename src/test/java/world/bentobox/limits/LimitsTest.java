@@ -39,7 +39,11 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.event.HandlerList;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.ItemFrame;
+import org.bukkit.entity.Minecart;
+import org.bukkit.entity.Zombie;
 import org.bukkit.entity.Player;
 import org.eclipse.jdt.annotation.NonNull;
 import org.junit.jupiter.api.AfterAll;
@@ -737,5 +741,28 @@ class LimitsTest {
 
         verify(pipeliner).addIslandEntitiesOnly(small);
         verify(pipeliner, never()).addIslandEntitiesOnly(big);
+    }
+
+    private static Entity entityOfType(Class<? extends Entity> clazz, EntityType type) {
+        Entity entity = mock(clazz);
+        when(entity.getType()).thenReturn(type);
+        return entity;
+    }
+
+    @Test
+    void testIsPlaceOnlyCushion() {
+        assertTrue(Limits.isPlaceOnly(entityOfType(Entity.class, EntityType.CUSHION)));
+        assertFalse(Limits.isPlaceOnly(entityOfType(Entity.class, EntityType.END_CRYSTAL)));
+    }
+
+    @Test
+    void testIsTracked() {
+        assertTrue(Limits.isTracked(entityOfType(Zombie.class, EntityType.ZOMBIE)));
+        assertTrue(Limits.isTracked(entityOfType(Minecart.class, EntityType.MINECART)));
+        assertTrue(Limits.isTracked(entityOfType(ItemFrame.class, EntityType.ITEM_FRAME)));
+        // Cushions are plain entities: not living, a vehicle or hanging (#307)
+        assertTrue(Limits.isTracked(entityOfType(Entity.class, EntityType.CUSHION)));
+        assertFalse(Limits.isTracked(entityOfType(Entity.class, EntityType.ARROW)));
+        assertFalse(Limits.isTracked(entityOfType(Player.class, EntityType.PLAYER)));
     }
 }
