@@ -13,6 +13,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityBreedEvent;
+import org.bukkit.event.entity.EntityPlaceEvent;
 import org.bukkit.event.entity.EntityPortalEvent;
 import org.bukkit.event.entity.EntityRemoveEvent;
 import org.bukkit.event.block.Action;
@@ -26,7 +27,6 @@ import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.api.localization.TextVariables;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
-import world.bentobox.bentobox.util.Util;
 import world.bentobox.limits.EntityGroup;
 import world.bentobox.limits.DisplayNames;
 import world.bentobox.limits.Limits;
@@ -82,7 +82,8 @@ public class EntityLimitListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onMinecart(VehicleCreateEvent vehicleCreateEvent) {
-        if (!addon.inGameModeWorld(vehicleCreateEvent.getVehicle().getWorld())) return;
+        if (!addon.inGameModeWorld(vehicleCreateEvent.getVehicle().getWorld())
+                || Limits.isExempt(vehicleCreateEvent.getVehicle())) return;
         if (justSpawned.contains(vehicleCreateEvent.getVehicle().getUniqueId())) {
             justSpawned.remove(vehicleCreateEvent.getVehicle().getUniqueId());
             return;
@@ -128,7 +129,8 @@ public class EntityLimitListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onCreatureSpawn(final CreatureSpawnEvent creatureSpawnEvent) {
-        if (!addon.inGameModeWorld(creatureSpawnEvent.getLocation().getWorld())) return;
+        if (!addon.inGameModeWorld(creatureSpawnEvent.getLocation().getWorld())
+                || Limits.isExempt(creatureSpawnEvent.getEntity())) return;
         if (justSpawned.contains(creatureSpawnEvent.getEntity().getUniqueId())) {
             justSpawned.remove(creatureSpawnEvent.getEntity().getUniqueId());
             return;
@@ -164,7 +166,8 @@ public class EntityLimitListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onBlock(HangingPlaceEvent hangingPlaceEvent) {
-        if (!addon.inGameModeWorld(hangingPlaceEvent.getBlock().getWorld())) return;
+        if (!addon.inGameModeWorld(hangingPlaceEvent.getBlock().getWorld())
+                || Limits.isExempt(hangingPlaceEvent.getEntity())) return;
         Player player = hangingPlaceEvent.getPlayer();
         if (player == null) return;
         addon.getIslands().getIslandAt(hangingPlaceEvent.getEntity().getLocation()).ifPresent(island -> {
@@ -199,6 +202,19 @@ public class EntityLimitListener implements Listener {
     }
 
     /**
+     * Limit entities that only fire {@link EntityPlaceEvent} when placed, such as cushions (#307).
+     * Armor stands, boats and minecarts fire it too, but they are limited by
+     * {@link #onCreatureSpawn} and {@link #onMinecart}, so they are skipped here.
+     */
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onEntityPlace(EntityPlaceEvent e) {
+        Entity entity = e.getEntity();
+        if (Limits.isPlaceOnly(entity) && !Limits.isExempt(entity)) {
+            checkPlayerLimit(e, e.getPlayer(), entity.getLocation(), entity.getType());
+        }
+    }
+
+    /**
      * Deny spawn-egg use the moment a player would exceed an entity limit, before the egg is
      * consumed. The {@link CreatureSpawnEvent} path already cancels the over-limit spawn, but by
      * then the egg item has been used up; cancelling the interaction here keeps the egg (#134).
@@ -210,7 +226,7 @@ public class EntityLimitListener implements Listener {
         }
         EntityType type = spawnEggType(e.getItem());
         if (type != null) {
-            checkSpawnEggLimit(e, e.getPlayer(), e.getClickedBlock().getLocation(), type);
+            checkPlayerLimit(e, e.getPlayer(), e.getClickedBlock().getLocation(), type);
         }
     }
 
@@ -219,24 +235,31 @@ public class EntityLimitListener implements Listener {
         // PlayerInteractEntityEvent.getHand() is never null (always HAND or OFF_HAND)
         EntityType type = spawnEggType(e.getPlayer().getInventory().getItem(e.getHand()));
         if (type != null) {
-            checkSpawnEggLimit(e, e.getPlayer(), e.getRightClicked().getLocation(), type);
+            checkPlayerLimit(e, e.getPlayer(), e.getRightClicked().getLocation(), type);
         }
     }
 
-    private void checkSpawnEggLimit(Cancellable event, Player player, Location location, EntityType type) {
+    /**
+     * Cancel an event that would create an entity of {@code type} at {@code location} if the
+     * island is at that entity's limit, telling the player. A null player (e.g. a placement with
+     * no player) gets no bypass and no message.
+     */
+    private void checkPlayerLimit(Cancellable event, @Nullable Player player, Location location, EntityType type) {
         if (!addon.inGameModeWorld(location.getWorld())) {
             return;
         }
         addon.getIslands().getIslandAt(location).ifPresent(island -> {
-            boolean bypass = player.isOp() || player.hasPermission(
-                    addon.getPlugin().getIWM().getPermissionPrefix(location.getWorld()) + MOD_BYPASS);
+            boolean bypass = player != null && (player.isOp() || player.hasPermission(
+                    addon.getPlugin().getIWM().getPermissionPrefix(location.getWorld()) + MOD_BYPASS));
             if (bypass || island.isSpawn()) {
                 return;
             }
             AtLimitResult res = atLimit(island, type, envOf(location.getWorld()));
             if (res.hit()) {
                 event.setCancelled(true);
-                notifyEntityLimit(player, type, res);
+                if (player != null) {
+                    notifyEntityLimit(player, type, res);
+                }
             }
         });
     }
@@ -308,8 +331,16 @@ public class EntityLimitListener implements Listener {
         trackSpawn(e.getEntity());
     }
 
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onEntityPlaceTrack(final EntityPlaceEvent e) {
+        // Other placed entities are counted by their spawn or vehicle event
+        if (Limits.isPlaceOnly(e.getEntity())) {
+            trackSpawn(e.getEntity());
+        }
+    }
+
     private void trackSpawn(Entity entity) {
-        if (entity == null) return;
+        if (entity == null || Limits.isExempt(entity)) return;
         World w = entity.getWorld();
         if (!addon.inGameModeWorld(w)) return;
         addon.getIslands().getIslandAt(entity.getLocation())
@@ -329,11 +360,7 @@ public class EntityLimitListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onEntityAddToWorld(EntityAddToWorldEvent e) {
         Entity entity = e.getEntity();
-        if (entity instanceof Player) return;
-        if (!(entity instanceof LivingEntity) && !(entity instanceof Vehicle)
-                && !(entity instanceof Hanging)) {
-            return;
-        }
+        if (!Limits.isTracked(entity) || Limits.isExempt(entity)) return;
 
         UUID uuid = entity.getUniqueId();
         if (entityIslandMap.containsKey(uuid)) return;
@@ -372,7 +399,8 @@ public class EntityLimitListener implements Listener {
             return;
         }
         World w = entity.getWorld();
-        if (!addon.inGameModeWorld(w)) return;
+        // Exempt entities were never counted, so there is nothing to decrement
+        if (!addon.inGameModeWorld(w) || Limits.isExempt(entity)) return;
 
         String islandId = entityIslandMap.remove(entity.getUniqueId());
         if (islandId != null) {
@@ -394,6 +422,7 @@ public class EntityLimitListener implements Listener {
     public void onEntityPortal(EntityPortalEvent e) {
         if (e.getTo() == null || e.getTo().getWorld() == null) return;
         Entity entity = e.getEntity();
+        if (Limits.isExempt(entity)) return;
         World fromWorld = entity.getWorld();
         World toWorld = e.getTo().getWorld();
         Environment fromEnv = envOf(fromWorld);
@@ -665,9 +694,6 @@ public class EntityLimitListener implements Listener {
     }
 
     private boolean isWither(Block block) {
-        if (Util.getMinecraftVersion() < 16) {
-            return block.getType().equals(Material.SOUL_SAND);
-        }
         return Tag.WITHER_SUMMON_BASE_BLOCKS.isTagged(block.getType());
     }
 

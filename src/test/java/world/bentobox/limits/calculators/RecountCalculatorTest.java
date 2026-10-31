@@ -26,6 +26,7 @@ import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.TechnicalPiston;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
@@ -33,7 +34,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.bukkit.persistence.PersistentDataType;
 import org.mockbukkit.mockbukkit.MockBukkit;
+import org.mockbukkit.mockbukkit.persistence.PersistentDataContainerMock;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -201,7 +204,7 @@ class RecountCalculatorTest {
         Player player = mock(Player.class);
         when(player.getType()).thenReturn(EntityType.PLAYER);
         when(player.getLocation()).thenReturn(location);
-        Villager villager = mock(Villager.class);
+        Villager villager = withPdc(mock(Villager.class));
         when(villager.getType()).thenReturn(EntityType.VILLAGER);
         when(villager.getLocation()).thenReturn(location);
         when(world.getEntities()).thenReturn(List.of(player, villager));
@@ -212,6 +215,23 @@ class RecountCalculatorTest {
         assertEquals(1, ibc.getEntityCount(Environment.NORMAL, EntityType.VILLAGER));
         assertEquals(0, ibc.getEntityCount(Environment.NORMAL, EntityType.PLAYER));
         verify(bll).setIsland(ISLAND_ID, ibc);
+    }
+
+    @Test
+    void testScanEntitiesSkipsExemptEntities() {
+        Villager exempt = withPdc(mock(Villager.class));
+        when(exempt.getType()).thenReturn(EntityType.VILLAGER);
+        when(exempt.getLocation()).thenReturn(location);
+        exempt.getPersistentDataContainer().set(Limits.EXEMPT_KEY, PersistentDataType.BYTE, (byte) 1);
+        Villager villager = withPdc(mock(Villager.class));
+        when(villager.getType()).thenReturn(EntityType.VILLAGER);
+        when(villager.getLocation()).thenReturn(location);
+        when(world.getEntities()).thenReturn(List.of(exempt, villager));
+        RecountCalculator calc = new RecountCalculator(addon, island, new CompletableFuture<>(), true);
+
+        calc.tidyUp();
+
+        assertEquals(1, ibc.getEntityCount(Environment.NORMAL, EntityType.VILLAGER));
     }
 
     @Test
@@ -284,5 +304,11 @@ class RecountCalculatorTest {
         NamespacedKey piston = Material.PISTON.getKey();
         assertEquals(2, calc.getResults().getBlockCount(Environment.NORMAL).count(piston),
                 "two piston bases; head, moving head and pushed block are not pistons");
+    }
+
+    /** Give a mocked entity a real, empty persistent data container, as every Paper entity has. */
+    private static <T extends Entity> T withPdc(T entity) {
+        when(entity.getPersistentDataContainer()).thenReturn(new PersistentDataContainerMock());
+        return entity;
     }
 }

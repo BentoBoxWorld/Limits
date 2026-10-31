@@ -58,6 +58,11 @@ public class LimitTab implements Tab {
             .put(EntityType.HOPPER_MINECART, Material.HOPPER_MINECART)
             .put(EntityType.SPAWNER_MINECART, Material.MINECART)
             .build();
+    /**
+     * Icons for entity types that only exist in newer Minecraft versions, held by name so the
+     * addon still loads on older servers. Cushions come in colors; there is no plain CUSHION item.
+     */
+    private static final Map<String, String> E2M_BY_NAME = Map.of("CUSHION", "WHITE_CUSHION");
 
     private static final Map<NamespacedKey, NamespacedKey> B2M;
     static {
@@ -154,7 +159,7 @@ public class LimitTab implements Tab {
                 } else if (k.isAlive()) {
                     m = Material.valueOf(k + "_SPAWN_EGG");
                 } else {
-                    m = Material.valueOf(k.toString());
+                    m = Material.valueOf(E2M_BY_NAME.getOrDefault(k.name(), k.name()));
                 }
             } catch (Exception e) {
                 m = Material.BARRIER;

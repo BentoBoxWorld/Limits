@@ -78,6 +78,20 @@ Usage permissions are (put the gamemode name, e.g. acidisland at the front):
     default: op
 ```
 
+## For developers: exempting entities
+
+Another plugin or addon can spawn entities that Limits ignores completely. Tag the entity with the persistent data key `limits:exempt` (any value) **in the spawn consumer**, so the tag is present before `CreatureSpawnEvent` fires:
+
+```java
+NamespacedKey limitsExempt = NamespacedKey.fromString("limits:exempt");
+world.spawn(location, Zombie.class, zombie ->
+        zombie.getPersistentDataContainer().set(limitsExempt, PersistentDataType.BYTE, (byte) 1));
+```
+
+A tagged entity is never blocked by an entity or group limit and is never counted, so removing it doesn't change the count either. The tag is saved with the entity, so this holds across chunk unloads, restarts and recounts. You don't need Limits as a dependency; if Limits is on the classpath, `Limits.EXEMPT_KEY` holds the same key.
+
+Add the tag only when the entity spawns, and never add or remove it afterwards. Otherwise the island's count will be wrong until the next recount.
+
 ## Items that cannot be limited
 Some items cannot be limited (right now). The reasons are usually because there are too many ways to remove the item without it being tracked. If you are a programmer and can work out how to fix these, then please submit a PR!
 

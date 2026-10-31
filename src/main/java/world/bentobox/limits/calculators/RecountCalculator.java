@@ -23,10 +23,6 @@ import org.bukkit.World.Environment;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Slab;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.Hanging;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Vehicle;
 import org.bukkit.scheduler.BukkitTask;
 
 import world.bentobox.bentobox.BentoBox;
@@ -258,12 +254,8 @@ public class RecountCalculator {
             Environment env = e.getKey();
             World w = e.getValue();
             for (Entity entity : w.getEntities()) {
-                // Players are living entities but are never limit-tracked
-                if (entity instanceof Player) continue;
-                if (!island.inIslandSpace(entity.getLocation())) continue;
-                if (entity instanceof LivingEntity || entity instanceof Hanging
-                        || entity instanceof Vehicle
-                        || entity.getType().name().equals("ARMOR_STAND")) {
+                if (!Limits.isTracked(entity) || Limits.isExempt(entity)) continue;
+                if (island.inIslandSpace(entity.getLocation())) {
                     results.getEntityCount(env).add(entity.getType());
                 }
             }
