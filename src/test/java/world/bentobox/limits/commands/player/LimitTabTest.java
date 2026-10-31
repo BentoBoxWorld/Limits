@@ -153,6 +153,17 @@ class LimitTabTest {
     }
 
     @Test
+    void cushionEntityLimitShowsCushionIcon() {
+        // There is no plain CUSHION material, only colored ones (#307)
+        IslandBlockCount ibc = new IslandBlockCount("island", "BSkyBlock");
+        when(settings.getLimits(Environment.NORMAL)).thenReturn(Map.of(EntityType.CUSHION, 10));
+
+        LimitTab tab = new LimitTab(addon, ibc, Collections.emptyMap(), world, user, Environment.NORMAL);
+
+        assertEquals(Material.WHITE_CUSHION, tab.getPanelItems().getFirst().getItem().getType());
+    }
+
+    @Test
     void tabIconAndTitleReflectEnvironment() {
         IslandBlockCount ibc = new IslandBlockCount("island", "BSkyBlock");
         LimitTab netherTab = new LimitTab(addon, ibc, Collections.emptyMap(), world, user, Environment.NETHER);

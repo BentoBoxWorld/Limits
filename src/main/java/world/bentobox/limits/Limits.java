@@ -20,7 +20,10 @@ import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Hanging;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Vehicle;
 import org.bukkit.scheduler.BukkitTask;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -55,6 +58,12 @@ public class Limits extends Addon {
      * after the entity has spawned, or the island's count will drift until the next recount.
      */
     public static final NamespacedKey EXEMPT_KEY = Objects.requireNonNull(NamespacedKey.fromString("limits:exempt"));
+    /**
+     * Entity types that are created only by a player placing an item, firing an
+     * {@link org.bukkit.event.entity.EntityPlaceEvent} and nothing else (#307). Held by name
+     * because CUSHION only exists from Minecraft 26.3.
+     */
+    private static final Set<String> PLACE_ONLY_TYPES = Set.of("CUSHION");
 
     private static final String LIMIT_NOT_SET = "Limit not set";
     private static final String ISLAND_PLACEHOLDER = "_island_";
@@ -501,5 +510,23 @@ public class Limits extends Addon {
      */
     public static boolean isExempt(Entity entity) {
         return entity.getPersistentDataContainer().has(EXEMPT_KEY);
+    }
+
+    /**
+     * @param entity entity to check
+     * @return true if the entity is only ever created by being placed, firing an
+     *         {@link org.bukkit.event.entity.EntityPlaceEvent} but no spawn, vehicle or hanging event
+     */
+    public static boolean isPlaceOnly(Entity entity) {
+        return PLACE_ONLY_TYPES.contains(entity.getType().name());
+    }
+
+    /**
+     * @param entity entity to check
+     * @return true if entity limits count this kind of entity. Players are never counted.
+     */
+    public static boolean isTracked(Entity entity) {
+        return !(entity instanceof Player) && (entity instanceof LivingEntity || entity instanceof Vehicle
+                || entity instanceof Hanging || isPlaceOnly(entity));
     }
 }

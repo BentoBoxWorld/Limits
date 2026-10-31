@@ -38,6 +38,7 @@ import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityBreedEvent;
+import org.bukkit.event.entity.EntityPlaceEvent;
 import org.bukkit.event.entity.EntityPortalEvent;
 import org.bukkit.event.entity.EntityRemoveEvent;
 import org.bukkit.event.Event;
@@ -47,6 +48,7 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.entity.Hanging;
 import org.bukkit.entity.ItemFrame;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Painting;
 import org.bukkit.entity.Villager;
@@ -842,6 +844,7 @@ class EntityLimitListenerTest {
     void testEntityAddToWorldIgnoresNonTrackedEntity() throws Exception {
         // A projectile/item is neither LivingEntity, Vehicle nor Hanging — never mapped, no lookup.
         Entity arrow = withPdc(mock(Entity.class));
+        when(arrow.getType()).thenReturn(EntityType.ARROW);
         when(arrow.getUniqueId()).thenReturn(UUID.randomUUID());
         EntityAddToWorldEvent event = new EntityAddToWorldEvent(arrow, world);
 
@@ -1191,6 +1194,119 @@ class EntityLimitListenerTest {
 
         assertFalse(event.isCancelled());
         assertEquals(1, ibc.getEntityCount(Environment.NORMAL, EntityType.PAINTING));
+    }
+
+    // --- Place-only entities, e.g. cushions (#307) ---
+
+    @Test
+    void testCushionPlaceAtLimitCancels() {
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.CUSHION, 1);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.CUSHION);
+        EntityPlaceEvent event = placeEvent(mockPlaced(EntityType.CUSHION), placingPlayer(false));
+
+        ell.onEntityPlace(event);
+
+        assertTrue(event.isCancelled());
+    }
+
+    @Test
+    void testCushionPlaceUnderLimitIsCounted() throws Exception {
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.CUSHION, 2);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.CUSHION);
+        Entity entity = mockPlaced(EntityType.CUSHION);
+        EntityPlaceEvent event = placeEvent(entity, placingPlayer(false));
+
+        ell.onEntityPlace(event);
+        ell.onEntityPlaceTrack(event);
+
+        assertFalse(event.isCancelled());
+        assertEquals(2, ibc.getEntityCount(Environment.NORMAL, EntityType.CUSHION));
+        assertEquals("test-island-id", entityIslandMap().get(entity.getUniqueId()));
+    }
+
+    @Test
+    void testCushionPlaceOpPlayerBypasses() {
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.CUSHION, 1);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.CUSHION);
+        EntityPlaceEvent event = placeEvent(mockPlaced(EntityType.CUSHION), placingPlayer(true));
+
+        ell.onEntityPlace(event);
+
+        assertFalse(event.isCancelled());
+    }
+
+    @Test
+    void testCushionPlaceWithoutPlayerAtLimitCancels() {
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.CUSHION, 1);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.CUSHION);
+        EntityPlaceEvent event = placeEvent(mockPlaced(EntityType.CUSHION), null);
+
+        ell.onEntityPlace(event);
+
+        assertTrue(event.isCancelled());
+    }
+
+    @Test
+    void testExemptCushionPlaceAtLimitNotCancelledOrCounted() {
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.CUSHION, 1);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.CUSHION);
+        EntityPlaceEvent event = placeEvent(exempt(mockPlaced(EntityType.CUSHION)), placingPlayer(false));
+
+        ell.onEntityPlace(event);
+        ell.onEntityPlaceTrack(event);
+
+        assertFalse(event.isCancelled());
+        assertEquals(1, ibc.getEntityCount(Environment.NORMAL, EntityType.CUSHION));
+    }
+
+    @Test
+    void testArmorStandPlaceLeftToCreatureSpawn() {
+        // Armor stands also fire CreatureSpawnEvent, which limits and counts them. Handling the
+        // place event too would count each one twice.
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.ARMOR_STAND, 1);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.ARMOR_STAND);
+        ArmorStand stand = withPdc(mock(ArmorStand.class));
+        when(stand.getType()).thenReturn(EntityType.ARMOR_STAND);
+        when(stand.getLocation()).thenReturn(location);
+        when(stand.getWorld()).thenReturn(world);
+        EntityPlaceEvent event = placeEvent(stand, placingPlayer(false));
+
+        ell.onEntityPlace(event);
+        ell.onEntityPlaceTrack(event);
+
+        assertFalse(event.isCancelled());
+        assertEquals(1, ibc.getEntityCount(Environment.NORMAL, EntityType.ARMOR_STAND));
+    }
+
+    @Test
+    void testEntityAddToWorldMapsLoadedCushion() throws Exception {
+        Entity entity = mockPlaced(EntityType.CUSHION);
+
+        ell.onEntityAddToWorld(new EntityAddToWorldEvent(entity, world));
+
+        assertEquals("test-island-id", entityIslandMap().get(entity.getUniqueId()));
+    }
+
+    private Entity mockPlaced(EntityType type) {
+        Entity entity = withPdc(mock(Entity.class));
+        when(entity.getType()).thenReturn(type);
+        when(entity.getLocation()).thenReturn(location);
+        when(entity.getWorld()).thenReturn(world);
+        when(entity.getUniqueId()).thenReturn(UUID.randomUUID());
+        return entity;
+    }
+
+    private static Player placingPlayer(boolean op) {
+        Player player = mock(Player.class);
+        when(player.isOp()).thenReturn(op);
+        when(player.hasPermission(anyString())).thenReturn(false);
+        return player;
+    }
+
+    private EntityPlaceEvent placeEvent(Entity entity, Player player) {
+        Block block = mock(Block.class);
+        when(block.getWorld()).thenReturn(world);
+        return new EntityPlaceEvent(entity, player, block, BlockFace.UP, EquipmentSlot.HAND);
     }
 
     // --- helper methods ---

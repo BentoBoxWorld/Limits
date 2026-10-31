@@ -59,7 +59,8 @@ For a block placement (or entity spawn) in environment `env`, the limit is resol
 
 `EntityLimitListener` no longer counts entities via `World.getNearbyEntities(island.getBoundingBox())`. Instead it maintains the count in `IslandBlockCount.envEntityCounts`:
 
-- Increment on MONITOR-priority handlers for `CreatureSpawnEvent`, `VehicleCreateEvent`, `HangingPlaceEvent` (after our LOW-priority limit check has had its say).
+- Increment on MONITOR-priority handlers for `CreatureSpawnEvent`, `VehicleCreateEvent`, `HangingPlaceEvent`, and `EntityPlaceEvent` for place-only entities (after our LOW-priority limit check has had its say).
+- Which entities are tracked at all is decided by `Limits.isTracked(entity)`: living (not players), vehicles, hanging, and the place-only types in `Limits.PLACE_ONLY_TYPES` (currently `CUSHION`, #307). Place-only entities are plain `Entity`s that fire only `EntityPlaceEvent`; they are held by name so the addon still loads on servers that predate them. Armor stands, boats and minecarts also fire `EntityPlaceEvent` but are handled by their spawn/vehicle events — never count them in the place handler too.
 - Decrement on `EntityRemoveEvent` whenever the cause is **not** `UNLOAD` (so death, despawn, drop, plugin removal, etc. all decrement; chunk unload does not).
 - `EntityPortalEvent` (MONITOR) handles env-to-env teleport: decrement source env, increment destination env.
 
@@ -67,7 +68,7 @@ This is Paper-only (the addon dropped Spigot support; `EntityRemoveEvent` is on 
 
 ### Exempt Entities
 
-An entity whose persistent data container has `Limits.EXEMPT_KEY` (`limits:exempt`, any value) is ignored by entity limits: it is never limit-checked or counted, and removing it or sending it through a portal never changes a count. Other plugins set the key in the spawn consumer so it is present before `CreatureSpawnEvent` (issue #304). Every entity-tracking path checks `Limits.isExempt(entity)`: the LOW limit checks, `trackSpawn`, `onEntityAddToWorld`, `onEntityRemove`, `onEntityPortal` and `RecountCalculator.scanEntities`. Any new entity-tracking path must check it too, or exempt entities will change the counts.
+An entity whose persistent data container has `Limits.EXEMPT_KEY` (`limits:exempt`, any value) is ignored by entity limits: it is never limit-checked or counted, and removing it or sending it through a portal never changes a count. Other plugins set the key in the spawn consumer so it is present before `CreatureSpawnEvent` (issue #304). Every entity-tracking path checks `Limits.isExempt(entity)`: the LOW limit checks (including `onEntityPlace`), `trackSpawn`, `onEntityAddToWorld`, `onEntityRemove`, `onEntityPortal` and `RecountCalculator.scanEntities`. Any new entity-tracking path must check it too, or exempt entities will change the counts.
 
 In tests, Mockito entity mocks return a null PDC; wrap them with `withPdc(mock(...))` (gives them a MockBukkit `PersistentDataContainerMock`).
 
