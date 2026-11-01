@@ -11,7 +11,7 @@ admin:
       parameters: "<player>"
       description: Oyuncu için ada limitlerini göster.
     calc:
-      parameters: "<player>"
+      parameters: "<player|all> [entities]"
       description: Oyuncu için ada limitlerini tekrar hesapla.
       finished: "<green>Ada hesaplaması başarıyla yapıldı."
     offset:

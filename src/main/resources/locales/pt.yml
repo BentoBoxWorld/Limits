@@ -11,7 +11,7 @@ admin:
       parameters: "<jogador>"
       description: mostrar os limites da ilha para o jogador
     calc:
-      parameters: "<jogador>"
+      parameters: "<jogador|all> [entities]"
       description: recalcular os limites da ilha para o jogador
       finished: "<green> O recálculo da ilha foi concluído com sucesso!"
     offset:

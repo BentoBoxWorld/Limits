@@ -83,7 +83,7 @@ In tests, Mockito entity mocks return a null PDC; wrap them with `withPdc(mock(.
 | `BlockLimitsListener` | Core block tracking listener; handles all block place/break/grow/explode events; maintains the `islandCountMap` in memory; persists via BentoBox `Database<IslandBlockCount>` |
 | `JoinListener` | Applies permission-based limits on player join, island creation/reset, and ownership change; fires `LimitsPermCheckEvent` / `LimitsJoinPermCheckEvent` for external cancellation |
 | `EntityLimitListener` | Cancels entity spawn/breed/vehicle-create events when entity or group limits are exceeded; handles async golem/snowman spawning edge cases |
-| `RecountCalculator` | Async chunk scanner used by the admin `calc` command to rebuild block counts from scratch; uses chunk snapshots and BentoBox's `Pipeliner` |
+| `RecountCalculator` | Async chunk scanner used by the `calc`/`recount` commands and automatic recounts to rebuild counts from scratch; uses chunk snapshots and BentoBox's `Pipeliner`. It puts a plugin chunk ticket on each chunk it loads (skipping chunks BentoBox already holds) so entities are still loaded at the final entity scan; every exit path (finish, timeout, cancel, `Pipeliner.stop()`) must call `releaseChunks()`. Queue recounts on the shared `addon.getPipeliner()`; never construct a `Pipeliner` per command (each one starts a repeating task that is never cancelled) |
 
 ### Permission-Based Limits
 

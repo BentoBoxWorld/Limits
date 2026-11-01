@@ -200,6 +200,68 @@ class RecountCalculatorTest {
     }
 
     @Test
+    void testLoadedChunksAreTicketedUntilTidyUp() {
+        Chunk c = chunk(true, true);
+        loadsChunk(c);
+        when(c.addPluginChunkTicket(plugin)).thenReturn(true);
+        when(world.getEntities()).thenReturn(List.of());
+        RecountCalculator calc = new RecountCalculator(addon, island, new CompletableFuture<>(), true);
+
+        calc.scanNextChunk().join();
+        verify(c).addPluginChunkTicket(plugin);
+        verify(c, never()).removePluginChunkTicket(plugin);
+
+        calc.tidyUp();
+        verify(c).removePluginChunkTicket(plugin);
+    }
+
+    @Test
+    void testChunkAlreadyHeldByBentoBoxKeepsItsTicket() {
+        Chunk c = chunk(true, true);
+        loadsChunk(c);
+        when(c.getPluginChunkTickets()).thenReturn(List.of(plugin));
+        when(world.getEntities()).thenReturn(List.of());
+        RecountCalculator calc = new RecountCalculator(addon, island, new CompletableFuture<>(), true);
+
+        calc.scanNextChunk().join();
+        calc.tidyUp();
+
+        verify(c, never()).addPluginChunkTicket(plugin);
+        verify(c, never()).removePluginChunkTicket(plugin);
+    }
+
+    @Test
+    void testCancelledRecountReleasesChunksWithoutWritingCounts() {
+        Chunk c = chunk(true, true);
+        loadsChunk(c);
+        when(c.addPluginChunkTicket(plugin)).thenReturn(true);
+        CompletableFuture<Results> result = new CompletableFuture<>();
+        RecountCalculator calc = new RecountCalculator(addon, island, result, true);
+
+        calc.scanIsland(System::currentTimeMillis, () -> { }, () -> true, () -> { });
+        MockBukkit.getMock().getScheduler().performTicks(10L);
+
+        assertTrue(result.isDone());
+        verify(c).removePluginChunkTicket(plugin);
+        verify(bll, never()).setIsland(any(), any());
+    }
+
+    @Test
+    void testTimedOutRecountReleasesChunks() {
+        Chunk c = chunk(true, true);
+        loadsChunk(c);
+        when(c.addPluginChunkTicket(plugin)).thenReturn(true);
+        CompletableFuture<Results> result = new CompletableFuture<>();
+        RecountCalculator calc = new RecountCalculator(addon, island, result, true);
+
+        calc.scanIsland(() -> 0L, () -> { }, () -> false, () -> { });
+
+        assertEquals(Results.Result.TIMEOUT, result.join().getState());
+        verify(c).removePluginChunkTicket(plugin);
+        verify(bll, never()).setIsland(any(), any());
+    }
+
+    @Test
     void testScanEntitiesSkipsPlayers() {
         Player player = mock(Player.class);
         when(player.getType()).thenReturn(EntityType.PLAYER);

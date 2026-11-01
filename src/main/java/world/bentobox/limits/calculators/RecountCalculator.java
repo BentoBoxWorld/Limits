@@ -3,10 +3,12 @@ package world.bentobox.limits.calculators;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.BooleanSupplier;
@@ -57,6 +59,11 @@ public class RecountCalculator {
     private final List<Location> stackedBlocks = new ArrayList<>();
     /** Every chunk this recount loaded, so the finish step can wait for their entities to arrive. */
     private final List<Chunk> loadedChunks = new ArrayList<>();
+    /**
+     * Chunks this recount put a plugin ticket on. Without a ticket, a chunk nobody stands in can
+     * unload before the entity scan, and its entities would be counted as zero.
+     */
+    private final Set<Chunk> ticketedChunks = new HashSet<>();
     private BukkitTask finishTask;
     private final BlockLimitsListener bll;
     private final World world;
@@ -143,7 +150,7 @@ public class RecountCalculator {
             List<CompletableFuture<Chunk>> futures = new ArrayList<>();
             while (!pairList.isEmpty()) {
                 Pair<Integer, Integer> p = pairList.poll();
-                futures.add(Util.getChunkAtAsync(envWorld, p.x, p.z, isNether));
+                futures.add(Util.getChunkAtAsync(envWorld, p.x, p.z, isNether).thenApply(this::holdChunk));
             }
             if (futures.isEmpty()) {
                 return CompletableFuture.completedFuture(Collections.emptyList());
@@ -155,6 +162,29 @@ public class RecountCalculator {
                             .toList());
         }
         return CompletableFuture.completedFuture(Collections.emptyList());
+    }
+
+    /**
+     * Keeps a freshly loaded chunk loaded until {@link #releaseChunks()}, so its entities are still
+     * there when the recount finishes. Chunks BentoBox already holds a ticket on are left alone, so
+     * releasing never drops a ticket this recount did not add.
+     */
+    private Chunk holdChunk(Chunk chunk) {
+        if (chunk != null && !ticketedChunks.contains(chunk)
+                && !chunk.getPluginChunkTickets().contains(addon.getPlugin())
+                && chunk.addPluginChunkTicket(addon.getPlugin())) {
+            ticketedChunks.add(chunk);
+        }
+        return chunk;
+    }
+
+    /**
+     * Removes the plugin tickets this recount added, letting the chunks unload normally again.
+     */
+    public void releaseChunks() {
+        ticketedChunks.forEach(c -> c.removePluginChunkTicket(addon.getPlugin()));
+        ticketedChunks.clear();
+        loadedChunks.clear();
     }
 
     private void scanAsync(Environment env, Chunk chunk) {
@@ -263,6 +293,14 @@ public class RecountCalculator {
     }
 
     public void tidyUp() {
+        try {
+            writeCounts();
+        } finally {
+            releaseChunks();
+        }
+    }
+
+    private void writeCounts() {
         ibc = bll.getIsland(island);
         if (!entitiesOnly) {
             // Custom-namespace counts (ItemsAdder/Oraxen blocks) are event-tracked and
@@ -295,7 +333,6 @@ public class RecountCalculator {
                     }
                 }));
         bll.setIsland(island.getUniqueId(), ibc);
-        loadedChunks.clear();
     }
 
     /**
@@ -315,12 +352,20 @@ public class RecountCalculator {
             }
             if (System.currentTimeMillis() - startTime.getAsLong() > CALCULATION_TIMEOUT * 60000) {
                 onRemove.run();
+                releaseChunks();
                 getR().complete(new Results(Result.TIMEOUT));
                 addon.logError("Level calculation timed out after " + CALCULATION_TIMEOUT + "m for island: "
                         + getIsland());
                 return;
             }
-            if (Boolean.TRUE.equals(hasMoreChunks) && !isCancelled.getAsBoolean()) {
+            if (isCancelled.getAsBoolean()) {
+                // The queue was stopped; don't write a partial count, but let the chunks go
+                onRemove.run();
+                releaseChunks();
+                getR().complete(null);
+                return;
+            }
+            if (Boolean.TRUE.equals(hasMoreChunks)) {
                 recurse.run();
             } else {
                 onRemove.run();

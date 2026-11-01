@@ -11,7 +11,7 @@ admin:
       parameters: "<pemain>"
       description: menampilkan batasan pulau untuk pemain
     calc:
-      parameters: "<pemain>"
+      parameters: "<pemain|all> [entities]"
       description: menghitung ulang batasan pulau untuk pemain
       finished: "<green>Penghitungan ulang pulau selesai tanpa masalah!"
     offset:

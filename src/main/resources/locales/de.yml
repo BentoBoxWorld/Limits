@@ -11,7 +11,7 @@ admin:
       parameters: "<player>"
       description: Zeige die Limitierungen für den Spieler an
     calc:
-      parameters: "<player>"
+      parameters: "<player|all> [entities]"
       description: Berechne die Insel Limitierungen für den Spieler neu
       finished: "<green>Inselberechnung erfolgreich abgeschlossen!"
     offset:
