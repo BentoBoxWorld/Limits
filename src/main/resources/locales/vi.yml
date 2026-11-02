@@ -11,7 +11,7 @@ admin:
       parameters: "<người chơi>"
       description: xem giới hạn đảo của người chơi
     calc:
-      parameters: "<người chơi>"
+      parameters: "<người chơi|all> [entities]"
       description: tính toán lại giới hạn đảo của người chơi
       finished: "<green>Tính toán đã hoàn thành!"
     offset:

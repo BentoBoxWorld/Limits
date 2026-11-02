@@ -11,7 +11,7 @@ admin:
       parameters: "<플레이어>"
       description: 플레이어에게 섬의 한계를 보여주세요
     calc:
-      parameters: "<플레이어>"
+      parameters: "<플레이어|all> [entities]"
       description: 플레이어의 섬 한계를 다시 계산합니다
       finished: "<green> 섬 재계산이 성공적으로 완료되었습니다!"
     offset:

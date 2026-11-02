@@ -10,7 +10,7 @@ admin:
       parameters: <プレイヤー>
       description: プレイヤーの島の制限を表示する
     calc:
-      parameters: <プレイヤー>
+      parameters: "<プレイヤー|all> [entities]"
       description: プレイヤーの島の制限を再計算します
       finished: '<green> 島の再計算が正常に完了しました!'
     offset:

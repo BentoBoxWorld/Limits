@@ -147,6 +147,7 @@ public class Pipeliner {
     public void stop() {
         addon.log("Stopping Limits queue");
         task.cancel();
+        this.inProcessQueue.keySet().forEach(RecountCalculator::releaseChunks);
         this.inProcessQueue.clear();
         this.toProcessQueue.clear();
     }

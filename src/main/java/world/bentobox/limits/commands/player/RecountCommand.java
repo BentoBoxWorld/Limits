@@ -8,7 +8,6 @@ import world.bentobox.bentobox.api.commands.CompositeCommand;
 import world.bentobox.bentobox.api.user.User;
 import world.bentobox.bentobox.database.objects.Island;
 import world.bentobox.limits.Limits;
-import world.bentobox.limits.calculators.Pipeliner;
 import world.bentobox.limits.calculators.Results;
 
 /**
@@ -62,15 +61,13 @@ public class RecountCommand extends CompositeCommand {
         // Set cooldown
         setCooldown(user.getUniqueId(), addon.getConfig().getInt("cooldown", 120));
         user.sendMessage("island.limits.recount.now-recounting");
-        new Pipeliner(addon).addIsland(island).thenAccept(results -> {
-            if (results == null) {
+        addon.getPipeliner().addIsland(island).thenAccept(results -> {
+            if (results == null || results.getState() == Results.Result.IN_PROGRESS) {
                 user.sendMessage("island.limits.recount.in-progress");
+            } else if (results.getState() == Results.Result.TIMEOUT) {
+                user.sendMessage("island.limits.recount.time-out");
             } else {
-                if (results.getState() == Results.Result.TIMEOUT) {
-                    user.sendMessage("admin.limits.calc.timeout");
-                } else {
-                    user.sendMessage("admin.limits.calc.finished");
-                }
+                user.sendMessage("admin.limits.calc.finished");
             }
         });
         return true;

@@ -34,10 +34,10 @@ cooldown: 120
 # default range of 50, but 2,601 at range 400. Islands are recounted one at a time in the
 # background and only the entity counts are rewritten; block counts are left untouched.
 #
-# The recount only sees entities in chunks that are still loaded when it finishes, so it is
-# accurate when the owner is on the island and the island fits within view distance. Counts are
-# replaced, not merged: a recount that sees fewer entities than the event tracking counted
-# lowers the count.
+# The recount keeps the island's chunks loaded until it has counted their entities, so it is
+# accurate wherever the owner is. Counts are replaced, not merged: a recount that sees fewer
+# entities than the event tracking counted lowers the count.
+# To fix every island at once, use /<gamemode>admin limits calc all entities.
 recount-on-join: false
 # Minimum seconds between automatic recounts of the same island (shared with the periodic sweep).
 recount-on-join-cooldown: 300

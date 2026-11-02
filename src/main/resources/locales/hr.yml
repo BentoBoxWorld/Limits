@@ -11,7 +11,7 @@ admin:
       parameters: "<igrač>"
       description: pokazati ograničenja otoka za igrača
     calc:
-      parameters: "<igrač>"
+      parameters: "<igrač|all> [entities]"
       description: ponovno izračunati ograničenja otoka za igrača
       finished: "<green> Recalc otoka uspješno završen!"
     offset:

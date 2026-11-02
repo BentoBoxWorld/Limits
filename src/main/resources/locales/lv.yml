@@ -11,7 +11,7 @@ admin:
       parameters: "<spēlētājs>"
       description: rāda salas ierobežojumus priekš spēlētāja
     calc:
-      parameters: "<spēlētājs>"
+      parameters: "<spēlētājs|all> [entities]"
       description: pārrēķinā salas ierobežojumus priekš spēlētāja
       finished: "<green>Salas ierobežojumu pārrēķināšana pabeigta!"
     offset:

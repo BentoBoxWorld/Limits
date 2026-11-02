@@ -16,9 +16,11 @@ admin:
         parameters: "<player>"
         description: "show the island limits for player"
       calc:
-         parameters: "<player>"
-         description: "recalculate the island limits for player"
+         parameters: "<player|all> [entities]"
+         description: "recalculate the island limits for a player, or for every island with 'all'. Add 'entities' to recount entities only"
          finished: "<green> Island recalc finished successfully!"
+         all-queued: "<aqua> Queued [number] islands for recount. They are recounted one at a time, so this could take a while..."
+         all-finished: "<green> Recount of [number] islands finished. [timeouts] timed out."
       offset:
         unknown: "<red> Unknown material or entity [name]."
         description: "allows to manage limits offsets for materials and entities"

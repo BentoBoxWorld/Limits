@@ -11,7 +11,7 @@ admin:
       parameters: "<gracz>"
       description: pokazuje limity wysp gracza
     calc:
-      parameters: "<gracz>"
+      parameters: "<gracz|all> [entities]"
       description: ponownie oblicza limity wyspy dla gracza
       finished: "<green>Przeliczanie zakończone!"
     offset:
