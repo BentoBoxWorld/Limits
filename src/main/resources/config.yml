@@ -34,7 +34,7 @@ cooldown: 120
 # default range of 50, but 2,601 at range 400. Islands are recounted one at a time in the
 # background and only the entity counts are rewritten; block counts are left untouched.
 #
-# The recount keeps the island's chunks loaded until it has counted their entities, so it is
+# The recount keeps each chunk loaded until it has counted its entities, so it is
 # accurate wherever the owner is. Counts are replaced, not merged: a recount that sees fewer
 # entities than the event tracking counted lowers the count.
 # To fix every island at once, use /<gamemode>admin limits calc all entities.
