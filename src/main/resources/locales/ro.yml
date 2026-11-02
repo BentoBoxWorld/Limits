@@ -11,7 +11,7 @@ admin:
       parameters: "<jucator>"
       description: Arata limitele insulei pentru jucator
     calc:
-      parameters: "<jucator>"
+      parameters: "<jucator|all> [entities]"
       description: recalculeaza limitele insulei pentru jocator
       finished: "<green>Recalcularea insulei terminata cu succes!"
     offset:

@@ -11,7 +11,7 @@ admin:
       parameters: "<玩家>"
       description: 顯示玩家的島嶼限制
     calc:
-      parameters: "<玩家>"
+      parameters: "<玩家|all> [entities]"
       description: 重新計算玩家的島嶼限制
       finished: "<green> 島嶼重新計算成功完成！"
     offset:

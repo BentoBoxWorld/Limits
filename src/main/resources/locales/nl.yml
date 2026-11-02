@@ -11,7 +11,7 @@ admin:
       parameters: "<speler>"
       description: toon de eilandgrenzen voor de speler
     calc:
-      parameters: "<speler>"
+      parameters: "<speler|all> [entities]"
       description: herbereken de eilandlimieten voor de speler
       finished: "<green> Eiland herberekening succesvol afgerond!"
     offset:

@@ -1,12 +1,16 @@
 package world.bentobox.limits.calculators;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.BooleanSupplier;
@@ -15,7 +19,6 @@ import java.util.function.LongSupplier;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.ChunkSnapshot;
-import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Tag;
 import org.bukkit.World;
@@ -37,13 +40,15 @@ import world.bentobox.limits.objects.IslandBlockCount;
 /**
  * Counter for limits.
  *
- * <p>Scans every loaded chunk in each of the island's environment worlds (overworld,
- * nether, end) and rebuilds {@link IslandBlockCount}'s per-env block and entity
- * counts from scratch.
+ * <p>Loads the island's chunks in each of its environment worlds (overworld, nether, end)
+ * in batches and rebuilds {@link IslandBlockCount}'s per-env block and entity counts from
+ * scratch. Each batch is held loaded only until its blocks and entities are counted, so
+ * memory use is bounded by the batch size, not the island size.
  *
  * @author tastybento
  */
 public class RecountCalculator {
+    /** Longest time, in milliseconds, to wait for one batch's entities to load before counting it anyway. */
     public static final long MAX_AMOUNT = 10000;
     private static final int CHUNKS_TO_SCAN = 100;
     private static final int CALCULATION_TIMEOUT = 5;
@@ -54,10 +59,12 @@ public class RecountCalculator {
     private final CompletableFuture<Results> r;
     private final Results results;
     private final Map<Environment, World> worlds = new EnumMap<>(Environment.class);
-    private final List<Location> stackedBlocks = new ArrayList<>();
-    /** Every chunk this recount loaded, so the finish step can wait for their entities to arrive. */
-    private final List<Chunk> loadedChunks = new ArrayList<>();
-    private BukkitTask finishTask;
+    /**
+     * Chunks this recount put a plugin ticket on. Without a ticket, a chunk nobody stands in can
+     * unload before its entities are counted, and they would be counted as zero.
+     */
+    private final Set<Chunk> ticketedChunks = new HashSet<>();
+    private BukkitTask entityWaitTask;
     private final BlockLimitsListener bll;
     private final World world;
     /** When true, chunks are loaded but the per-block scan is skipped; only entity counts are rebuilt. */
@@ -143,7 +150,7 @@ public class RecountCalculator {
             List<CompletableFuture<Chunk>> futures = new ArrayList<>();
             while (!pairList.isEmpty()) {
                 Pair<Integer, Integer> p = pairList.poll();
-                futures.add(Util.getChunkAtAsync(envWorld, p.x, p.z, isNether));
+                futures.add(Util.getChunkAtAsync(envWorld, p.x, p.z, isNether).thenApply(this::holdChunk));
             }
             if (futures.isEmpty()) {
                 return CompletableFuture.completedFuture(Collections.emptyList());
@@ -155,6 +162,36 @@ public class RecountCalculator {
                             .toList());
         }
         return CompletableFuture.completedFuture(Collections.emptyList());
+    }
+
+    /**
+     * Keeps a freshly loaded chunk loaded until {@link #releaseChunks()}, so its entities are still
+     * there when the recount finishes. Chunks BentoBox already holds a ticket on are left alone, so
+     * releasing never drops a ticket this recount did not add.
+     */
+    private Chunk holdChunk(Chunk chunk) {
+        if (chunk != null && !ticketedChunks.contains(chunk)
+                && !chunk.getPluginChunkTickets().contains(addon.getPlugin())
+                && chunk.addPluginChunkTicket(addon.getPlugin())) {
+            ticketedChunks.add(chunk);
+        }
+        return chunk;
+    }
+
+    /**
+     * Removes the plugin tickets this recount added, letting the chunks unload normally again.
+     */
+    public void releaseChunks() {
+        if (entityWaitTask != null) {
+            entityWaitTask.cancel();
+            entityWaitTask = null;
+        }
+        ticketedChunks.forEach(c -> c.removePluginChunkTicket(addon.getPlugin()));
+        ticketedChunks.clear();
+    }
+
+    private void releaseChunks(Collection<Chunk> chunks) {
+        chunks.stream().filter(ticketedChunks::remove).forEach(c -> c.removePluginChunkTicket(addon.getPlugin()));
     }
 
     private void scanAsync(Environment env, Chunk chunk) {
@@ -212,6 +249,11 @@ public class RecountCalculator {
         return result;
     }
 
+    /**
+     * Loads, counts and releases the next batch of chunks.
+     *
+     * @return true if there are more chunks to scan
+     */
     public CompletableFuture<Boolean> scanNextChunk() {
         if (chunksToCheck.isEmpty()) {
             addon.logError("Unexpected: no chunks to scan!");
@@ -229,40 +271,82 @@ public class RecountCalculator {
         CompletableFuture<List<Chunk>> netherFuture = getWorldChunk(Environment.NETHER, netherPairList);
         CompletableFuture<List<Chunk>> normalFuture = getWorldChunk(Environment.NORMAL, pairList);
 
-        CompletableFuture<Void> loaded = CompletableFuture.allOf(endFuture, netherFuture, normalFuture)
-                .thenRun(() -> {
-                    loadedChunks.addAll(endFuture.join());
-                    loadedChunks.addAll(netherFuture.join());
-                    loadedChunks.addAll(normalFuture.join());
+        CompletableFuture<Map<Environment, List<Chunk>>> loaded = CompletableFuture
+                .allOf(endFuture, netherFuture, normalFuture).thenApply(v -> {
+                    Map<Environment, List<Chunk>> batch = new EnumMap<>(Environment.class);
+                    batch.put(Environment.THE_END, endFuture.join());
+                    batch.put(Environment.NETHER, netherFuture.join());
+                    batch.put(Environment.NORMAL, normalFuture.join());
+                    return batch;
                 });
 
-        // Entity-only recount: chunks are still loaded so entities materialise for scanEntities(),
+        // Entity-only recount: chunks are still loaded so their entities can be counted,
         // but the expensive per-block scan is skipped.
-        if (entitiesOnly) {
-            return loaded.thenApply(v -> !chunksToCheck.isEmpty());
-        }
+        CompletableFuture<Map<Environment, List<Chunk>>> scanned = entitiesOnly ? loaded
+                : loaded.thenCompose(batch -> scanChunk(Environment.THE_END, batch.get(Environment.THE_END))
+                        .thenCompose(b -> scanChunk(Environment.NETHER, batch.get(Environment.NETHER)))
+                        .thenCompose(b2 -> scanChunk(Environment.NORMAL, batch.get(Environment.NORMAL)))
+                        .thenApply(b3 -> batch));
 
-        return loaded
-                .thenCompose(v -> scanChunk(Environment.THE_END, endFuture.join())
-                        .thenCompose(b -> scanChunk(Environment.NETHER, netherFuture.join()))
-                        .thenCompose(b2 -> scanChunk(Environment.NORMAL, normalFuture.join()))
-                        .thenApply(b3 -> !chunksToCheck.isEmpty()));
+        return scanned.thenCompose(this::countEntities).thenApply(v -> !chunksToCheck.isEmpty());
     }
 
-    private void scanEntities() {
-        for (Map.Entry<Environment, World> e : worlds.entrySet()) {
-            Environment env = e.getKey();
-            World w = e.getValue();
-            for (Entity entity : w.getEntities()) {
-                if (!Limits.isTracked(entity) || Limits.isExempt(entity)) continue;
-                if (island.inIslandSpace(entity.getLocation())) {
-                    results.getEntityCount(env).add(entity.getType());
+    /**
+     * Paper loads a chunk's entities separately from, and slightly after, the chunk itself.
+     * Counting before they arrive would under-count, so this waits (up to {@link #MAX_AMOUNT} ms)
+     * for the batch's entities, counts them, then releases the batch's chunks.
+     */
+    private CompletableFuture<Void> countEntities(Map<Environment, List<Chunk>> batch) {
+        CompletableFuture<Void> done = new CompletableFuture<>();
+        if (entitiesLoaded(batch)) {
+            countAndRelease(batch);
+            done.complete(null);
+            return done;
+        }
+        long start = System.currentTimeMillis();
+        entityWaitTask = Bukkit.getScheduler().runTaskTimer(addon.getPlugin(), () -> {
+            if (entitiesLoaded(batch) || System.currentTimeMillis() - start > MAX_AMOUNT) {
+                entityWaitTask.cancel();
+                entityWaitTask = null;
+                countAndRelease(batch);
+                done.complete(null);
+            }
+        }, 1L, 1L);
+        return done;
+    }
+
+    /**
+     * @return true once every chunk in the batch has its entities loaded, or has since unloaded
+     */
+    static boolean entitiesLoaded(Map<Environment, List<Chunk>> batch) {
+        return batch.values().stream().flatMap(List::stream).allMatch(c -> !c.isLoaded() || c.isEntitiesLoaded());
+    }
+
+    private void countAndRelease(Map<Environment, List<Chunk>> batch) {
+        batch.forEach((env, chunks) -> {
+            // A chunk is counted once even if it was returned for more than one coordinate
+            Set<Chunk> unique = new LinkedHashSet<>(chunks);
+            for (Chunk chunk : unique) {
+                for (Entity entity : chunk.getEntities()) {
+                    if (Limits.isTracked(entity) && !Limits.isExempt(entity)
+                            && island.inIslandSpace(entity.getLocation())) {
+                        results.getEntityCount(env).add(entity.getType());
+                    }
                 }
             }
-        }
+            releaseChunks(unique);
+        });
     }
 
     public void tidyUp() {
+        try {
+            writeCounts();
+        } finally {
+            releaseChunks();
+        }
+    }
+
+    private void writeCounts() {
         ibc = bll.getIsland(island);
         if (!entitiesOnly) {
             // Custom-namespace counts (ItemsAdder/Oraxen blocks) are event-tracked and
@@ -285,8 +369,7 @@ public class RecountCalculator {
             }));
         }
 
-        // Recount entities (loaded only) and write per-env
-        scanEntities();
+        // Write the per-env entity counts gathered batch by batch
         ibc.clearAllEntityCounts();
         results.getEnvEntityCount().forEach((env, multiset) -> multiset
                 .entrySet().forEach(en -> {
@@ -295,17 +378,6 @@ public class RecountCalculator {
                     }
                 }));
         bll.setIsland(island.getUniqueId(), ibc);
-        loadedChunks.clear();
-    }
-
-    /**
-     * Paper loads a chunk's entities separately from, and slightly after, the chunk itself.
-     * Counting before they arrive would under-count, so the finish step waits for this.
-     *
-     * @return true once every chunk this recount loaded has its entities loaded, or has since unloaded
-     */
-    boolean entitiesLoaded() {
-        return loadedChunks.stream().allMatch(c -> !c.isLoaded() || c.isEntitiesLoaded());
     }
 
     public void scanIsland(LongSupplier startTime, Runnable onRemove, BooleanSupplier isCancelled, Runnable recurse) {
@@ -315,25 +387,28 @@ public class RecountCalculator {
             }
             if (System.currentTimeMillis() - startTime.getAsLong() > CALCULATION_TIMEOUT * 60000) {
                 onRemove.run();
+                releaseChunks();
                 getR().complete(new Results(Result.TIMEOUT));
                 addon.logError("Level calculation timed out after " + CALCULATION_TIMEOUT + "m for island: "
                         + getIsland());
                 return;
             }
-            if (Boolean.TRUE.equals(hasMoreChunks) && !isCancelled.getAsBoolean()) {
+            if (isCancelled.getAsBoolean()) {
+                // The queue was stopped; don't write a partial count, but let the chunks go
+                onRemove.run();
+                releaseChunks();
+                getR().complete(null);
+                return;
+            }
+            if (Boolean.TRUE.equals(hasMoreChunks)) {
                 recurse.run();
             } else {
-                onRemove.run();
                 handleStackedBlocks();
-                long checkTime = System.currentTimeMillis();
-                finishTask = Bukkit.getScheduler().runTaskTimer(addon.getPlugin(), () -> {
-                    if ((stackedBlocks.isEmpty() && entitiesLoaded())
-                            || System.currentTimeMillis() - checkTime > MAX_AMOUNT) {
-                        this.tidyUp();
-                        this.getR().complete(getResults());
-                        finishTask.cancel();
-                    }
-                }, 0, 10L);
+                this.tidyUp();
+                // Leave the queue only once the counts are written, so the next island's
+                // chunks never load while this one's are still held
+                onRemove.run();
+                this.getR().complete(getResults());
             }
         });
     }

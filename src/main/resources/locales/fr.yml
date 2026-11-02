@@ -11,7 +11,7 @@ admin:
       parameters: "<player>"
       description: affiche les limites de l'île pour le joueur
     calc:
-      parameters: "<player>"
+      parameters: "<player|all> [entities]"
       description: recalcule les limites de l'île pour le joueur
       finished: "<green> Recomptage terminé avec succès!"
     offset:

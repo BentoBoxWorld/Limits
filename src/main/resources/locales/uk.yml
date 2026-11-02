@@ -11,7 +11,7 @@ admin:
       parameters: "<гравець>"
       description: показати обмеження острова для гравця
     calc:
-      parameters: "<гравець>"
+      parameters: "<гравець|all> [entities]"
       description: перерахувати обмеження острова для гравця
       finished: Перерахунок острова успішно завершено!
     offset:

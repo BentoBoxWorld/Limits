@@ -8,11 +8,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -37,12 +39,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.bukkit.persistence.PersistentDataType;
 import org.mockbukkit.mockbukkit.MockBukkit;
 import org.mockbukkit.mockbukkit.persistence.PersistentDataContainerMock;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.mockito.stubbing.Answer;
 
 import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.database.objects.Island;
@@ -114,6 +118,7 @@ class RecountCalculatorTest {
         Chunk c = mock(Chunk.class);
         when(c.isLoaded()).thenReturn(loaded);
         when(c.isEntitiesLoaded()).thenReturn(entitiesLoaded);
+        when(c.getEntities()).thenReturn(new Entity[0]);
         return c;
     }
 
@@ -139,111 +144,190 @@ class RecountCalculatorTest {
     }
 
     @Test
-    void testEntitiesLoadedTracksChunksTheScanLoaded() {
-        Chunk c = chunk(true, false);
-        loadsChunk(c);
-        RecountCalculator calc = new RecountCalculator(addon, island, new CompletableFuture<>(), true);
-        assertTrue(calc.entitiesLoaded(), "nothing loaded yet");
+    void testEntitiesLoadedChecksEveryChunkInTheBatch() {
+        Chunk ready = chunk(true, true);
+        Chunk loading = chunk(true, false);
+        Chunk unloaded = chunk(false, false);
 
-        assertFalse(calc.scanNextChunk().join(), "64 chunks fit in one batch");
-        assertFalse(calc.entitiesLoaded(), "chunk loaded but its entities have not arrived");
-
-        when(c.isEntitiesLoaded()).thenReturn(true);
-        assertTrue(calc.entitiesLoaded());
+        assertTrue(RecountCalculator.entitiesLoaded(Map.of(Environment.NORMAL, List.of(ready))));
+        assertFalse(RecountCalculator.entitiesLoaded(Map.of(Environment.NORMAL, List.of(ready),
+                Environment.NETHER, List.of(loading))), "a chunk's entities have not arrived");
+        assertTrue(RecountCalculator.entitiesLoaded(Map.of(Environment.NORMAL, List.of(ready, unloaded))),
+                "an unloaded chunk cannot deliver entities, so do not wait for it");
     }
 
     @Test
-    void testChunkThatUnloadedAgainDoesNotBlockFinish() {
+    void testBatchWaitsForEntitiesBeforeCountingAndReleasing() {
         Chunk c = chunk(true, false);
         loadsChunk(c);
+        when(c.addPluginChunkTicket(plugin)).thenReturn(true);
+        Villager villager = villager();
+        when(c.getEntities()).thenReturn(new Entity[] { villager });
         RecountCalculator calc = new RecountCalculator(addon, island, new CompletableFuture<>(), true);
-        calc.scanNextChunk().join();
-        assertFalse(calc.entitiesLoaded());
 
-        when(c.isLoaded()).thenReturn(false);
-        assertTrue(calc.entitiesLoaded(), "an unloaded chunk cannot deliver entities, so do not wait for it");
-    }
-
-    @Test
-    void testFinishWaitsForEntitiesToLoad() {
-        Chunk c = chunk(true, false);
-        loadsChunk(c);
-        when(world.getEntities()).thenReturn(List.of());
-        CompletableFuture<Results> result = new CompletableFuture<>();
-        RecountCalculator calc = new RecountCalculator(addon, island, result, true);
-
-        calc.scanIsland(System::currentTimeMillis, () -> { }, () -> false, () -> { });
-
+        CompletableFuture<Boolean> scan = calc.scanNextChunk();
         MockBukkit.getMock().getScheduler().performTicks(30L);
-        assertFalse(result.isDone(), "must not finish while entities are still loading");
-        verify(bll, never()).setIsland(any(), any());
+        assertFalse(scan.isDone(), "must not count while entities are still loading");
+        verify(c).addPluginChunkTicket(plugin);
+        verify(c, never()).removePluginChunkTicket(plugin);
 
         when(c.isEntitiesLoaded()).thenReturn(true);
-        MockBukkit.getMock().getScheduler().performTicks(10L);
-        assertTrue(result.isDone());
-        assertNotNull(result.join());
-        verify(bll).setIsland(eq(ISLAND_ID), any(IslandBlockCount.class));
+        MockBukkit.getMock().getScheduler().performOneTick();
+        assertFalse(scan.join(), "64 chunks fit in one batch");
+        assertEquals(1, calc.getResults().getEntityCount(Environment.NORMAL).count(EntityType.VILLAGER),
+                "a chunk is counted once even if returned for several coordinates");
+        verify(c).removePluginChunkTicket(plugin);
     }
 
     @Test
-    void testFinishIsImmediateWhenEntitiesAlreadyLoaded() {
+    void testBatchIsReleasedBeforeTheNextBatchLoads() {
+        // Range 100 is 196 chunks per world: two batches of up to 100
+        when(island.getProtectionRange()).thenReturn(100);
+        Map<Long, Chunk> chunks = new HashMap<>();
+        when(world.isChunkGenerated(anyInt(), anyInt())).thenReturn(true);
+        Answer<Object> chunkAt = inv -> chunks.computeIfAbsent(
+                ((long) (int) inv.getArgument(0) << 32) ^ ((int) inv.getArgument(1) & 0xffffffffL), k -> {
+                    Chunk c = chunk(true, true);
+                    when(c.addPluginChunkTicket(plugin)).thenReturn(true);
+                    return c;
+                });
+        when(world.getChunkAtAsync(anyInt(), anyInt(), anyBoolean()))
+                .thenAnswer(inv -> CompletableFuture.completedFuture(chunkAt.answer(inv)));
+        when(world.getChunkAt(anyInt(), anyInt())).thenAnswer(chunkAt);
+        when(world.getChunkAt(anyInt(), anyInt(), anyBoolean())).thenAnswer(chunkAt);
+        RecountCalculator calc = new RecountCalculator(addon, island, new CompletableFuture<>(), true);
+
+        assertTrue(calc.scanNextChunk().join(), "a second batch remains");
+        assertEquals(100, chunks.size(), "only the first batch is loaded");
+        chunks.values().forEach(c -> verify(c).removePluginChunkTicket(plugin));
+
+        assertFalse(calc.scanNextChunk().join());
+        assertEquals(196, chunks.size());
+        chunks.values().forEach(c -> verify(c).removePluginChunkTicket(plugin));
+    }
+
+    @Test
+    void testIslandLeavesTheQueueOnlyAfterCountsAreWritten() {
         Chunk c = chunk(true, true);
         loadsChunk(c);
-        when(world.getEntities()).thenReturn(List.of());
+        Runnable onRemove = mock(Runnable.class);
         CompletableFuture<Results> result = new CompletableFuture<>();
         RecountCalculator calc = new RecountCalculator(addon, island, result, true);
 
-        calc.scanIsland(System::currentTimeMillis, () -> { }, () -> false, () -> { });
-        MockBukkit.getMock().getScheduler().performOneTick();
+        calc.scanIsland(System::currentTimeMillis, onRemove, () -> false, () -> { });
 
         assertTrue(result.isDone());
+        assertNotNull(result.join());
+        InOrder order = inOrder(bll, onRemove);
+        order.verify(bll).setIsland(eq(ISLAND_ID), any(IslandBlockCount.class));
+        order.verify(onRemove).run();
     }
 
     @Test
-    void testScanEntitiesSkipsPlayers() {
+    void testChunkAlreadyHeldByBentoBoxKeepsItsTicket() {
+        Chunk c = chunk(true, true);
+        loadsChunk(c);
+        when(c.getPluginChunkTickets()).thenReturn(List.of(plugin));
+        RecountCalculator calc = new RecountCalculator(addon, island, new CompletableFuture<>(), true);
+
+        calc.scanNextChunk().join();
+        calc.tidyUp();
+
+        verify(c, never()).addPluginChunkTicket(plugin);
+        verify(c, never()).removePluginChunkTicket(plugin);
+    }
+
+    @Test
+    void testCancelledRecountReleasesChunksWithoutWritingCounts() {
+        Chunk c = chunk(true, false);
+        loadsChunk(c);
+        when(c.addPluginChunkTicket(plugin)).thenReturn(true);
+        CompletableFuture<Results> result = new CompletableFuture<>();
+        RecountCalculator calc = new RecountCalculator(addon, island, result, true);
+
+        calc.scanIsland(System::currentTimeMillis, () -> { }, () -> true, () -> { });
+        when(c.isEntitiesLoaded()).thenReturn(true);
+        MockBukkit.getMock().getScheduler().performTicks(10L);
+
+        assertTrue(result.isDone());
+        verify(c).removePluginChunkTicket(plugin);
+        verify(bll, never()).setIsland(any(), any());
+    }
+
+    @Test
+    void testStoppingWhileWaitingForEntitiesReleasesChunks() {
+        Chunk c = chunk(true, false);
+        loadsChunk(c);
+        when(c.addPluginChunkTicket(plugin)).thenReturn(true);
+        RecountCalculator calc = new RecountCalculator(addon, island, new CompletableFuture<>(), true);
+        CompletableFuture<Boolean> scan = calc.scanNextChunk();
+
+        calc.releaseChunks();
+        when(c.isEntitiesLoaded()).thenReturn(true);
+        MockBukkit.getMock().getScheduler().performTicks(10L);
+
+        verify(c).removePluginChunkTicket(plugin);
+        assertFalse(scan.isDone(), "the wait task was cancelled, so nothing is counted");
+    }
+
+    @Test
+    void testTimedOutRecountReleasesChunks() {
+        Chunk c = chunk(true, true);
+        loadsChunk(c);
+        when(c.addPluginChunkTicket(plugin)).thenReturn(true);
+        CompletableFuture<Results> result = new CompletableFuture<>();
+        RecountCalculator calc = new RecountCalculator(addon, island, result, true);
+
+        calc.scanIsland(() -> 0L, () -> { }, () -> false, () -> { });
+
+        assertEquals(Results.Result.TIMEOUT, result.join().getState());
+        verify(c).removePluginChunkTicket(plugin);
+        verify(bll, never()).setIsland(any(), any());
+    }
+
+    @Test
+    void testEntityCountSkipsPlayersExemptAndOutsideIsland() {
         Player player = mock(Player.class);
         when(player.getType()).thenReturn(EntityType.PLAYER);
         when(player.getLocation()).thenReturn(location);
-        Villager villager = withPdc(mock(Villager.class));
-        when(villager.getType()).thenReturn(EntityType.VILLAGER);
-        when(villager.getLocation()).thenReturn(location);
-        when(world.getEntities()).thenReturn(List.of(player, villager));
-        RecountCalculator calc = new RecountCalculator(addon, island, new CompletableFuture<>(), true);
+        Villager exempt = villager();
+        exempt.getPersistentDataContainer().set(Limits.EXEMPT_KEY, PersistentDataType.BYTE, (byte) 1);
+        Location outside = mock(Location.class);
+        when(island.inIslandSpace(outside)).thenReturn(false);
+        Villager neighbour = villager();
+        when(neighbour.getLocation()).thenReturn(outside);
+        Chunk c = chunk(true, true);
+        loadsChunk(c);
+        Villager villager = villager();
+        when(c.getEntities()).thenReturn(new Entity[] { player, exempt, neighbour, villager });
+        CompletableFuture<Results> result = new CompletableFuture<>();
+        RecountCalculator calc = new RecountCalculator(addon, island, result, true);
 
-        calc.tidyUp();
+        calc.scanIsland(System::currentTimeMillis, () -> { }, () -> false, () -> { });
 
+        assertTrue(result.isDone());
         assertEquals(1, ibc.getEntityCount(Environment.NORMAL, EntityType.VILLAGER));
         assertEquals(0, ibc.getEntityCount(Environment.NORMAL, EntityType.PLAYER));
         verify(bll).setIsland(ISLAND_ID, ibc);
     }
 
     @Test
-    void testScanEntitiesSkipsExemptEntities() {
-        Villager exempt = withPdc(mock(Villager.class));
-        when(exempt.getType()).thenReturn(EntityType.VILLAGER);
-        when(exempt.getLocation()).thenReturn(location);
-        exempt.getPersistentDataContainer().set(Limits.EXEMPT_KEY, PersistentDataType.BYTE, (byte) 1);
-        Villager villager = withPdc(mock(Villager.class));
-        when(villager.getType()).thenReturn(EntityType.VILLAGER);
-        when(villager.getLocation()).thenReturn(location);
-        when(world.getEntities()).thenReturn(List.of(exempt, villager));
-        RecountCalculator calc = new RecountCalculator(addon, island, new CompletableFuture<>(), true);
-
-        calc.tidyUp();
-
-        assertEquals(1, ibc.getEntityCount(Environment.NORMAL, EntityType.VILLAGER));
-    }
-
-    @Test
     void testEntityOnlyRecountLeavesBlockCountsAlone() {
         ibc.add(Environment.NORMAL, org.bukkit.Material.HOPPER.getKey());
-        when(world.getEntities()).thenReturn(List.of());
         RecountCalculator calc = new RecountCalculator(addon, island, new CompletableFuture<>(), true);
 
         calc.tidyUp();
 
         assertEquals(1, ibc.getBlockCount(Environment.NORMAL, org.bukkit.Material.HOPPER.getKey()));
     }
+
+    private Villager villager() {
+        Villager v = withPdc(mock(Villager.class));
+        when(v.getType()).thenReturn(EntityType.VILLAGER);
+        when(v.getLocation()).thenReturn(location);
+        return v;
+    }
+
     private BlockData blockData(Material m) {
         BlockData d = m == Material.PISTON_HEAD || m == Material.MOVING_PISTON ? mock(TechnicalPiston.class)
                 : mock(BlockData.class);
