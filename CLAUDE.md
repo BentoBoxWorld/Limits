@@ -42,7 +42,7 @@ Block counts, entity counts, limits, and offsets are all tracked **per `World.En
 
 This means:
 - Counts in nether and end are persistent — they don't go to zero when chunks unload (the original bug in #43).
-- A single config-defined limit applies independently to each env (`HOPPER: 10` allows 10 in overworld, 10 in nether, 10 in end).
+- Without shared dimension limits, a single config-defined limit applies independently to each env (`HOPPER: 10` allows 10 in overworld, 10 in nether, 10 in end). With them, it applies to the three combined (see below).
 - Entity portal teleports decrement the source-env count and increment the destination-env count via `EntityPortalEvent`.
 
 ### Limit Resolution Order
@@ -52,6 +52,12 @@ For a block placement (or entity spawn) in environment `env`, the limit is resol
 1. **Island-specific env limit** (`IslandBlockCount.envBlockLimits[env]`) — set by player permissions, checked at join.
 2. **World-specific limit** (`BlockLimitsListener.worldLimitMap[world]`) — from the `worlds:` section. Each world is one env so this is implicitly env-scoped.
 3. **Env default** (`BlockLimitsListener.envDefaultLimitMap[env]`) — from `blocklimits` (seeded into all envs) plus `blocklimits-nether` / `blocklimits-end` overrides.
+
+### Shared Dimension Limits (#310)
+
+`shared-dimension-limits` makes each limit apply to an island's overworld, nether and end combined. Counts are still stored per env; only the check changes. The shipped `config.yml` sets it `true` (new installs), and the code default when the key is missing is `false`, so existing installs keep per-env limits. BentoBox never merges new keys into an existing addon config, which is what makes this split work.
+
+When shared, every limit lookup uses the overworld: `Settings.limitEnv(env, shared)` returns `NORMAL`, and `BlockLimitsListener` resolves the `worlds:` entry against the game mode's overworld (`Util.getWorld`). Counts use the island-wide total via `IslandBlockCount.getBlockCount(env, key, shared)` / `getEntityCount(env, type, shared)`. Any new limit check, panel or placeholder must go through these two helpers, or it will compare a per-env count or limit in shared mode. Callers read `addon.getSettings().isSharedDimensionLimits()` and pass the flag, rather than calling a `Settings` instance method that returns an env, because many tests mock `Settings` and would get `null`. The panel shows a single "All dimensions" tab when shared.
 
 **Offsets** (`envBlockLimitsOffset[env]`, `envEntityLimitsOffset[env]`) are added on top of any resolved limit. The legacy `/offset` admin command sets the same offset across all envs via the `setBlockLimitsOffsetAllEnvs` / `setEntityLimitsOffsetAllEnvs` helpers.
 

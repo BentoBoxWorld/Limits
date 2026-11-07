@@ -14,6 +14,8 @@ admin:
       parameters: "<giocatore|all> [entities]"
       description: ricalcola i limiti dell'isola per il giocatore
       finished: "<green> Il ricalcolo dell'isola è stato completato con successo!"
+      all-queued: "<aqua> [number] isole in coda per il ricalcolo. Vengono ricalcolate una alla volta, quindi potrebbe volerci un po'..."
+      all-finished: "<green> Ricalcolo di [number] isole completato. [timeouts] sono andate in timeout."
     offset:
       unknown: "<red> Materiale o entità sconosciuta [name]."
       description: "consente di gestire gli offset dei limiti per materiali ed entità"
@@ -48,13 +50,15 @@ island:
     block-limit-syntax: "[number]/[limit]"
     no-limits: "<red> Non ci sono limiti in questo mondo"
     panel:
-      title-syntax: "[title] [sort]"
+      title-syntax: "[title] [env]"
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
+      block-group-name-syntax: "[name]"
       env-overworld: "Sopramondo"
       env-nether: "Nether"
       env-end: "L'End"
+      env-all: "Tutte le dimensioni"
       A2Z: a > z
       Z2A: z > a
     errors:

@@ -143,6 +143,8 @@ class EntityLimitListenerTest {
 
         FileConfiguration config = new YamlConfiguration();
         config.load("src/main/resources/config.yml");
+        // Separate limits per dimension unless a test opts in to shared limits
+        config.set(SHARED_DIMENSION_LIMITS, false);
         // Settings
         when(addon.getConfig()).thenReturn(config);
         Settings settings = new Settings(addon);
@@ -255,6 +257,81 @@ class EntityLimitListenerTest {
         assertEquals(EntityType.ENDERMAN, result.getTypelimit().getKey());
         assertEquals(Integer.valueOf(6), result.getTypelimit().getValue());
 
+    }
+
+    // --- Shared dimension limits (#310) ---
+
+    private static final String SHARED_DIMENSION_LIMITS = "shared-dimension-limits";
+
+    /** Rebuild the settings from the bundled config with shared dimension limits on, plus overrides. */
+    private void useSharedDimensionLimits(Map<String, Object> overrides) throws Exception {
+        FileConfiguration config = new YamlConfiguration();
+        config.load("src/main/resources/config.yml");
+        config.set(SHARED_DIMENSION_LIMITS, true);
+        overrides.forEach(config::set);
+        when(addon.getConfig()).thenReturn(config);
+        Settings settings = new Settings(addon);
+        when(addon.getSettings()).thenReturn(settings);
+    }
+
+    @Test
+    void testSeparateDimensionLimitsCountEachDimensionAlone() {
+        // 4 endermen in the overworld (from setUp) and 1 in the nether; the limit is 5 in each
+        ibc.incrementEntity(Environment.NETHER, EntityType.ENDERMAN);
+
+        assertFalse(ell.atLimit(island, EntityType.ENDERMAN, Environment.NORMAL).hit());
+        assertFalse(ell.atLimit(island, EntityType.ENDERMAN, Environment.NETHER).hit());
+    }
+
+    @Test
+    void testSharedLimitCountsEveryDimension() throws Exception {
+        useSharedDimensionLimits(Map.of());
+        ibc.incrementEntity(Environment.NETHER, EntityType.ENDERMAN);
+
+        for (Environment env : List.of(Environment.NORMAL, Environment.NETHER, Environment.THE_END)) {
+            AtLimitResult result = ell.atLimit(island, EntityType.ENDERMAN, env);
+            assertTrue(result.hit(), env.name());
+            assertEquals(Integer.valueOf(5), result.getTypelimit().getValue());
+        }
+    }
+
+    @Test
+    void testSharedLimitIgnoresNetherOverride() throws Exception {
+        useSharedDimensionLimits(Map.of("entitylimits-nether.ENDERMAN", 100));
+        ibc.incrementEntity(Environment.NETHER, EntityType.ENDERMAN);
+
+        AtLimitResult result = ell.atLimit(island, EntityType.ENDERMAN, Environment.NETHER);
+        assertTrue(result.hit(), "the overworld limit of 5 applies, not the nether's 100");
+        assertEquals(Integer.valueOf(5), result.getTypelimit().getValue());
+        verify(addon).logWarning(org.mockito.ArgumentMatchers.contains("entitylimits-nether"));
+    }
+
+    @Test
+    void testSharedLimitUsesOverworldIslandLimitAndOffset() throws Exception {
+        useSharedDimensionLimits(Map.of());
+        ibc.setEntityLimit(Environment.NORMAL, EntityType.ENDERMAN, 6);
+        ibc.setEntityLimit(Environment.NETHER, EntityType.ENDERMAN, 1);
+        ibc.setEntityLimitsOffset(Environment.NORMAL, EntityType.ENDERMAN, 1);
+        ibc.incrementEntity(Environment.NETHER, EntityType.ENDERMAN);
+        ibc.incrementEntity(Environment.THE_END, EntityType.ENDERMAN);
+
+        assertFalse(ell.atLimit(island, EntityType.ENDERMAN, Environment.NETHER).hit(), "6 of 6 + 1");
+        ibc.incrementEntity(Environment.NETHER, EntityType.ENDERMAN);
+        AtLimitResult result = ell.atLimit(island, EntityType.ENDERMAN, Environment.NETHER);
+        assertTrue(result.hit());
+        assertEquals(Integer.valueOf(7), result.getTypelimit().getValue());
+    }
+
+    @Test
+    void testSharedGroupLimitSumsEveryDimension() throws Exception {
+        useSharedDimensionLimits(Map.of("entitygrouplimits.Monsters.limit", 3));
+        ibc.incrementEntity(Environment.NORMAL, EntityType.SKELETON);
+        ibc.incrementEntity(Environment.NORMAL, EntityType.SKELETON);
+        ibc.incrementEntity(Environment.THE_END, EntityType.STRAY);
+
+        AtLimitResult result = ell.atLimit(island, EntityType.SKELETON, Environment.NETHER);
+        assertTrue(result.hit());
+        assertEquals("Monsters", result.getGrouplimit().getKey().getName());
     }
 
     // --- CreatureSpawnEvent tests ---

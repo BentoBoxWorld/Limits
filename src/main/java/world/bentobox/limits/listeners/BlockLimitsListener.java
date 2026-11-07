@@ -173,6 +173,11 @@ public class BlockLimitsListener implements Listener {
             for (String worldName : Objects.requireNonNull(worlds).getKeys(false)) {
                 World world = Bukkit.getWorld(worldName);
                 if (world != null && addon.inGameModeWorld(world)) {
+                    if (addon.getSettings().isSharedDimensionLimits()
+                            && world.getEnvironment() != Environment.NORMAL) {
+                        addon.logWarning("shared-dimension-limits is on, so the overworld limits apply to each"
+                                + " island as a whole and the worlds: entry for " + worldName + " is ignored");
+                    }
                     addon.log("Loading limits for " + world.getName());
                     ConfigurationSection matsConfig = worlds.getConfigurationSection(worldName);
                     worldLimitMap.put(world, loadLimits(Objects.requireNonNull(matsConfig)));
@@ -640,15 +645,18 @@ public class BlockLimitsListener implements Listener {
     /**
      * Resolve the active limit for this material in this world for this island.
      * Priority: island-env limit, world-named limit, env-default, none.
+     * When limits are shared across dimensions, the overworld's limit is compared with
+     * the island's count across all dimensions.
      *
      * @return limit if at or over, or -1 if no limit
      */
     private int checkLimit(World w, Environment env, NamespacedKey m, String id) {
-        int single = checkSingleLimit(w, env, m, id);
+        boolean shared = addon.getSettings().isSharedDimensionLimits();
+        int single = checkSingleLimit(w, env, m, id, shared);
         if (single > -1) {
             return single;
         }
-        return checkBlockGroupLimit(env, m, islandCountMap.get(id));
+        return checkBlockGroupLimit(env, m, islandCountMap.get(id), shared);
     }
 
     /**
@@ -657,13 +665,13 @@ public class BlockLimitsListener implements Listener {
      *
      * @return group limit if at or over, or -1 if no group limit is hit
      */
-    private int checkBlockGroupLimit(Environment env, NamespacedKey m, IslandBlockCount ibc) {
+    private int checkBlockGroupLimit(Environment env, NamespacedKey m, IslandBlockCount ibc, boolean shared) {
         for (world.bentobox.limits.BlockGroup group : addon.getSettings().getBlockGroups(m)) {
-            int limit = addon.getSettings().getBlockGroupLimit(env, group.getName());
+            int limit = addon.getSettings().getBlockGroupLimit(Settings.limitEnv(env, shared), group.getName());
             if (limit < 0) {
                 continue;
             }
-            int sum = group.getKeys().stream().mapToInt(k -> ibc.getBlockCount(env, k)).sum();
+            int sum = group.getKeys().stream().mapToInt(k -> ibc.getBlockCount(env, k, shared)).sum();
             if (sum >= limit) {
                 return limit;
             }
@@ -671,34 +679,52 @@ public class BlockLimitsListener implements Listener {
         return -1;
     }
 
-    private int checkSingleLimit(World w, Environment env, NamespacedKey m, String id) {
+    private int checkSingleLimit(World w, Environment env, NamespacedKey m, String id, boolean shared) {
         IslandBlockCount ibc = islandCountMap.get(id);
+        Environment limitEnv = Settings.limitEnv(env, shared);
+        int limit = resolveBlockLimit(shared ? overWorld(w) : w, limitEnv, m, ibc);
+        if (limit < 0) {
+            return -1;
+        }
+        int max = limit + ibc.getBlockLimitOffset(limitEnv, m);
+        return ibc.getBlockCount(env, m, shared) >= max ? max : -1;
+    }
+
+    /**
+     * @return the limit for {@code m} without offsets, or -1 if it is not limited
+     */
+    private int resolveBlockLimit(World w, Environment env, NamespacedKey m, IslandBlockCount ibc) {
         if (ibc.isBlockLimited(env, m)) {
-            int offset = ibc.getBlockLimitOffset(env, m);
-            return ibc.isAtLimit(env, m) ? ibc.getBlockLimit(env, m) + offset : -1;
+            return ibc.getBlockLimit(env, m);
         }
         Map<NamespacedKey, Integer> worldMap = worldLimitMap.get(w);
         if (worldMap != null && worldMap.containsKey(m)) {
-            int worldLimit = worldMap.get(m);
-            int offset = ibc.getBlockLimitOffset(env, m);
-            return ibc.isAtLimit(env, m, worldLimit) ? worldLimit + offset : -1;
+            return worldMap.get(m);
         }
         Map<NamespacedKey, Integer> envDefaults = envDefaultLimitMap.get(env);
         if (envDefaults != null && envDefaults.containsKey(m)) {
-            int envLimit = envDefaults.get(m);
-            int offset = ibc.getBlockLimitOffset(env, m);
-            if (ibc.isAtLimit(env, m, envLimit)) {
-                return envLimit + offset;
-            }
+            return envDefaults.get(m);
         }
         return -1;
     }
 
     /**
-     * Aggregate map of the resolved limits for this island in the given world.
+     * @return the overworld of {@code w}'s game mode, or {@code w} if it can't be found
+     */
+    private static World overWorld(World w) {
+        return Objects.requireNonNullElse(Util.getWorld(w), w);
+    }
+
+    /**
+     * Aggregate map of the resolved limits for this island in the given world. When limits are
+     * shared across dimensions, every world of the game mode resolves to the overworld's limits.
      */
     public Map<NamespacedKey, Integer> getMaterialLimits(World w, String id) {
-        Environment env = envOf(w);
+        boolean shared = addon.getSettings().isSharedDimensionLimits();
+        if (shared) {
+            w = overWorld(w);
+        }
+        Environment env = Settings.limitEnv(envOf(w), shared);
         Map<NamespacedKey, Integer> result = new HashMap<>();
         Map<NamespacedKey, Integer> envDefaults = envDefaultLimitMap.get(env);
         if (envDefaults != null) {

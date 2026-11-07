@@ -40,6 +40,10 @@ public class Settings {
     private static final String LIMIT_SUFFIX = ".limit";
     private static final String LIMIT_LOG_PREFIX = "Limit ";
     private static final String GROUP_OVERRIDE_PREFIX = "Group override ";
+    /** Config sections that set limits for the nether or end only, so are ignored when limits are shared. */
+    private static final List<String> ENV_ONLY_SECTIONS = List.of("blocklimits-nether", "blocklimits-end",
+            "entitylimits-nether", "entitylimits-end", "entitygrouplimits-nether", "entitygrouplimits-end",
+            "blockgrouplimits-nether", "blockgrouplimits-end");
 
     private final Map<GeneralGroup, Integer> general = new EnumMap<>(GeneralGroup.class);
     /** Per-env entity type limits (env defaults from config). */
@@ -64,6 +68,7 @@ public class Settings {
     private final int recountPeriodicInterval;
     private final int recountPeriodicBatch;
     private final int recountMaxChunks;
+    private final boolean sharedDimensionLimits;
     private static final List<EntityType> DISALLOWED = Arrays.asList(
             EntityType.TNT,
             EntityType.EVOKER_FANGS,
@@ -127,6 +132,14 @@ public class Settings {
         recountPeriodicBatch = addon.getConfig().getInt("recount-periodic-batch", 2);
         // Never recount islands automatically whose protection area exceeds this many chunks per world
         recountMaxChunks = addon.getConfig().getInt("recount-max-chunks", 1000);
+        // One limit for the island's overworld, nether and end combined. Configs written before
+        // this setting existed lack the key, so they keep separate limits per dimension.
+        sharedDimensionLimits = addon.getConfig().getBoolean("shared-dimension-limits", false);
+        if (sharedDimensionLimits) {
+            ENV_ONLY_SECTIONS.stream().filter(addon.getConfig()::isConfigurationSection)
+                    .forEach(section -> addon.logWarning("shared-dimension-limits is on, so the overworld limits"
+                            + " apply to each island as a whole and " + section + " is ignored"));
+        }
 
         addon.log("Entity limits:");
         envLimits.forEach((env, m) -> m.entrySet().stream()
@@ -371,6 +384,26 @@ public class Settings {
      */
     public boolean isApplyMemberLimitPerms() {
         return applyMemberLimitPerms;
+    }
+
+    /**
+     * @return true if each limit applies to an island's overworld, nether and end combined, rather than
+     *         separately in each dimension
+     */
+    public boolean isSharedDimensionLimits() {
+        return sharedDimensionLimits;
+    }
+
+    /**
+     * The environment whose limits and offsets apply to something in {@code env}. When limits are
+     * shared, that is always the overworld; otherwise it is {@code env} itself.
+     *
+     * @param env    environment the block or entity is in
+     * @param shared whether limits are shared across dimensions
+     * @return the environment to resolve limits in
+     */
+    public static Environment limitEnv(Environment env, boolean shared) {
+        return shared ? Environment.NORMAL : env;
     }
 
     /**

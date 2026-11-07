@@ -14,6 +14,8 @@ admin:
       parameters: "<jugador|all> [entities]"
       description: recalcular los límites de la isla para el jugador
       finished: "<green> ¡El recálculo de la Isla terminó con éxito!"
+      all-queued: "<aqua> [number] islas en cola para recontar. Se recuentan de una en una, así que puede tardar un rato..."
+      all-finished: "<green> Recuento de [number] islas terminado. [timeouts] agotaron el tiempo de espera."
     offset:
       unknown: "<red> Material o entidad desconocida [name]."
       description: "permite gestionar compensaciones de límites para materiales y entidades"
@@ -50,13 +52,15 @@ island:
     block-limit-syntax: "[number]/[limit]"
     no-limits: "<red> No hay límites establecidos en este mundo."
     panel:
-      title-syntax: "[title] [sort]"
+      title-syntax: "[title] [env]"
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
+      block-group-name-syntax: "[name]"
       env-overworld: "Superficie"
       env-nether: "Nether"
       env-end: "El End"
+      env-all: "Todas las dimensiones"
       A2Z: a > z
       Z2A: z > a
     errors:

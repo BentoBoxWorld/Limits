@@ -14,6 +14,8 @@ admin:
       parameters: "<igrač|all> [entities]"
       description: ponovno izračunati ograničenja otoka za igrača
       finished: "<green> Recalc otoka uspješno završen!"
+      all-queued: "<aqua> [number] otoka stavljeno u red za ponovno brojanje. Broje se jedan po jedan, pa bi to moglo potrajati..."
+      all-finished: "<green> Ponovno brojanje [number] otoka završeno. Isteklo vrijeme: [timeouts]."
     offset:
       unknown: "<red> Nepoznati materijal ili entitet [name]."
       description: "omogućuje upravljanje pomacima ograničenja za materijale i entitete"
@@ -48,13 +50,15 @@ island:
     block-limit-syntax: "[number]/[limit]"
     no-limits: "<red> U ovom svijetu nema ograničenja"
     panel:
-      title-syntax: "[title] [sort]"
+      title-syntax: "[title] [env]"
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
+      block-group-name-syntax: "[name]"
       env-overworld: "Nadsvijet"
       env-nether: "Nether"
       env-end: "Kraj"
+      env-all: "Sve dimenzije"
       A2Z: a > z
       Z2A: z > a
     errors:

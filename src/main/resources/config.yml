@@ -5,6 +5,24 @@ gamemodes:
 - CaveBlock
 - AOneBlock
 
+# Share limits across dimensions. When true, each block and entity limit applies to an island's
+# overworld, nether and end combined: a HOPPER limit of 10 allows 10 hoppers in total across the
+# island. When false, each limit applies separately in each dimension: 10 in the overworld, 10 in
+# the nether and 10 in the end.
+#
+# When true, the overworld limits apply to the island as a whole. That means blocklimits,
+# entitylimits, the group limits, the overworld entry under worlds:, all-dimension and overworld
+# permissions, and offsets. The -nether and -end sections, nether/end entries under worlds:, and
+# nether/end-only permissions are ignored, and a warning is logged for each such config section.
+#
+# Counts are always kept per dimension, so this can be switched at any time without a recount.
+# An island that is over a shared limit when it is switched on keeps what it has, but can't add
+# more until it is under the limit.
+#
+# New installs have this on. A config without this setting (from before 1.33.0) keeps separate
+# limits per dimension.
+shared-dimension-limits: true
+
 # Ignore this island's center block. For most worlds, this is bedrock, but for AOneBlock it is
 # the magic block, so ignoring it from limits makes sense.
 ignore-center-block: true
@@ -18,6 +36,7 @@ ignore-center-block: true
 #   2. <gamemode>.island.limit.<env>.<KEY>.<NUMBER>     — applied to one environment only.
 #      e.g.  bskyblock.island.limit.nether.hopper.5
 #      <env> is one of: overworld, nether, end
+#      With shared-dimension-limits, only overworld permissions of this form apply.
 #
 # Permissions activate when the island owner logs in.
 #
@@ -79,10 +98,11 @@ apply-member-limit-perms: false
 # General block limiting
 # Use this section to limit how many blocks can be added to an island.
 # 0 means the item will be blocked from placement completely.
-# These limits apply independently in every environment (overworld, nether, end).
-# A HOPPER limit of 10 means the player can place up to 10 hoppers in each of overworld,
-# nether, and end — 30 hoppers total across the island.
-# Use blocklimits-nether / blocklimits-end below to override per environment.
+# With shared-dimension-limits (above), a HOPPER limit of 10 means 10 hoppers in total across
+# the island's overworld, nether and end. Without it, these limits apply independently in every
+# environment: up to 10 hoppers in each of overworld, nether and end, 30 in total.
+# Use blocklimits-nether / blocklimits-end below to override per environment (ignored when
+# limits are shared).
 # The following general terms can be used: STAIRS, DOORS, SIGNS, LOGS, SNOW, LEAVES,
 # SHULKER_BOXES, BANNERS, RAILS, ICE, BUTTONS, CANDLE_CAKES, CAMPFIRES, SLABS, STONE_BRICKS
 # ItemsAdder / Oraxen custom blocks can be limited too (when the plugin is installed):

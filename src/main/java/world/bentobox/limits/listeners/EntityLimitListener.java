@@ -742,18 +742,21 @@ public class EntityLimitListener implements Listener {
     AtLimitResult atLimit(Island island, EntityType type, Environment env) {
         @Nullable
         IslandBlockCount ibc = addon.getBlockLimitListener().getIsland(island.getUniqueId());
+        // Shared dimension limits: the overworld's limits apply to the island's count across all dimensions
+        boolean shared = addon.getSettings().isSharedDimensionLimits();
+        Environment limitEnv = Settings.limitEnv(env, shared);
 
-        int limitAmount = resolveTypeLimit(ibc, env, type);
-        Map<EntityGroup, Integer> groupsLimits = resolveGroupLimits(ibc, env, type);
+        int limitAmount = resolveTypeLimit(ibc, limitEnv, type);
+        Map<EntityGroup, Integer> groupsLimits = resolveGroupLimits(ibc, limitEnv, type);
 
         if (limitAmount < 0 && groupsLimits.isEmpty()) {
             return new AtLimitResult();
         }
 
-        AtLimitResult typeResult = checkTypeLimit(ibc, env, type, limitAmount);
+        AtLimitResult typeResult = checkTypeLimit(ibc, env, type, limitAmount, shared);
         if (typeResult.hit()) return typeResult;
 
-        return checkGroupLimits(ibc, env, groupsLimits);
+        return checkGroupLimits(ibc, env, groupsLimits, shared);
     }
 
     private int resolveTypeLimit(@Nullable IslandBlockCount ibc, Environment env, EntityType type) {
@@ -782,20 +785,20 @@ public class EntityLimitListener implements Listener {
     }
 
     private AtLimitResult checkTypeLimit(@Nullable IslandBlockCount ibc, Environment env, EntityType type,
-            int limitAmount) {
+            int limitAmount, boolean shared) {
         if (limitAmount < 0) return new AtLimitResult();
-        int count = ibc == null ? 0 : ibc.getEntityCount(env, type);
-        int max = limitAmount + (ibc == null ? 0 : ibc.getEntityLimitOffset(env, type));
+        int count = ibc == null ? 0 : ibc.getEntityCount(env, type, shared);
+        int max = limitAmount + (ibc == null ? 0 : ibc.getEntityLimitOffset(Settings.limitEnv(env, shared), type));
         return count >= max ? new AtLimitResult(type, max) : new AtLimitResult();
     }
 
     private AtLimitResult checkGroupLimits(@Nullable IslandBlockCount ibc, Environment env,
-            Map<EntityGroup, Integer> groupsLimits) {
+            Map<EntityGroup, Integer> groupsLimits, boolean shared) {
         for (Map.Entry<EntityGroup, Integer> group : groupsLimits.entrySet()) {
             if (group.getValue() < 0) continue;
-            int count = sumGroupCount(ibc, env, group.getKey());
-            int max = group.getValue()
-                    + (ibc == null ? 0 : ibc.getEntityGroupLimitOffset(env, group.getKey().getName()));
+            int count = sumGroupCount(ibc, env, group.getKey(), shared);
+            int max = group.getValue() + (ibc == null ? 0
+                    : ibc.getEntityGroupLimitOffset(Settings.limitEnv(env, shared), group.getKey().getName()));
             if (count >= max) {
                 return new AtLimitResult(group.getKey(), max);
             }
@@ -803,12 +806,11 @@ public class EntityLimitListener implements Listener {
         return new AtLimitResult();
     }
 
-    private int sumGroupCount(@Nullable IslandBlockCount ibc, Environment env, EntityGroup group) {
+    private int sumGroupCount(@Nullable IslandBlockCount ibc, Environment env, EntityGroup group, boolean shared) {
         if (ibc == null) return 0;
-        Map<EntityType, Integer> counts = ibc.getEntityCounts(env);
         int total = 0;
         for (EntityType t : group.getTypes()) {
-            total += counts.getOrDefault(t, 0);
+            total += ibc.getEntityCount(env, t, shared);
         }
         return total;
     }

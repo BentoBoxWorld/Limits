@@ -52,15 +52,18 @@ public class LimitPanel {
                 .size(54);
 
         // Always show overworld; show nether/end only if the gamemode generates and provides them.
+        // Shared dimension limits have one tab, for the island as a whole.
         int slot = 0;
         slot = addEnvTab(tpb, overWorld, ibc, island, user, Environment.NORMAL, slot);
-        World netherWorld = gm.getNetherWorld();
-        if (netherWorld != null && addon.getPlugin().getIWM().isNetherIslands(overWorld)) {
-            slot = addEnvTab(tpb, netherWorld, ibc, island, user, Environment.NETHER, slot);
-        }
-        World endWorld = gm.getEndWorld();
-        if (endWorld != null && addon.getPlugin().getIWM().isEndIslands(overWorld)) {
-            slot = addEnvTab(tpb, endWorld, ibc, island, user, Environment.THE_END, slot);
+        if (!addon.getSettings().isSharedDimensionLimits()) {
+            World netherWorld = gm.getNetherWorld();
+            if (netherWorld != null && addon.getPlugin().getIWM().isNetherIslands(overWorld)) {
+                slot = addEnvTab(tpb, netherWorld, ibc, island, user, Environment.NETHER, slot);
+            }
+            World endWorld = gm.getEndWorld();
+            if (endWorld != null && addon.getPlugin().getIWM().isEndIslands(overWorld)) {
+                slot = addEnvTab(tpb, endWorld, ibc, island, user, Environment.THE_END, slot);
+            }
         }
 
         Map<NamespacedKey, Integer> overworldLimits = addon.getBlockLimitListener().getMaterialLimits(overWorld,

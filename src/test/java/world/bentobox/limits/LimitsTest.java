@@ -337,8 +337,8 @@ class LimitsTest {
      * Test method for {@link world.bentobox.limits.Limits#getReachedLimits(world.bentobox.bentobox.api.user.User, world.bentobox.bentobox.api.addons.GameModeAddon, org.bukkit.World.Environment)}.
      */
     @Test
-    void testGetReachedLimits() {
-        addon.onEnable();
+    void testGetReachedLimits() throws IOException {
+        enableWith(SHARED_DIMENSION_LIMITS, false);
         when(gameMode.getIslands()).thenReturn(im);
         when(world.getEnvironment()).thenReturn(World.Environment.NORMAL);
         when(im.getIsland(Mockito.any(World.class), Mockito.any(world.bentobox.bentobox.api.user.User.class)))
@@ -365,6 +365,42 @@ class LimitsTest {
         // Union variant includes the same; nether alone has nothing reached
         assertTrue(addon.getReachedLimits(user, gameMode, null).contains("Hopper"));
         assertTrue(addon.getReachedLimits(user, gameMode, World.Environment.NETHER).isEmpty());
+    }
+
+    /**
+     * With shared dimension limits, counts in every dimension add up against one limit, and
+     * every dimension's placeholder reports the island-wide result.
+     */
+    @Test
+    void testGetReachedLimitsShared() throws IOException {
+        enableWith(SHARED_DIMENSION_LIMITS, true);
+        when(gameMode.getIslands()).thenReturn(im);
+        when(world.getEnvironment()).thenReturn(World.Environment.NORMAL);
+        when(im.getIsland(Mockito.any(World.class), Mockito.any(world.bentobox.bentobox.api.user.User.class)))
+                .thenReturn(island);
+        when(island.getUniqueId()).thenReturn("unique_id");
+
+        world.bentobox.limits.objects.IslandBlockCount ibc = new world.bentobox.limits.objects.IslandBlockCount(
+                "unique_id", "BSkyBlock");
+        // Default config: HOPPER block limit 10, ENDERMAN entity limit 5, split across dimensions
+        for (int i = 0; i < 5; i++) {
+            ibc.add(World.Environment.NORMAL, Material.HOPPER.getKey());
+            ibc.add(World.Environment.NETHER, Material.HOPPER.getKey());
+        }
+        for (int i = 0; i < 3; i++) {
+            ibc.incrementEntity(World.Environment.NORMAL, EntityType.ENDERMAN);
+        }
+        for (int i = 0; i < 2; i++) {
+            ibc.incrementEntity(World.Environment.THE_END, EntityType.ENDERMAN);
+        }
+        addon.getBlockLimitListener().setIsland("unique_id", ibc);
+
+        for (World.Environment env : new World.Environment[] { null, World.Environment.NORMAL,
+                World.Environment.NETHER, World.Environment.THE_END }) {
+            List<String> reached = addon.getReachedLimits(user, gameMode, env);
+            assertTrue(reached.contains("Hopper"), env + " " + reached);
+            assertTrue(reached.contains("Enderman"), env + " " + reached);
+        }
     }
 
     /**
@@ -453,6 +489,7 @@ class LimitsTest {
     private static final String RECOUNT_INTERVAL = "recount-periodic-interval";
     private static final String RECOUNT_BATCH = "recount-periodic-batch";
     private static final String RECOUNT_MAX_CHUNKS = "recount-max-chunks";
+    private static final String SHARED_DIMENSION_LIMITS = "shared-dimension-limits";
 
     /**
      * Enable the addon with config overrides applied on top of the bundled config.yml.
