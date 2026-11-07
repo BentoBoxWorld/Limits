@@ -233,9 +233,12 @@ public class LimitTab implements Tab {
 
     @Override
     public String getName() {
+        String envName = user.getTranslation(world, envKey());
+        // [sort] is the pre-1.28.2 name for [env]. BentoBox never updates existing keys in a
+        // server's copied locale files, so older copies still use it.
         return user.getTranslation(world, "island.limits.panel.title-syntax",
                 "[title]", user.getTranslation(world, "limits.panel-title"),
-                "[env]", user.getTranslation(world, envKey()));
+                "[env]", envName, "[sort]", envName);
     }
 
     private String envKey() {

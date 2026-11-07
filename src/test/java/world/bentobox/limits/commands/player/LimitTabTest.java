@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
@@ -191,6 +192,23 @@ class LimitTabTest {
         assertEquals("10", findCount(tab, "hopper"));
         assertEquals("6", findCount(tab, "chicken"));
         assertTrue(tab.getName().contains("All dimensions"), "Title was: " + tab.getName());
+    }
+
+    @Test
+    void titleFillsTheOldSortPlaceholder() {
+        // A server's copied locale file from before 1.28.2 still says [sort]; BentoBox never updates it
+        when(user.getTranslation(any(World.class), eq("island.limits.panel.title-syntax"), any(String[].class)))
+                .thenAnswer(inv -> {
+                    Object[] all = inv.getArguments();
+                    Object[] vars = new Object[all.length - 2];
+                    System.arraycopy(all, 2, vars, 0, vars.length);
+                    return renderTranslation("[title] [sort]", vars);
+                });
+        IslandBlockCount ibc = new IslandBlockCount("island", "BSkyBlock");
+
+        LimitTab netherTab = new LimitTab(addon, ibc, Collections.emptyMap(), world, user, Environment.NETHER);
+
+        assertEquals("Island limits Nether", netherTab.getName());
     }
 
     /**
