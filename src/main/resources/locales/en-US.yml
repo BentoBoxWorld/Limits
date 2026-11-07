@@ -68,6 +68,7 @@ island:
         env-overworld: "Overworld"
         env-nether: "Nether"
         env-end: "End"
+        env-all: "All dimensions"
     errors:
         no-owner: "<red> That island has no owner"
         not-on-island: "<red> This location does not have limits set."

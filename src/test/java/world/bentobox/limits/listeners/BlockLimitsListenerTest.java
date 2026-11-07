@@ -1090,6 +1090,133 @@ class BlockLimitsListenerTest {
         assertTrue(ibc == null || ibc.getBlockCount(Material.KELP.getKey()) == 0);
     }
 
+    // --- Shared dimension limits (#310) ---
+
+    private static final String ISLAND_ID = "test-island-id";
+
+    /** A nether world for the same game mode. */
+    private World netherWorld() {
+        World nether = mock(World.class);
+        when(nether.getEnvironment()).thenReturn(Environment.NETHER);
+        when(nether.getName()).thenReturn("bskyblock_world_nether");
+        when(addon.inGameModeWorld(nether)).thenReturn(true);
+        when(addon.getGameModeName(nether)).thenReturn("BSkyBlock");
+        return nether;
+    }
+
+    private BlockPlaceEvent placeHopper(Location location) {
+        Block block = mockBlock(Material.HOPPER, location);
+        when(block.getWorld()).thenReturn(location.getWorld());
+        BlockPlaceEvent event = new BlockPlaceEvent(block, mock(BlockState.class), block,
+                new ItemStack(Material.HOPPER), player, true, EquipmentSlot.HAND);
+        listener.onBlock(event);
+        return event;
+    }
+
+    /** 5 hoppers in the overworld and 5 in the nether: under the default limit of 10 in each. */
+    private IslandBlockCount hoppersSplitAcrossDimensions() {
+        IslandBlockCount ibc = new IslandBlockCount(ISLAND_ID, "BSkyBlock");
+        for (int i = 0; i < 5; i++) {
+            ibc.add(Environment.NORMAL, Material.HOPPER.getKey());
+            ibc.add(Environment.NETHER, Material.HOPPER.getKey());
+        }
+        listener.setIsland(ISLAND_ID, ibc);
+        return ibc;
+    }
+
+    @Test
+    void testSeparateDimensionLimitsCountEachDimensionAlone() {
+        hoppersSplitAcrossDimensions();
+
+        assertFalse(placeHopper(blockLocation).isCancelled(), "5 of 10 in the overworld");
+        assertFalse(placeHopper(new Location(netherWorld(), 100, 65, 100)).isCancelled(), "5 of 10 in the nether");
+    }
+
+    @Test
+    void testSharedLimitCountsEveryDimension() {
+        when(limitsSettings.isSharedDimensionLimits()).thenReturn(true);
+        hoppersSplitAcrossDimensions();
+
+        assertTrue(placeHopper(blockLocation).isCancelled(), "10 of 10 across the island");
+        assertTrue(placeHopper(new Location(netherWorld(), 100, 65, 100)).isCancelled());
+        assertEquals(10, listener.getIsland(ISLAND_ID).getBlockCount(Material.HOPPER.getKey()),
+                "nothing is counted when a placement is blocked");
+    }
+
+    @Test
+    void testSharedLimitAllowsPlacementUnderTheTotal() {
+        when(limitsSettings.isSharedDimensionLimits()).thenReturn(true);
+        IslandBlockCount ibc = new IslandBlockCount(ISLAND_ID, "BSkyBlock");
+        for (int i = 0; i < 9; i++) {
+            ibc.add(Environment.NETHER, Material.HOPPER.getKey());
+        }
+        listener.setIsland(ISLAND_ID, ibc);
+
+        assertFalse(placeHopper(blockLocation).isCancelled());
+        assertEquals(1, ibc.getBlockCount(Environment.NORMAL, Material.HOPPER.getKey()),
+                "counts are still kept per dimension");
+    }
+
+    @Test
+    void testSharedLimitIgnoresNetherOverride() {
+        when(limitsSettings.isSharedDimensionLimits()).thenReturn(true);
+        listener.getEnvDefaultLimitMap().get(Environment.NETHER).put(Material.HOPPER.getKey(), 100);
+        IslandBlockCount ibc = new IslandBlockCount(ISLAND_ID, "BSkyBlock");
+        for (int i = 0; i < 10; i++) {
+            ibc.add(Environment.NETHER, Material.HOPPER.getKey());
+        }
+        listener.setIsland(ISLAND_ID, ibc);
+
+        assertTrue(placeHopper(new Location(netherWorld(), 100, 65, 100)).isCancelled(),
+                "the overworld limit of 10 applies, not the nether's 100");
+    }
+
+    @Test
+    void testSharedLimitUsesOverworldIslandLimitAndOffset() {
+        when(limitsSettings.isSharedDimensionLimits()).thenReturn(true);
+        IslandBlockCount ibc = hoppersSplitAcrossDimensions();
+        ibc.setBlockLimit(Environment.NORMAL, Material.HOPPER.getKey(), 12);
+        ibc.setBlockLimit(Environment.NETHER, Material.HOPPER.getKey(), 1);
+        ibc.setBlockLimitsOffset(Environment.NORMAL, Material.HOPPER.getKey(), 2);
+
+        World nether = netherWorld();
+        for (int i = 0; i < 4; i++) {
+            assertFalse(placeHopper(new Location(nether, 100, 65, 100)).isCancelled(), "hopper " + (11 + i));
+        }
+        assertTrue(placeHopper(new Location(nether, 100, 65, 100)).isCancelled(), "12 + 2 offset = 14");
+    }
+
+    @Test
+    void testSharedBlockGroupSumsEveryDimension() {
+        when(limitsSettings.isSharedDimensionLimits()).thenReturn(true);
+        setUpPistonGroup(10);
+        IslandBlockCount ibc = new IslandBlockCount(ISLAND_ID, "BSkyBlock");
+        for (int i = 0; i < 6; i++) {
+            ibc.add(Environment.NORMAL, Material.PISTON.getKey());
+        }
+        for (int i = 0; i < 4; i++) {
+            ibc.add(Environment.NETHER, Material.STICKY_PISTON.getKey());
+        }
+        listener.setIsland(ISLAND_ID, ibc);
+
+        Block block = mockBlock(Material.PISTON, blockLocation);
+        BlockPlaceEvent event = new BlockPlaceEvent(block, mock(BlockState.class), block,
+                new ItemStack(Material.PISTON), player, true, EquipmentSlot.HAND);
+        listener.onBlock(event);
+
+        assertTrue(event.isCancelled());
+    }
+
+    @Test
+    void testSharedMaterialLimitsAreTheOverworldsInEveryDimension() {
+        listener.getEnvDefaultLimitMap().get(Environment.NETHER).put(Material.HOPPER.getKey(), 100);
+        World nether = netherWorld();
+        assertEquals(100, listener.getMaterialLimits(nether, ISLAND_ID).get(Material.HOPPER.getKey()));
+
+        when(limitsSettings.isSharedDimensionLimits()).thenReturn(true);
+        assertEquals(10, listener.getMaterialLimits(nether, ISLAND_ID).get(Material.HOPPER.getKey()));
+    }
+
     // --- Block group limits (#12) ---
 
     private void setUpPistonGroup(int limit) {

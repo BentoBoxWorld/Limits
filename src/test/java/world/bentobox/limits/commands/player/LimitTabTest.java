@@ -96,6 +96,7 @@ class LimitTabTest {
             case "island.limits.panel.env-overworld" -> "Overworld";
             case "island.limits.panel.env-nether" -> "Nether";
             case "island.limits.panel.env-end" -> "End";
+            case "island.limits.panel.env-all" -> "All dimensions";
             case "limits.panel-title" -> "Island limits";
             case "island.limits.block-limit-syntax" -> "[number]/[limit]";
             case "island.limits.max-color" -> "&c";
@@ -172,6 +173,24 @@ class LimitTabTest {
         assertTrue(netherTab.getName().contains("Nether"), "Title should contain 'Nether'; was: " + netherTab.getName());
         assertTrue(netherTab.getName().contains("Island limits"),
                 "Title should contain 'Island limits'; was: " + netherTab.getName());
+    }
+
+    @Test
+    void sharedLimitsShowIslandWideCounts() {
+        when(settings.isSharedDimensionLimits()).thenReturn(true);
+        IslandBlockCount ibc = new IslandBlockCount("island", "BSkyBlock");
+        NamespacedKey hopper = Material.HOPPER.getKey();
+        for (int i = 0; i < 3; i++) ibc.add(Environment.NORMAL, hopper);
+        for (int i = 0; i < 7; i++) ibc.add(Environment.NETHER, hopper);
+        for (int i = 0; i < 4; i++) ibc.incrementEntity(Environment.NORMAL, EntityType.CHICKEN);
+        for (int i = 0; i < 2; i++) ibc.incrementEntity(Environment.THE_END, EntityType.CHICKEN);
+        when(settings.getLimits(Environment.NORMAL)).thenReturn(Map.of(EntityType.CHICKEN, 10));
+
+        LimitTab tab = new LimitTab(addon, ibc, Map.of(hopper, 10), world, user, Environment.NORMAL);
+
+        assertEquals("10", findCount(tab, "hopper"));
+        assertEquals("6", findCount(tab, "chicken"));
+        assertTrue(tab.getName().contains("All dimensions"), "Title was: " + tab.getName());
     }
 
     /**

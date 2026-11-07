@@ -9,6 +9,8 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.never;
 
 import java.util.List;
 import java.util.Map;
@@ -55,6 +57,43 @@ class SettingsTest {
     @AfterEach
     void tearDown() {
         MockBukkit.unmock();
+    }
+
+    @Test
+    void testSharedDimensionLimitsOnForNewInstalls() {
+        assertTrue(settings.isSharedDimensionLimits(), "the bundled config.yml turns it on");
+    }
+
+    @Test
+    void testSharedDimensionLimitsOffWhenMissingFromConfig() {
+        // Configs from before the setting existed keep separate limits per dimension
+        config.set("shared-dimension-limits", null);
+        assertFalse(new Settings(addon).isSharedDimensionLimits());
+    }
+
+    @Test
+    void testLimitEnv() {
+        assertEquals(Environment.NORMAL, Settings.limitEnv(Environment.NETHER, true));
+        assertEquals(Environment.NORMAL, Settings.limitEnv(Environment.THE_END, true));
+        assertEquals(Environment.NETHER, Settings.limitEnv(Environment.NETHER, false));
+        assertEquals(Environment.THE_END, Settings.limitEnv(Environment.THE_END, false));
+    }
+
+    @Test
+    void testSharedDimensionLimitsWarnsAboutIgnoredSections() {
+        config.set("blocklimits-nether.HOPPER", 5);
+        config.set("entitylimits-end.ENDERMAN", 2);
+        new Settings(addon);
+        verify(addon).logWarning(contains("blocklimits-nether"));
+        verify(addon).logWarning(contains("entitylimits-end"));
+    }
+
+    @Test
+    void testSeparateDimensionLimitsDoNotWarn() {
+        config.set("shared-dimension-limits", false);
+        config.set("blocklimits-nether.HOPPER", 5);
+        new Settings(addon);
+        verify(addon, never()).logWarning(contains("shared-dimension-limits"));
     }
 
     @Test

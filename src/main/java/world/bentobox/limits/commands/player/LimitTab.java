@@ -32,7 +32,8 @@ import world.bentobox.limits.Limits;
 import world.bentobox.limits.objects.IslandBlockCount;
 
 /**
- * One tab of the limits panel. Shows counts and limits for a single environment.
+ * One tab of the limits panel. Shows counts and limits for a single environment, or for the
+ * whole island when limits are shared across dimensions.
  *
  * @author tastybento
  */
@@ -82,6 +83,8 @@ public class LimitTab implements Tab {
     private final User user;
     private final Limits addon;
     private final Environment env;
+    /** True when limits are shared across dimensions, so counts are island-wide totals. */
+    private final boolean shared;
     private final List<@Nullable PanelItem> result;
 
     public LimitTab(Limits addon, IslandBlockCount ibc, Map<NamespacedKey, Integer> matLimits,
@@ -90,6 +93,7 @@ public class LimitTab implements Tab {
         this.world = world;
         this.user = user;
         this.env = env;
+        this.shared = addon.getSettings().isSharedDimensionLimits();
         result = new ArrayList<>();
         addMaterialIcons(ibc, matLimits);
         addBlockGroupIcons(ibc);
@@ -133,10 +137,9 @@ public class LimitTab implements Tab {
     }
 
     private int sumGroupCount(IslandBlockCount ibc, EntityGroup group) {
-        Map<EntityType, Integer> counts = ibc.getEntityCounts(env);
         int total = 0;
         for (EntityType t : group.getTypes()) {
-            total += counts.getOrDefault(t, 0);
+            total += ibc.getEntityCount(env, t, shared);
         }
         return total;
     }
@@ -165,7 +168,7 @@ public class LimitTab implements Tab {
                 m = Material.BARRIER;
             }
             pib.icon(m);
-            int count = ibc == null ? 0 : ibc.getEntityCount(env, k);
+            int count = ibc == null ? 0 : ibc.getEntityCount(env, k, shared);
             String color = count >= v ? user.getTranslation(MAX_COLOR_KEY)
                     : user.getTranslation(REGULAR_COLOR_KEY);
             pib.description(color + user.getTranslation(BLOCK_LIMIT_SYNTAX_KEY,
@@ -183,7 +186,7 @@ public class LimitTab implements Tab {
             Material mat = Registry.MATERIAL.get(B2M.getOrDefault(en.getKey(), en.getKey()));
             pib.icon(Objects.requireNonNullElse(mat, Material.PAPER));
 
-            int count = ibc == null ? 0 : ibc.getBlockCount(env, en.getKey());
+            int count = ibc == null ? 0 : ibc.getBlockCount(env, en.getKey(), shared);
             int value = en.getValue();
             String color = count >= value ? user.getTranslation(MAX_COLOR_KEY)
                     : user.getTranslation(REGULAR_COLOR_KEY);
@@ -207,7 +210,7 @@ public class LimitTab implements Tab {
                     .collect(Collectors.joining(", ")) + ")\n";
             pib.icon(g.getIcon());
             int count = ibc == null ? 0
-                    : g.getKeys().stream().mapToInt(k -> ibc.getBlockCount(env, k)).sum();
+                    : g.getKeys().stream().mapToInt(k -> ibc.getBlockCount(env, k, shared)).sum();
             String color = count >= limit ? user.getTranslation(MAX_COLOR_KEY)
                     : user.getTranslation(REGULAR_COLOR_KEY);
             description += color + user.getTranslation(BLOCK_LIMIT_SYNTAX_KEY,
@@ -236,6 +239,9 @@ public class LimitTab implements Tab {
     }
 
     private String envKey() {
+        if (shared) {
+            return "island.limits.panel.env-all";
+        }
         return switch (env) {
             case NETHER -> "island.limits.panel.env-nether";
             case THE_END -> "island.limits.panel.env-end";

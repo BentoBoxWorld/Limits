@@ -166,6 +166,14 @@ public class IslandBlockCount implements DataObject {
         return getBlockCounts(env).getOrDefault(key, 0);
     }
 
+    /**
+     * @param shared true to count across all environments, as shared dimension limits do
+     * @return the count of {@code key} in {@code env}, or across all environments when shared
+     */
+    public int getBlockCount(Environment env, NamespacedKey key, boolean shared) {
+        return shared ? getBlockCount(key) : getBlockCount(env, key);
+    }
+
     public int getBlockCount(NamespacedKey key) {
         int total = 0;
         for (Map<NamespacedKey, Integer> m : getAllBlockCounts().values()) {
@@ -287,6 +295,14 @@ public class IslandBlockCount implements DataObject {
 
     public int getEntityCount(Environment env, EntityType type) {
         return getEntityCounts(env).getOrDefault(type, 0);
+    }
+
+    /**
+     * @param shared true to count across all environments, as shared dimension limits do
+     * @return the count of {@code type} in {@code env}, or across all environments when shared
+     */
+    public int getEntityCount(Environment env, EntityType type, boolean shared) {
+        return shared ? getEntityCount(type) : getEntityCount(env, type);
     }
 
     public int getEntityCount(EntityType type) {
