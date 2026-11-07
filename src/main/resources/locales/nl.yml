@@ -49,13 +49,14 @@ island:
     block-limit-syntax: "[number]/[limit]"
     no-limits: "<red> Er zijn geen grenzen gesteld in deze wereld"
     panel:
-      title-syntax: "[title] [sort]"
+      title-syntax: "[title] [env]"
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
       env-overworld: "Bovenwereld"
       env-nether: "Nether"
       env-end: "Het Einde"
+      env-all: "Alle dimensies"
       A2Z: a > z
       Z2A: z > a
     errors:

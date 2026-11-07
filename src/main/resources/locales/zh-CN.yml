@@ -48,13 +48,14 @@ island:
     block-limit-syntax: "[number]/[limit]"
     no-limits: "<red> 这世上没有限制"
     panel:
-      title-syntax: "[title] [sort]"
+      title-syntax: "[title] [env]"
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
       env-overworld: "主世界"
       env-nether: "下界"
       env-end: "末地"
+      env-all: "所有维度"
       A2Z: a > z
       Z2A: z > a
     errors:

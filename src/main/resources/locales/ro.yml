@@ -49,13 +49,14 @@ island:
     block-limit-syntax: "[number]/[limit]"
     no-limits: "<red> Nu există limite stabilite în această lume"
     panel:
-      title-syntax: "[title] [sort]"
+      title-syntax: "[title] [env]"
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
       env-overworld: "Lumea de Suprafață"
       env-nether: "Nether"
       env-end: "End"
+      env-all: "Toate dimensiunile"
       A2Z: a > z
       Z2A: z > a
     errors:

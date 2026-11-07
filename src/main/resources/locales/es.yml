@@ -50,13 +50,14 @@ island:
     block-limit-syntax: "[number]/[limit]"
     no-limits: "<red> No hay límites establecidos en este mundo."
     panel:
-      title-syntax: "[title] [sort]"
+      title-syntax: "[title] [env]"
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
       env-overworld: "Superficie"
       env-nether: "Nether"
       env-end: "El End"
+      env-all: "Todas las dimensiones"
       A2Z: a > z
       Z2A: z > a
     errors:

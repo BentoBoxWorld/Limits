@@ -48,13 +48,14 @@ island:
     block-limit-syntax: "[number]/[limit]"
     no-limits: "<red> 이 세상에는 제한이 없습니다"
     panel:
-      title-syntax: "[title] [sort]"
+      title-syntax: "[title] [env]"
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
       env-overworld: "오버월드"
       env-nether: "네더"
       env-end: "디 엔드"
+      env-all: "모든 차원"
       A2Z: 가 > 지
       Z2A: 지 > 아
     errors:
