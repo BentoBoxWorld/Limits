@@ -14,6 +14,8 @@ admin:
       parameters: "<player|all> [entities]"
       description: přepočítat omezení ostrova hráče
       finished: "<green>Přepočítání ostrova úspěšně dokončeno!"
+      all-queued: "<aqua> Do přepočtu zařazeno [number] ostrovů. Přepočítávají se jeden po druhém, takže to může chvíli trvat..."
+      all-finished: "<green> Přepočet [number] ostrovů dokončen. Vypršel časový limit: [timeouts]."
     offset:
       unknown: "<red> Neznámý materiál nebo entita [name]."
       description: "umožňuje spravovat limity offsetů pro materiály a entity"
@@ -48,13 +50,15 @@ island:
     block-limit-syntax: "[number]/[limit]"
     no-limits: "<red> V tomto světě nejsou stanovena žádná omezení"
     panel:
-      title-syntax: "[title] [sort]"
+      title-syntax: "[title] [env]"
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
+      block-group-name-syntax: "[name]"
       env-overworld: "Přesvět"
       env-nether: "Nether"
       env-end: "Konec"
+      env-all: "Všechny dimenze"
       A2Z: a > z
       Z2A: z > a
     errors:

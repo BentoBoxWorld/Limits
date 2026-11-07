@@ -14,6 +14,8 @@ admin:
       parameters: "<pemain|all> [entities]"
       description: menghitung ulang batasan pulau untuk pemain
       finished: "<green>Penghitungan ulang pulau selesai tanpa masalah!"
+      all-queued: "<aqua> [number] pulau diantrekan untuk dihitung ulang. Pulau dihitung satu per satu, jadi ini mungkin memakan waktu..."
+      all-finished: "<green> Penghitungan ulang [number] pulau selesai. [timeouts] kehabisan waktu."
     offset:
       unknown: "<red> Material atau entitas tidak dikenal [name]."
       description: "memungkinkan untuk mengelola batas offset untuk material dan entitas"
@@ -49,13 +51,15 @@ island:
     block-limit-syntax: "[number]/[limit]"
     no-limits: "<red> Tidak ada batasan yang ditetapkan di dunia ini"
     panel:
-      title-syntax: "[title] [sort]"
+      title-syntax: "[title] [env]"
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
+      block-group-name-syntax: "[name]"
       env-overworld: "Dunia Atas"
       env-nether: "Nether"
       env-end: "End"
+      env-all: "Semua dimensi"
       A2Z: a > z
       Z2A: z > a
     errors:

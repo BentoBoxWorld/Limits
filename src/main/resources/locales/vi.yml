@@ -14,6 +14,8 @@ admin:
       parameters: "<người chơi|all> [entities]"
       description: tính toán lại giới hạn đảo của người chơi
       finished: "<green>Tính toán đã hoàn thành!"
+      all-queued: "<aqua> Đã xếp [number] đảo vào hàng đợi đếm lại. Các đảo được đếm lần lượt từng cái, nên việc này có thể mất một lúc..."
+      all-finished: "<green> Đã đếm lại xong [number] đảo. [timeouts] đảo hết thời gian chờ."
     offset:
       unknown: "<red> Tài liệu hoặc thực thể không xác định [name]."
       description: "cho phép quản lý các giới hạn bù trừ cho vật liệu và thực thể"
@@ -48,13 +50,15 @@ island:
     block-limit-syntax: "[number]/[limit]"
     no-limits: "<red> Không có giới hạn nào được đặt ra trên thế giới này"
     panel:
-      title-syntax: "[title] [sort]"
+      title-syntax: "[title] [env]"
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
+      block-group-name-syntax: "[name]"
       env-overworld: "Thế Giới Thường"
       env-nether: "Nether"
       env-end: "End"
+      env-all: "Tất cả chiều không gian"
       A2Z: a > z
       Z2A: z > a
     errors:

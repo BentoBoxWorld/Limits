@@ -14,6 +14,8 @@ admin:
       parameters: "<player|all> [entities]"
       description: Oyuncu için ada limitlerini tekrar hesapla.
       finished: "<green>Ada hesaplaması başarıyla yapıldı."
+      all-queued: "<aqua> [number] ada yeniden sayım için sıraya alındı. Adalar tek tek sayıldığı için bu biraz zaman alabilir..."
+      all-finished: "<green> [number] adanın yeniden sayımı tamamlandı. [timeouts] zaman aşımına uğradı."
     offset:
       unknown: "<red> Bilinmeyen malzeme veya varlık [name]."
       description: "malzemeler ve varlıklar için limit ofsetlerini yönetmeye olanak tanır"
@@ -49,13 +51,15 @@ island:
     block-limit-syntax: "<dark_purple>[number]<gray>/<yellow>[limit]"
     no-limits: "<red> Bu dünyada hiçbir sınır belirlenmedi"
     panel:
-      title-syntax: "[title] [sort]"
+      title-syntax: "[title] [env]"
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
+      block-group-name-syntax: "[name]"
       env-overworld: "Ana Dünya"
       env-nether: "Nether"
       env-end: "End"
+      env-all: "Tüm boyutlar"
       A2Z: a > z
       Z2A: z > a
     errors:

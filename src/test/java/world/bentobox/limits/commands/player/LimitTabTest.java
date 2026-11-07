@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
@@ -96,6 +97,7 @@ class LimitTabTest {
             case "island.limits.panel.env-overworld" -> "Overworld";
             case "island.limits.panel.env-nether" -> "Nether";
             case "island.limits.panel.env-end" -> "End";
+            case "island.limits.panel.env-all" -> "All dimensions";
             case "limits.panel-title" -> "Island limits";
             case "island.limits.block-limit-syntax" -> "[number]/[limit]";
             case "island.limits.max-color" -> "&c";
@@ -172,6 +174,41 @@ class LimitTabTest {
         assertTrue(netherTab.getName().contains("Nether"), "Title should contain 'Nether'; was: " + netherTab.getName());
         assertTrue(netherTab.getName().contains("Island limits"),
                 "Title should contain 'Island limits'; was: " + netherTab.getName());
+    }
+
+    @Test
+    void sharedLimitsShowIslandWideCounts() {
+        when(settings.isSharedDimensionLimits()).thenReturn(true);
+        IslandBlockCount ibc = new IslandBlockCount("island", "BSkyBlock");
+        NamespacedKey hopper = Material.HOPPER.getKey();
+        for (int i = 0; i < 3; i++) ibc.add(Environment.NORMAL, hopper);
+        for (int i = 0; i < 7; i++) ibc.add(Environment.NETHER, hopper);
+        for (int i = 0; i < 4; i++) ibc.incrementEntity(Environment.NORMAL, EntityType.CHICKEN);
+        for (int i = 0; i < 2; i++) ibc.incrementEntity(Environment.THE_END, EntityType.CHICKEN);
+        when(settings.getLimits(Environment.NORMAL)).thenReturn(Map.of(EntityType.CHICKEN, 10));
+
+        LimitTab tab = new LimitTab(addon, ibc, Map.of(hopper, 10), world, user, Environment.NORMAL);
+
+        assertEquals("10", findCount(tab, "hopper"));
+        assertEquals("6", findCount(tab, "chicken"));
+        assertTrue(tab.getName().contains("All dimensions"), "Title was: " + tab.getName());
+    }
+
+    @Test
+    void titleFillsTheOldSortPlaceholder() {
+        // A server's copied locale file from before 1.28.2 still says [sort]; BentoBox never updates it
+        when(user.getTranslation(any(World.class), eq("island.limits.panel.title-syntax"), any(String[].class)))
+                .thenAnswer(inv -> {
+                    Object[] all = inv.getArguments();
+                    Object[] vars = new Object[all.length - 2];
+                    System.arraycopy(all, 2, vars, 0, vars.length);
+                    return renderTranslation("[title] [sort]", vars);
+                });
+        IslandBlockCount ibc = new IslandBlockCount("island", "BSkyBlock");
+
+        LimitTab netherTab = new LimitTab(addon, ibc, Collections.emptyMap(), world, user, Environment.NETHER);
+
+        assertEquals("Island limits Nether", netherTab.getName());
     }
 
     /**

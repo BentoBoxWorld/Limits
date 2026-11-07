@@ -14,6 +14,8 @@ admin:
       parameters: "<player|all> [entities]"
       description: Berechne die Insel Limitierungen für den Spieler neu
       finished: "<green>Inselberechnung erfolgreich abgeschlossen!"
+      all-queued: "<aqua> [number] Inseln zur Neuzählung eingereiht. Sie werden nacheinander gezählt, das kann eine Weile dauern..."
+      all-finished: "<green> Neuzählung von [number] Inseln abgeschlossen. [timeouts] mit Zeitüberschreitung."
     offset:
       unknown: "<red> Unbekanntes Material oder Entität [name]."
       description: "ermöglicht die Verwaltung von Grenzwertverschiebungen für Materialien und Entitäten"
@@ -49,13 +51,15 @@ island:
     block-limit-syntax: "[number]/[limit]"
     no-limits: "<red> Es gibt keine Grenzen in dieser Welt"
     panel:
-      title-syntax: "[title] [sort]"
+      title-syntax: "[title] [env]"
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
+      block-group-name-syntax: "[name]"
       env-overworld: "Oberwelt"
       env-nether: "Nether"
       env-end: "Ende"
+      env-all: "Alle Dimensionen"
       A2Z: a > z
       Z2A: z > a
     errors:

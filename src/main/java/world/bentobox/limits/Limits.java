@@ -317,40 +317,44 @@ public class Limits extends Addon {
             Set<String> reached) {
         getBlockLimitListener().getMaterialLimits(worldForEnv(gm, env), is.getUniqueId())
                 .forEach((key, limit) -> {
-                    if (limit >= 0 && ibc.getBlockCount(env, key) >= limit) {
+                    if (limit >= 0 && ibc.getBlockCount(env, key, getSettings().isSharedDimensionLimits()) >= limit) {
                         reached.add(Util.prettifyText(key.getKey()));
                     }
                 });
     }
 
     private void addReachedEntityLimits(IslandBlockCount ibc, Environment env, Set<String> reached) {
-        Map<EntityType, Integer> defaults = getSettings().getLimits(env);
+        boolean shared = getSettings().isSharedDimensionLimits();
+        Environment limitEnv = Settings.limitEnv(env, shared);
+        Map<EntityType, Integer> defaults = getSettings().getLimits(limitEnv);
         for (EntityType type : EntityType.values()) {
-            int limit = ibc.getEntityLimit(env, type);
+            int limit = ibc.getEntityLimit(limitEnv, type);
             if (limit < 0) {
                 limit = defaults.getOrDefault(type, -1);
             }
             if (limit < 0) {
                 continue;
             }
-            limit += ibc.getEntityLimitOffset(env, type);
-            if (ibc.getEntityCount(env, type) >= limit) {
+            limit += ibc.getEntityLimitOffset(limitEnv, type);
+            if (ibc.getEntityCount(env, type, shared) >= limit) {
                 reached.add(Util.prettifyText(type.toString()));
             }
         }
     }
 
     private void addReachedGroupLimits(IslandBlockCount ibc, Environment env, Set<String> reached) {
+        boolean shared = getSettings().isSharedDimensionLimits();
+        Environment limitEnv = Settings.limitEnv(env, shared);
         for (EntityGroup group : getSettings().getGroupLimitDefinitions()) {
-            int limit = ibc.getEntityGroupLimit(env, group.getName());
+            int limit = ibc.getEntityGroupLimit(limitEnv, group.getName());
             if (limit < 0) {
-                limit = getSettings().getGroupLimits(env).getOrDefault(group.getName(), -1);
+                limit = getSettings().getGroupLimits(limitEnv).getOrDefault(group.getName(), -1);
             }
             if (limit < 0) {
                 continue;
             }
-            limit += ibc.getEntityGroupLimitOffset(env, group.getName());
-            long count = group.getTypes().stream().mapToLong(t -> ibc.getEntityCount(env, t)).sum();
+            limit += ibc.getEntityGroupLimitOffset(limitEnv, group.getName());
+            long count = group.getTypes().stream().mapToLong(t -> ibc.getEntityCount(env, t, shared)).sum();
             if (count >= limit) {
                 reached.add(group.getName());
             }
@@ -467,7 +471,7 @@ public class Limits extends Addon {
         int limit = getBlockLimitListener().getMaterialLimits(w, is.getUniqueId()).getOrDefault(m, -1);
         if (limit > 0) {
             IslandBlockCount ibc = getBlockLimitListener().getIsland(is);
-            int offset = ibc.getBlockLimitOffset(env == null ? Environment.NORMAL : env, m);
+            int offset = ibc.getBlockLimitOffset(limitEnvFor(env), m);
             limit -= offset;
         }
         return limit == -1 ? LIMIT_NOT_SET : String.valueOf(limit);
@@ -477,7 +481,7 @@ public class Limits extends Addon {
         Island is = gm.getIslands().getIsland(gm.getOverWorld(), user);
         if (is == null) return LIMIT_NOT_SET;
         IslandBlockCount ibc = getBlockLimitListener().getIsland(is);
-        Environment effective = env == null ? Environment.NORMAL : env;
+        Environment effective = limitEnvFor(env);
         int limit = ibc.getEntityLimit(effective, e);
         if (limit < 0) {
             Map<EntityType, Integer> envLimits = getSettings().getLimits(effective);
@@ -488,11 +492,19 @@ public class Limits extends Addon {
 
     private String getBaseLimit(@Nullable User user, EntityType e, GameModeAddon gm, @Nullable Environment env) {
         Island is = gm.getIslands().getIsland(gm.getOverWorld(), user);
-        Environment effective = env == null ? Environment.NORMAL : env;
-        Map<EntityType, Integer> envLimits = getSettings().getLimits(effective);
+        Map<EntityType, Integer> envLimits = getSettings().getLimits(limitEnvFor(env));
         if (is == null || !envLimits.containsKey(e)) return LIMIT_NOT_SET;
         int limit = envLimits.get(e);
         return limit == -1 ? LIMIT_NOT_SET : String.valueOf(limit);
+    }
+
+    /**
+     * @param env a placeholder's environment, or {@code null} for the unsuffixed placeholder
+     * @return the environment whose limits the placeholder shows: the overworld for the unsuffixed
+     *         placeholder or when limits are shared across dimensions
+     */
+    private Environment limitEnvFor(@Nullable Environment env) {
+        return Settings.limitEnv(env == null ? Environment.NORMAL : env, getSettings().isSharedDimensionLimits());
     }
 
     private World worldForEnv(GameModeAddon gm, @Nullable Environment env) {
