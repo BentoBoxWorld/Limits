@@ -14,6 +14,8 @@ admin:
       parameters: "<玩家|all> [entities]"
       description: 重新計算玩家的島嶼限制
       finished: "<green> 島嶼重新計算成功完成！"
+      all-queued: "<aqua> 已將 [number] 個島嶼加入重新計數佇列。島嶼會逐一重新計數，可能需要一些時間..."
+      all-finished: "<green> [number] 個島嶼已完成重新計數。[timeouts] 個逾時。"
     offset:
       unknown: "<red> 未知材料或實體[name]。"
       description: "允許管理材料和實體的限制偏移"
@@ -52,6 +54,7 @@ island:
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
+      block-group-name-syntax: "[name]"
       env-overworld: "主世界"
       env-nether: "下界"
       env-end: "終界"

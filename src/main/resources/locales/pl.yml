@@ -14,6 +14,8 @@ admin:
       parameters: "<gracz|all> [entities]"
       description: ponownie oblicza limity wyspy dla gracza
       finished: "<green>Przeliczanie zakończone!"
+      all-queued: "<aqua> Dodano [number] wysp do kolejki ponownego przeliczenia. Są przeliczane po kolei, więc może to chwilę potrwać..."
+      all-finished: "<green> Zakończono przeliczanie [number] wysp. Przekroczono limit czasu: [timeouts]."
     offset:
       unknown: "<red> Nieznany materiał lub podmiot [name]."
       description: "pozwala zarządzać limitów dla materiałów i podmiotów,"
@@ -52,6 +54,7 @@ island:
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
+      block-group-name-syntax: "[name]"
       env-overworld: "Świat Powierzchniowy"
       env-nether: "Nether"
       env-end: "Kraj"

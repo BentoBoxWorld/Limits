@@ -14,6 +14,8 @@ admin:
       parameters: "<player|all> [entities]"
       description: Egy játékos sziget limitjének újraszámolása
       finished: "<green>A Sziget újraszámolás sikeresen befejeződött!"
+      all-queued: "<aqua> [number] sziget újraszámlálásra sorba állítva. Egyenként számoljuk őket, így ez eltarthat egy ideig..."
+      all-finished: "<green> [number] sziget újraszámlálása befejeződött. [timeouts] időtúllépéssel."
     offset:
       unknown: "<red> Ismeretlen anyag vagy entitás [name]."
       description: "lehetővé teszi az anyagok és entitások limiteltolásainak kezelését"
@@ -52,6 +54,7 @@ island:
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
+      block-group-name-syntax: "[name]"
       env-overworld: "Felvilág"
       env-nether: "Nether"
       env-end: "Vég"

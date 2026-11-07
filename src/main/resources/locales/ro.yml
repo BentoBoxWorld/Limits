@@ -14,6 +14,8 @@ admin:
       parameters: "<jucator|all> [entities]"
       description: recalculeaza limitele insulei pentru jocator
       finished: "<green>Recalcularea insulei terminata cu succes!"
+      all-queued: "<aqua> [number] insule puse în coadă pentru renumărare. Sunt renumărate pe rând, așa că poate dura ceva timp..."
+      all-finished: "<green> Renumărarea a [number] insule s-a încheiat. [timeouts] au depășit timpul limită."
     offset:
       unknown: "<red> Material sau entitate necunoscută [name]."
       description: "permite gestionarea decalajelor de limite pentru materiale și entități"
@@ -53,6 +55,7 @@ island:
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
+      block-group-name-syntax: "[name]"
       env-overworld: "Lumea de Suprafață"
       env-nether: "Nether"
       env-end: "End"

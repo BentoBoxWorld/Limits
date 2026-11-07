@@ -14,6 +14,8 @@ admin:
       parameters: "<spēlētājs|all> [entities]"
       description: pārrēķinā salas ierobežojumus priekš spēlētāja
       finished: "<green>Salas ierobežojumu pārrēķināšana pabeigta!"
+      all-queued: "<aqua> [number] salas ievietotas pārskaitīšanas rindā. Tās tiek pārskaitītas pa vienai, tāpēc tas var aizņemt kādu laiku..."
+      all-finished: "<green> [number] salu pārskaitīšana pabeigta. Noildze: [timeouts]."
     offset:
       unknown: un c Nezināms materiāls vai vienība [name].
       description: "ļauj pārvaldīt limitu kompensācijas materiāliem un entītijām"
@@ -52,6 +54,7 @@ island:
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
+      block-group-name-syntax: "[name]"
       env-overworld: "Virszeme"
       env-nether: "Nether"
       env-end: "Gals"

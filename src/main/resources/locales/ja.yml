@@ -13,6 +13,8 @@ admin:
       parameters: "<プレイヤー|all> [entities]"
       description: プレイヤーの島の制限を再計算します
       finished: '<green> 島の再計算が正常に完了しました!'
+      all-queued: "<aqua> [number] 個の島を再集計キューに追加しました。1つずつ再集計するため、時間がかかる場合があります..."
+      all-finished: "<green> [number] 個の島の再集計が完了しました。タイムアウト: [timeouts]"
     offset:
       unknown: '<red> 不明な素材または実体 [name]。'
       description: "材料とエンティティの制限オフセットを管理できます"
@@ -49,6 +51,7 @@ island:
       entity-group-name-syntax: '[name]'
       entity-name-syntax: '[name]'
       block-name-syntax: '[name]'
+      block-group-name-syntax: "[name]"
       env-overworld: "オーバーワールド"
       env-nether: "ネザー"
       env-end: "ジ・エンド"

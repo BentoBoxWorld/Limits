@@ -14,6 +14,8 @@ admin:
       parameters: "<гравець|all> [entities]"
       description: перерахувати обмеження острова для гравця
       finished: Перерахунок острова успішно завершено!
+      all-queued: "<aqua> [number] островів додано в чергу на перерахунок. Вони перераховуються по одному, тож це може зайняти деякий час..."
+      all-finished: "<green> Перерахунок [number] островів завершено. Час очікування вичерпано: [timeouts]."
     offset:
       unknown: "<red> Невідомий матеріал або сутність [name]."
       description: "дозволяє керувати зсувами лімітів для матеріалів і сутностей"
@@ -52,6 +54,7 @@ island:
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
+      block-group-name-syntax: "[name]"
       env-overworld: "Звичайний світ"
       env-nether: "Незер"
       env-end: "Край"

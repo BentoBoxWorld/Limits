@@ -14,6 +14,8 @@ admin:
       parameters: "<玩家|all> [entities]"
       description: 重新计算玩家的岛屿限制
       finished: "<green>岛屿重计算已完成!"
+      all-queued: "<aqua> 已将 [number] 个岛屿加入重新计数队列。岛屿会逐个重新计数，可能需要一些时间..."
+      all-finished: "<green> [number] 个岛屿已完成重新计数。[timeouts] 个超时。"
     offset:
       unknown: "<red> 未知物质或实体 [name]。"
       description: "允许管理材料和实体的限制偏移"
@@ -52,6 +54,7 @@ island:
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
+      block-group-name-syntax: "[name]"
       env-overworld: "主世界"
       env-nether: "下界"
       env-end: "末地"

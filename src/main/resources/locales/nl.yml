@@ -14,6 +14,8 @@ admin:
       parameters: "<speler|all> [entities]"
       description: herbereken de eilandlimieten voor de speler
       finished: "<green> Eiland herberekening succesvol afgerond!"
+      all-queued: "<aqua> [number] eilanden in de wachtrij gezet voor hertelling. Ze worden één voor één geteld, dus dit kan even duren..."
+      all-finished: "<green> Hertelling van [number] eilanden voltooid. [timeouts] time-outs."
     offset:
       unknown: "<red> Onbekend materiaal of entiteit [name]."
       description: "maakt het mogelijk om limietoffsets voor materialen en entiteiten te beheren"
@@ -53,6 +55,7 @@ island:
       entity-group-name-syntax: "[name]"
       entity-name-syntax: "[name]"
       block-name-syntax: "[name]"
+      block-group-name-syntax: "[name]"
       env-overworld: "Bovenwereld"
       env-nether: "Nether"
       env-end: "Het Einde"
