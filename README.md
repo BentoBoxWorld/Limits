@@ -1,4 +1,8 @@
 # Limits
+
+<!-- BentoBox stats badges: https://download.bentobox.world/admin (Badges tab) -->
+[![Servers](https://download.bentobox.world/badge/Limits/servers.svg)](https://download.bentobox.world/) [![Downloads](https://download.bentobox.world/badge/Limits/downloads.svg)](https://download.bentobox.world/) [![Minecraft](https://download.bentobox.world/badge/Limits/mc.svg)](https://download.bentobox.world/)
+
 [![Build Status](https://ci.codemc.org/buildStatus/icon?job=BentoBoxWorld/Limits)](https://ci.codemc.org/job/BentoBoxWorld/job/Limits/)
 
 Add-on for BentoBox to limit island blocks and entities in GameModes like  BSkyBlock and AcidIsland. This add-on will work
